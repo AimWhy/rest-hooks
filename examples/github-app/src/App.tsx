@@ -1,10 +1,12 @@
-import { memo } from 'react';
 import { MatchedRoute } from '@anansi/router';
 import { Layout } from 'antd';
-import Boundary from 'Boundary';
+import { memo } from 'react';
+
+import Boundary from '@/Boundary';
+import NavBar from '@/navigation/NavBar';
+
 import 'antd/dist/reset.css';
-import 'style/main.scss';
-import NavBar from 'navigation/NavBar';
+import 'style/main.css';
 
 const { Content } = Layout;
 

@@ -1,9 +1,10 @@
 import { Link, useShowLoading } from '@anansi/router';
-import { AsyncBoundary, useCache, useSuspense } from '@rest-hooks/react';
-import { Layout, Menu, Spin, Affix } from 'antd';
+import { AsyncBoundary, useCache, useSuspense } from '@data-client/react';
+import { Layout, Menu, Spin, Affix, MenuProps } from 'antd';
 import { Avatar } from 'antd';
 import { memo, useContext, useMemo, useState } from 'react';
-import UserResource from 'resources/User';
+
+import UserResource from '@/resources/User';
 
 import { authdContext } from './authdContext';
 import LoginModal from './LoginModal';
@@ -17,19 +18,19 @@ function NavBar() {
   const { logout } = useContext(authdContext);
 
   const menuItems = useMemo(() => {
-    const items = [
+    const items: MenuProps['items'] = [
       {
         key: 'home',
         label: <Link name="Home">React Issues</Link>,
       },
       {
-        key: 'rest-hooks',
+        key: 'data-client',
         label: (
           <Link
             name="IssueList"
-            props={{ repo: 'rest-hooks', owner: 'data-client' }}
+            props={{ repo: 'data-client', owner: 'reactive' }}
           >
-            Rest Hooks Issues
+            Data Client Issues
           </Link>
         ),
       },

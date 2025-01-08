@@ -1,30 +1,21 @@
 ---
-title: '<AsyncBoundary />'
+title: AsyncBoundary - Centralize loading and error handling
+sidebar_label: <AsyncBoundary />
+description: Handles loading and error conditions of Suspense.
 ---
 
 <head>
-  <title>&lt;AsyncBoundary /&gt; - Handle asynchronous loading and error conditions</title>
   <meta name="docsearch:pagerank" content="20"/>
 </head>
 
+import AsyncBoundaryExamples from '../shared/\_AsyncBoundary.mdx';
+
+
+# &lt;AsyncBoundary />
+
 Handles loading and error conditions of Suspense.
 
-In React 18, this will create a concurrent split, and in 16 and 17 it will show loading fallbacks. If there is an
-irrecoverable API error, it will show an error fallback.
-
-```tsx
-function AsyncBoundary({
-  children,
-  errorComponent,
-  fallback,
-}: {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-  errorComponent?: React.ComponentType<{
-    error: NetworkError;
-  }>;
-}): JSX.Element;
-```
+In React 18, this will create a [concurrent split](https://react.dev/reference/react/useTransition), and in 16 and 17 it will show loading fallbacks. If there is an irrecoverable error, it will show an error fallback.
 
 :::tip
 
@@ -32,53 +23,112 @@ Learn more about boundary placement by learning how to [co-locate data dependenc
 
 :::
 
-## Example
+## Usage
 
-```tsx
-import React from 'react';
-import { AsyncBoundary } from '@rest-hooks/react';
+Place `AsyncBoundary` [at or above navigational boundaries](../getting-started/data-dependency.md#boundaries) like **pages, routes, or modals**.
 
-export default function MyPage() {
-  return (
-    <AsyncBoundary>
-      <SuspendingComponent />
-    </AsyncBoundary>
-  );
-}
+<AsyncBoundaryExamples />
 
+Then [useSuspense()](./useSuspense.md) in the components that render the data. Any errors or loading state
+from *any* descendant of the `<AsyncBoundary />` will be rendered at the `<AsyncBoundary />`. This consolidation
+of fallback UI improves performance and usability.
+
+```ts
 function SuspendingComponent() {
-  const data = useSuspense(MyEndpoint);
+  const data = useSuspense(getMyThing);
 
-  return <div>{data.text}</div>
+  return <div>{data.text}</div>;
 }
 ```
 
-## Custom fallback example {#custom-fallback}
+## Props
+
+```ts
+interface BoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+  errorClassName?: string;
+  errorComponent?: React.ComponentType<{
+    error: NetworkError;
+    resetErrorBoundary: () => void;
+    className?: string;
+  }>;
+  listen?: (resetListener: () => void) => () => void;
+}
+```
+
+### fallback
+
+Any renderable (React Node) element to show when loading
+
+### errorComponent
+
+Component to handle caught errors
+
+#### Custom fallback example {#custom-fallback}
 
 ```tsx
 import React from 'react';
-import { CacheProvider, AsyncBoundary, NetworkError } from '@rest-hooks/react';
+import { DataProvider, AsyncBoundary } from '@data-client/react';
 
-function ErrorPage({ error }: { error: NetworkError }) {
+function ErrorPage({
+  error,
+  className,
+  resetErrorBoundary,
+}: {
+  error: Error;
+  resetErrorBoundary: () => void;
+  className?: string;
+}) {
   return (
-    <div>
-      {error.status} {error.response && error.response.statusText}
-    </div>
+    <pre role="alert" className={className}>
+      {error.message} <button onClick={resetErrorBoundary}>Reset</button>
+    </pre>
   );
 }
 
 export default function App() {
   return (
-    <CacheProvider>
+    <DataProvider>
       <AsyncBoundary fallback="loading" errorComponent={ErrorPage}>
         <Router />
       </AsyncBoundary>
-    </CacheProvider>
+    </DataProvider>
   );
 }
 ```
 
-Note: Once `<AsyncBoundary />` catches an error it will only render the fallback
-until it is remounted. To get around this you'll likely want to place the boundary at
-locations that will cause remounts when the error should be cleared. This is usually
-below the route itself.
+### errorClassName
+
+`className` to forward to [errorComponent](#errorcomponent)
+
+### listen
+
+Subscription handler to reset error state on events like URL location changes. This is great
+for placing a boundary to wrap routing components.
+
+An example using [Anansi Router](https://www.npmjs.com/package/@anansi/router), which uses
+[history](https://www.npmjs.com/package/history) subscription.
+
+```tsx
+import { useController } from '@anansi/router';
+import { AsyncBoundary } from '@data-client/react';
+
+function App() {
+  const { history } = useController();
+  return (
+    <div>
+      <nav>
+        <Link name="Home">Coin App</Link>
+      </nav>
+      <main>
+        // highlight-start
+        <AsyncBoundary listen={history.listen}>
+          <MatchedRoute index={0} />
+        </AsyncBoundary>
+        // highlight-end
+      </main>
+    </div>
+  );
+}
+```

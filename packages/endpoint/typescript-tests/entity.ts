@@ -1,4 +1,4 @@
-import { normalize, denormalize } from '@rest-hooks/normalizr';
+import { normalize, denormalize } from '@data-client/normalizr';
 
 import { schema, Entity, AbstractInstanceType } from '../src';
 
@@ -53,10 +53,10 @@ const data = {
 const user = User;
 const tweet = Tweet;
 
-const normalizedData = normalize(data, tweet);
+const normalizedData = normalize(tweet, data);
 const denormalizedData = denormalize(
-  normalizedData.result,
   tweet,
+  normalizedData.result,
   normalizedData.entities,
 );
 

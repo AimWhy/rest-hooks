@@ -1,152 +1,208 @@
 ---
-title: Pagination
+title: Pagination of REST data with Reactive Data Client
+sidebar_label: Pagination
 ---
 
 <head>
-  <title>Paginating REST data</title>
+  <meta name="docsearch:pagerank" content="10"/>
 </head>
 
-## Infinite Scrolling
+import StackBlitz from '@site/src/components/StackBlitz';
+import HooksPlayground from '@site/src/components/HooksPlayground';
+import PaginationDemo from '../../core/shared/\_pagination.mdx';
+
+# Rest Pagination
+
+## Expanding Lists
 
 In case you want to append results to your existing list, rather than move to another page
-[RestEndpoint.paginated()](api/RestEndpoint.md#paginated) can be used.
+[Resource.getList.getPage](../api/resource.md#getpage) can be used as long as [paginationField](../api/resource.md#paginationfield) was provided.
 
-```typescript title="api/News.ts"
-import { Entity, createResource } from '@rest-hooks/rest';
+<PaginationDemo />
 
-export class News extends Entity {
-  readonly id: string | undefined = undefined;
-  readonly title = '';
-  readonly url = '';
-  readonly previewImage = '';
+Don't forget to define our [Resource's](../api/resource.md) [paginationField](../api/resource.md#paginationfield) and
+correct [schema](../api/resource.md#schema)!
+
+```ts title="Post"
+export const PostResource = resource({
+  path: '/posts/:id',
+  schema: Post,
+  // highlight-next-line
+  paginationField: 'cursor',
+}).extend('getList', {
+  // highlight-next-line
+  schema: { posts: new schema.Collection([Post]), cursor: '' },
+});
+```
+
+### Github Issues Demo
+
+Our `NextPage` component has a click handler that calls [RestEndpoint.getPage](../api/RestEndpoint.md#getpage).
+Scroll to the bottom of the preview to click _"Load more"_ to append the next page of issues.
+
+<StackBlitz app="github-app" file="src/resources/Issue.tsx,src/pages/NextPage.tsx" height={700} />
+
+### Using RestEndpoint Directly
+
+Here we explore a real world example using [cosmos validators list](https://rest.cosmos.directory/stargaze/cosmos/staking/v1beta1/validators).
+
+Since validators only have one Endpoint, we use [RestEndpoint](../api/RestEndpoint.md) instead of [resource](../api/resource.md). By using [Collections](../api/Collection.md) and [paginationField](../api/RestEndpoint.md#paginationfield), we can call [RestEndpoint.getPage](../api/RestEndpoint.md#getpage)
+to append the next page of validators to our list.
+
+<HooksPlayground defaultOpen="n" row>
+
+```ts title="Validator" {46-50} collapsed
+import { Entity, RestEndpoint, schema } from '@data-client/rest';
+
+export class Validator extends Entity {
+  operator_address = '';
+  consensus_pubkey = { '@type': '', key: '' };
+  jailed = false;
+  status = 'BOND_STATUS_BONDED';
+  tokens = '0';
+  delegator_shares = '0';
+  description = {
+    moniker: '',
+    identity: '',
+    website: 'https://fake.com',
+    security_contact: '',
+    details: '',
+  };
+  unbonding_height = '0';
+  unbonding_time = Temporal.Instant.fromEpochSeconds(0);
+  comission = {
+    commission_rates: { rate: 0, max_rate: 0, max_change_rate: 0 },
+    update_time: Temporal.Instant.fromEpochSeconds(0),
+  };
+  min_self_delegation = '0';
 
   pk() {
-    return this.id;
+    return this.operator_address;
   }
+
+  static schema = {
+    unbonding_time: Temporal.Instant.from,
+    comission: {
+      commission_rates: {
+        rate: Number,
+        max_rate: Number,
+        max_change_rate: Number,
+      },
+      update_time: Temporal.Instant.from,
+    },
+  };
 }
-const BaseNewsResource = createResource({
-  path: '/news/:id',
-  schema: News,
+
+export const getValidators = new RestEndpoint({
+  urlPrefix: 'https://rest.cosmos.directory',
+  path: '/stargaze/cosmos/staking/v1beta1/validators',
+  searchParams: {} as { 'pagination.limit': string },
+  paginationField: 'pagination.key',
+  schema: {
+    validators: new schema.Collection([Validator]),
+    pagination: { next_key: '', total: '' },
+  },
 });
-// custom schema
-const getList = BaseNewsResource.getList.extend({
-  schema: { results: [News], cursor: '' },
-});
-// this creates a pagination endpoint that will extend the getList endpoint
-const getNextPage = getList.paginated(
-  ({ cursor, ...rest }: { cursor: string | number }) =>
-    (Object.keys(rest).length ? [rest] : []) as any,
-);
-export const NewsResource = {
-  ...BaseNewsResource,
-  getList,
-  getNextPage,
-};
 ```
+
+```tsx title="ValidatorItem" collapsed
+import { type Validator } from './Validator';
+
+export default function ValidatorItem({ validator }: Props) {
+  return (
+    <div className="listItem spaced">
+      <div>
+        <h4>{validator.description.moniker}</h4>
+        <small>
+          <a href={validator.description.website} target="_blank">
+            {validator.description.website}
+          </a>
+        </small>
+        <p>{validator.description.details}</p>
+      </div>
+    </div>
+  );
+}
+
+interface Props {
+  validator: Validator;
+}
+```
+
+```tsx title="LoadMore" {8-11}
+import { useController, useLoading } from '@data-client/react';
+import { getValidators } from './Validator';
+
+export default function LoadMore({ next_key, limit }) {
+  const ctrl = useController();
+  const [handleLoadMore, isPending] = useLoading(
+    () =>
+      ctrl.fetch(getValidators.getPage, {
+        'pagination.limit': limit,
+        'pagination.key': next_key,
+      }),
+    [next_key, limit],
+  );
+  if (!next_key) return null;
+  return (
+    <center>
+      <button onClick={handleLoadMore} disabled={isPending}>
+        {isPending ? '...' : 'Load more'}
+      </button>
+    </center>
+  );
+}
+```
+
+```tsx title="ValidatorList" collapsed
+import { useSuspense } from '@data-client/react';
+import ValidatorItem from './ValidatorItem';
+import { getValidators } from './Validator';
+import LoadMore from './LoadMore';
+
+const PAGE_LIMIT = '3';
+
+export default function ValidatorList() {
+  const { validators, pagination } = useSuspense(getValidators, {
+    'pagination.limit': PAGE_LIMIT,
+  });
+
+  return (
+    <div>
+      {validators.map(validator => (
+        <ValidatorItem key={validator.pk()} validator={validator} />
+      ))}
+      <LoadMore next_key={pagination.next_key} limit={PAGE_LIMIT} />
+    </div>
+  );
+}
+render(<ValidatorList />);
+```
+
+</HooksPlayground>
+
+### Infinite Scrolling
 
 Since UI behaviors vary widely, and implementations vary from platform (react-native or web),
 we'll just assume a `Pagination` component is built, that uses a callback to trigger next
 page fetching. On web, it is recommended to use something based on [Intersection Observers](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
 
 ```tsx
-import { useSuspense, useController } from '@rest-hooks/react';
-import { NewsResource } from 'api/News';
+import { useSuspense, useController } from '@data-client/react';
+import { PostResource } from 'resources/Post';
 
 function NewsList() {
-  const { results, cursor } = useSuspense(NewsResource.getList);
+  const { results, cursor } = useSuspense(PostResource.getList);
   const ctrl = useController();
 
   return (
     <Pagination
-      onPaginate={() => ctrl.fetch(NewsResource.getNextPage, { cursor })}
+      onPaginate={() =>
+        ctrl.fetch(PostResource.getList.getPage, { cursor })
+      }
     >
       <NewsList data={results} />
     </Pagination>
-  );
-}
-```
-
-## Tokens in Body
-
-A common way APIs deal with pagination is the list view will return an object with both pagination information
-and the Array of results as another member.
-
-```json title="GET http://test.com/article/?page=abcd"
-{
-  "nextPage": null,
-  "prevPage": "http://test.com/article/?page=aedcba",
-  "results": [
-    {
-      "id": 5,
-      "content": "have a merry christmas",
-      "author": 2,
-      "contributors": []
-    },
-    {
-      "id": 532,
-      "content": "never again",
-      "author": 23,
-      "contributors": [5]
-    }
-  ]
-}
-```
-
-To deal with our specific endpoint, we'll need to customize the [RestEndpoint](api/RestEndpoint.md) of lists to
-understand how to normalize the results (via schema). Be sure to provide defaults in your schema for any members
-that aren't entities.
-
-```typescript title="api/Article.ts"
-import { Entity } from '@rest-hooks/rest';
-import { User } from 'api';
-
-export class Article extends Entity {
-  readonly id: number | undefined = undefined;
-  readonly content: string = '';
-  readonly author: number | null = null;
-  readonly contributors: number[] = [];
-
-  pk() {
-    return this.id?.toString();
-  }
-}
-
-const BaseArticleResource = createResource({
-  urlPrefix: 'http://test.com',
-  path: '/article/:id',
-  schema: Article,
-});
-export const ArticleResource = {
-  ...BaseArticleResource,
-  getList: BaseArticleResource.getList.extend({
-    schema: { results: [Article], nextPage: '', prevPage: '' },
-  }),
-};
-```
-
-Now we can use `getList` to get not only the articles, but also our `nextPage`
-and `prevPage` values. We can use those tokens to define our pagination buttons.
-
-```tsx title="ArticleList.tsx"
-import { useSuspense } from '@rest-hooks/react';
-import ArticleResource from 'resources/ArticleResource';
-
-export default function ArticleList() {
-  const {
-    results: articles,
-    nextPage,
-    prevPage,
-  } = useSuspense(ArticleResource.getList);
-  return (
-    <>
-      <div>
-        {articles.map(article => (
-          <Article key={article.pk()} article={article} />
-        ))}
-      </div>
-      {prevPage && <Link to={prevPage}>‹ Prev</Link>}
-      {nextPage && <Link to={nextPage}>Next ›</Link>}
-    </>
   );
 }
 ```
@@ -155,21 +211,23 @@ export default function ArticleList() {
 
 In some cases the pagination tokens will be embeded in HTTP headers, rather than part of the payload. In this
 case you'll need to customize the [parseResponse()](api/RestEndpoint.md#parseResponse) function
-for [getList](api/createResource.md#getlist) so the pagination headers are included fetch object.
+for [getList](api/resource.md#getlist) so the pagination headers are included fetch object.
 
 We show the custom `getList` below. All other parts of the above example remain the same.
 
 Pagination token is stored in the header `link` for this example.
 
 ```typescript
-import { Resource } from '@rest-hooks/rest';
+import { Resource } from '@data-client/rest';
 
-export const ArticleResource = {
-  ...BaseArticleResource,
-  getList: BaseArticleResource.getList.extend({
+export const ArticleResource = resource({
+  path: '/articles/:id',
+  schema: Article,
+}).extend(Base => ({
+  getList: Base.getList.extend({
     schema: { results: [Article], link: '' },
     async parseResponse(response: Response) {
-      const results = await BaseArticleResource.getList.parseResponse(response);
+      const results = await Base.getList.parseResponse(response);
       if (
         (response.headers && response.headers.has('link')) ||
         Array.isArray(results)
@@ -182,16 +240,16 @@ export const ArticleResource = {
       return results;
     },
   }),
-};
+}));
 ```
 
-## Code organization
+### Code organization
 
 If much of your API share a similar pagination, you might
 try a custom Endpoint class that shares this logic.
 
-```ts title="api/PagingEndpoint.ts"
-import { RestEndpoint, type RestGenerics } from '@rest-hooks/rest';
+```ts title="resources/PagingEndpoint.ts"
+import { RestEndpoint, type RestGenerics } from '@data-client/rest';
 
 export class PagingEndpoint<
   O extends RestGenerics = any,
@@ -212,12 +270,12 @@ export class PagingEndpoint<
 }
 ```
 
-```ts title="api/My.ts"
-import { createResource, Entity } from '@rest-hooks/rest';
+```ts title="resources/MyResource.ts"
+import { resource, Entity } from '@data-client/rest';
 
 import { PagingEndpoint } from './PagingEndpoint';
 
-export const MyResource = createResource({
+export const MyResource = resource({
   path: '/stuff/:id',
   schema: MyEntity,
   Endpoint: PagingEndpoint,

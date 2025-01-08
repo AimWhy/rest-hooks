@@ -1,6 +1,6 @@
 /** An error with a Rest Endpoint fetch
  *
- * @see https://resthooks.io/rest/api/NetworkError
+ * @see https://dataclient.io/rest/api/NetworkError
  */
 export default class NetworkError extends Error {
   declare status: number;
@@ -9,7 +9,7 @@ export default class NetworkError extends Error {
 
   constructor(response: Response) {
     super(
-      response.statusText || `Network response not 'ok': ${response.status}`,
+      `${response.url}: ${response.statusText || `Status not 'ok': ${response.status}`}`,
     );
     this.status = response.status;
     this.response = response;

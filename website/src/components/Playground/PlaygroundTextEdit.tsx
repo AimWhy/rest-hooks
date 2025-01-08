@@ -1,11 +1,20 @@
+import type { Fixture, Interceptor } from '@data-client/test';
+import BrowserOnly from '@docusaurus/BrowserOnly';
 import Translate from '@docusaurus/Translate';
-import type { Fixture, FixtureEndpoint, Interceptor } from '@rest-hooks/test';
 import clsx from 'clsx';
-import { useContext, useMemo, useReducer, useState } from 'react';
+import {
+  ComponentProps,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
 import React from 'react';
+import { LiveEditor } from 'react-live';
 
 import FixturePreview from './FixturePreview';
 import Header from './Header';
+import { isGoogleBot } from './isGoogleBot';
 import PlaygroundEditor from './PlaygroundEditor';
 import styles from './styles.module.css';
 import CodeTabContext from '../Demo/CodeTabContext';
@@ -25,56 +34,76 @@ export function PlaygroundTextEdit({
     codeTabs.map(({ collapsed }) => collapsed),
   );
 
+  const handleTabSwitch = useCallback(i => {
+    setClosed(cl =>
+      cl.map((prev, j) => {
+        if (codeTabs[j].col) return prev;
+        return j !== i;
+      }),
+    );
+  }, []);
+  const handleTabOpen = useCallback(i => {
+    setClosed(cl => {
+      if (!cl[i]) return cl;
+      const n = [...cl];
+      n[i] = false;
+      return n;
+    });
+  }, []);
+  const handleTabToggle = useCallback(i => {
+    setClosed(cl => {
+      const n = [...cl];
+      n[i] = !n[i];
+      return n;
+    });
+  }, []);
+
   return (
-    <div>
+    <div className={styles.playgroundTextEdit}>
       <EditorHeader
         fixtures={!row ? fixtures : []}
         title={row && codeTabs.length === 1 ? codeTabs[0].title : undefined}
       />
-      {row && codeTabs.length > 1 ? (
+      {row && codeTabs.length > 1 ?
         <EditorTabs
-          titles={codeTabs.map(({ title }) => title)}
+          titles={codeTabs.filter(({ col }) => !col).map(({ title }) => title)}
           closedList={closedList}
-          onClick={i => setClosed(cl => cl.map((_, j) => j !== i))}
+          onClick={handleTabSwitch}
           isPlayground={isPlayground}
         />
-      ) : null}
-      {codeTabs.map(({ title, path, code, collapsed, ...rest }, i) => (
-        <React.Fragment key={i}>
-          {!row && title ? (
-            <CodeTabHeader
-              onClick={() =>
-                setClosed(cl => {
-                  const n = [...cl];
-                  n[i] = !n[i];
-                  return n;
-                })
-              }
-              closed={closedList[i]}
-              title={title}
-              collapsible={codeTabs.length > 1 || fixtures?.length}
-              lastChild={i === codeTabs.length - 1 && large}
-            />
-          ) : null}
-          <div
-            key={i}
-            className={clsx(styles.playgroundEditor, {
-              [styles.hidden]: closedList[i],
-            })}
-          >
-            {
-              /*closedList[i] ? null : */ <PlaygroundEditor
-                key={i}
-                onChange={handleCodeChange[i]}
-                code={codes[i]}
-                path={'/' + id + '/' + (path || title || 'default.tsx')}
-                {...rest}
-                large={large}
+      : null}
+      {codeTabs.map(
+        ({ title, path, code, collapsed, col, language, ...rest }, i) => (
+          <React.Fragment key={i}>
+            {(!row || col) && title ?
+              <CodeTabHeader
+                onClick={() => handleTabToggle(i)}
+                closed={closedList[i]}
+                title={title}
+                collapsible={codeTabs.length > 1 || fixtures?.length}
+                lastChild={i === codeTabs.length - 1 && large}
               />
-            }
-          </div>
-        </React.Fragment>
-      ))}
+            : null}
+            <TextEditTab
+              hidden={closedList[i]}
+              key={i}
+              tabIndex={i}
+              onFocus={
+                row && !col && codeTabs.length > 1 ?
+                  handleTabSwitch
+                : handleTabOpen
+              }
+              onChange={handleCodeChange[i]}
+              code={codes[i]}
+              path={'/' + id + '/' + path}
+              isFocused={!closedList[i]}
+              language={language}
+              {...rest}
+              large={large}
+            />
+          </React.Fragment>
+        ),
+      )}
     </div>
   );
 }
@@ -88,56 +117,46 @@ interface PlaygroundProps {
   isPlayground?: boolean;
 }
 
-export function useCode(children) {
-  const codeTabs: {
-    code: string;
-    path?: string;
-    title?: string;
-    collapsed: boolean;
-    [k: string]: any;
-  }[] = useMemo(() => {
-    if (typeof children === 'string')
-      return [{ code: children.replace(/\n$/, ''), collapsed: false }];
-    return (Array.isArray(children) ? children : [children])
-      .filter(child => child.props.children)
-      .map(child =>
-        typeof child.props.children === 'string'
-          ? child.props
-          : child.props.children.props,
-      )
-      .map(({ children, title = '', collapsed = false, path, ...rest }) => ({
-        code: children.replace(/\n$/, ''),
-        title: title.replaceAll('"', ''),
-        collapsed,
-        path,
-        ...rest,
-      }));
-  }, [children]);
-
-  const [codes, dispatch] = useReducer(reduceCodes, undefined, () =>
-    codeTabs.map(({ code }) => code),
+function TextEditTab({
+  hidden,
+  code,
+  language,
+  tabIndex,
+  ...rest
+}: ComponentProps<typeof PlaygroundEditor> & { hidden: boolean }) {
+  const fallback =
+    // to reduce HTML sent, in SSR don't render hidden tabs
+    hidden ? <></>
+      // google doesn't benefit from syntax highlighting, so just rendering code will greatly reduce html
+      // TODO: make this actually work in SSR for google - currently does nothing since isGoogleBot is only true client-side
+    : isGoogleBot ?
+      <pre className="prism-code language-tsx" spellCheck="false">
+        {code}
+      </pre>
+      // monaco editor doesn't work with SSR - so use LiveEditor which still shows readable code while the js loads
+    : <LiveEditor key={tabIndex} language={language} code={code} disabled />;
+  return (
+    <>
+      <div
+        key={tabIndex}
+        className={clsx(styles.playgroundEditor, {
+          [styles.hidden]: hidden,
+        })}
+      >
+        <BrowserOnly fallback={fallback}>
+          {() => (
+            <PlaygroundEditor
+              key={tabIndex}
+              tabIndex={tabIndex}
+              code={code}
+              language={language}
+              {...rest}
+            />
+          )}
+        </BrowserOnly>
+      </div>
+    </>
   );
-  //const [ready, setReady] = useState(() => codeTabs.map(() => false));
-  const handleCodeChange = useMemo(
-    () =>
-      codeTabs.map((_, i) => v => {
-        /*setReady(readies => {
-        const ret = [...readies];
-        ret[i] = true;
-        return ret;
-      });*/
-        dispatch({ i, code: v });
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [codeTabs.length],
-  );
-  return { handleCodeChange, codes, codeTabs };
-}
-
-function reduceCodes(state: string[], action: { i: number; code: string }) {
-  const newstate = [...state];
-  newstate[action.i] = action.code;
-  return newstate;
 }
 
 function CodeTabHeader({
@@ -150,9 +169,10 @@ function CodeTabHeader({
   if (collapsible)
     return (
       <Header
-        className={clsx(styles.small, {
+        className={clsx({
           [styles.lastChild]: lastChild && closed,
         })}
+        small={true}
         onClick={onClick}
       >
         <span
@@ -172,10 +192,11 @@ function EditorTabs({ titles, closedList, onClick, isPlayground = true }) {
   return (
     <Header
       className={clsx(
-        { [styles.small]: hasTabs || !isPlayground, [styles.subtabs]: hasTabs },
+        { [styles.subtabs]: hasTabs },
         styles.noupper,
         styles.tabControls,
       )}
+      small={hasTabs || !isPlayground}
     >
       <div className={styles.tabs} role="tablist" aria-orientation="horizontal">
         {titles.map((title, i) => (
@@ -233,29 +254,7 @@ function HeaderWithTabControls({ children }) {
 }
 
 function EditorHeader({
-  title,
-  fixtures = [],
-}: {
-  title: string;
-  fixtures: (Fixture | Interceptor)[];
-}) {
-  const { values } = useContext(CodeTabContext);
-  const hasTabs = values.length > 0;
-
-  return (
-    <>
-      {fixtures.length ? (
-        <>
-          <Header className={styles.small}>Fixtures</Header>
-          <FixturePreview fixtures={fixtures} />
-        </>
-      ) : null}
-      {hasTabs ? <HeaderWithTabControls>{title}</HeaderWithTabControls> : null}
-    </>
-  );
-}
-EditorHeader.defaultProps = {
-  title: (
+  title = (
     <Translate
       id="theme.Playground.liveEditor"
       description="The live editor label of the live codeblocks"
@@ -263,5 +262,25 @@ EditorHeader.defaultProps = {
       Editor
     </Translate>
   ),
-  fixtures: [],
-};
+  fixtures = [],
+}: {
+  title?: React.ReactNode;
+  fixtures?: (Fixture | Interceptor)[];
+}) {
+  const { values } = useContext(CodeTabContext);
+  const hasTabs = values.length > 0;
+
+  return (
+    <>
+      {fixtures.length ?
+        <>
+          <Header small={true}>Fixtures</Header>
+          <FixturePreview fixtures={fixtures} />
+        </>
+      : null}
+      {hasTabs ?
+        <HeaderWithTabControls>{title}</HeaderWithTabControls>
+      : null}
+    </>
+  );
+}

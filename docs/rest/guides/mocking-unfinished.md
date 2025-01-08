@@ -11,33 +11,28 @@ you won't need to make major changes to your code.
 
 <HooksPlayground>
 
-```typescript title="api/Rating.ts"
-import { Entity, createResource } from '@rest-hooks/rest';
+```typescript title="resources/Rating"
+import { Entity, resource } from '@data-client/rest';
 
 export class Rating extends Entity {
-  readonly id: string = '';
-  readonly rating: number = 4.6;
-  readonly author: string = '';
-  readonly date: Date = new Date(0);
+  id = '';
+  rating = 4.6;
+  author = '';
+  date = Temporal.Instant.fromEpochSeconds(0);
 
-  pk() {
-    return this.id;
-  }
+  static key = 'Rating';
 
   static schema = {
-    date: Date,
+    date: Temporal.Instant.from,
   };
 }
 
-const BaseRatingResource = createResource({
+export const RatingResource = resource({
   path: '/ratings/:id',
   schema: Rating,
-});
-
-export const RatingResource = {
-  ...BaseRatingResource,
-  getList: BaseRatingResource.getList.extend({
-    dataExpiryLength: 10 * 60 * 1000, // 10 minutes
+}).extend({
+  getList: {
+    dataExpiryLength: Infinity,
     fetch() {
       return Promise.resolve(
         ['Morningstar', 'Seekingalpha', 'Morningstar', 'CNBC'].map(author => ({
@@ -48,12 +43,12 @@ export const RatingResource = {
         })),
       );
     },
-  }),
-};
+  },
+});
 ```
 
-```tsx title="Demo.tsx" collapsed
-import { RatingResource } from './api/Rating';
+```tsx title="Demo" collapsed
+import { RatingResource } from './resources/Rating';
 
 function Demo() {
   const ratings = useSuspense(RatingResource.getList);
@@ -61,10 +56,9 @@ function Demo() {
     <div>
       {ratings.map(rating => (
         <div key={rating.pk()}>
-          {rating.author}:{' '}
-          {rating.rating}{' '}
+          {rating.author}: {rating.rating}{' '}
           <time>
-            {Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
+            {DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
               rating.date,
             )}
           </time>

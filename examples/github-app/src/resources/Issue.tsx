@@ -1,63 +1,97 @@
-import { InfoCircleOutlined, IssuesCloseOutlined } from '@ant-design/icons';
-import { RestGenerics } from '@rest-hooks/rest';
-import React from 'react';
+import { Temporal } from '@js-temporal/polyfill';
 
-import { GithubEndpoint, GithubEntity, createGithubResource } from './Base';
+import { GithubEntity, githubResource } from './Base';
 import { Label } from './Label';
+import { stateToIcon } from './stateToIcon';
 import { User } from './User';
 
 export class Issue extends GithubEntity {
-  readonly number: number = 0;
-  readonly repositoryUrl: string = '';
-  readonly labelsUrl: string = '';
-  readonly htmlUrl: string = '';
-  readonly body: string = '';
-  readonly title: string = '';
-  readonly user: User = User.fromJS({});
-  readonly state: 'open' | 'closed' = 'open';
-  readonly locked: boolean = false;
-  readonly comments: number = 0;
-  readonly createdAt: Date = new Date(0);
-  readonly updatedAt: Date = new Date(0);
-  readonly closedAt: string | null = null;
-  readonly labels: Label[] = [];
-  readonly authorAssociation: string = 'NONE';
-  readonly pullRequest: Record<string, any> | null = null;
+  number = 0;
+  owner = '';
+  repo = '';
+  repositoryUrl = '';
+  labelsUrl = '';
+  htmlUrl = '';
+  body = '';
+  title = '';
+  user = User.fromJS({});
+  state: 'open' | 'closed' = 'open';
+  locked = false;
+  comments = 0;
+  createdAt = Temporal.Instant.fromEpochSeconds(0);
+  updatedAt = Temporal.Instant.fromEpochSeconds(0);
+  closedAt: Date | null = null;
+  labels: Label[] = [];
+  authorAssociation = 'NONE';
+  pullRequest: Record<string, any> | null = null;
+  draft?: boolean;
 
   get stateIcon() {
     return stateToIcon[this.state];
   }
 
-  get owner() {
-    const pieces = this.repositoryUrl.split('/');
-    return pieces[pieces.length - 2];
-  }
-
-  get repo() {
-    const pieces = this.repositoryUrl.split('/');
-    return pieces[pieces.length - 1];
-  }
-
   static schema = {
     user: User,
-    createdAt: Date,
-    updatedAt: Date,
+    createdAt: Temporal.Instant.from,
+    updatedAt: Temporal.Instant.from,
+    closedAt: Temporal.Instant.from,
     labels: [Label],
   };
 
   pk() {
-    return [this.repositoryUrl, this.number].join(',');
+    if (!this.owner) {
+      const { owner, repo } = splitRepoUrl(this.repositoryUrl);
+      return `${owner}/${repo}/${this.number}`;
+    }
+    return `${this.owner}/${this.repo}/${this.number}`;
+  }
+
+  static process(
+    input: any,
+    parent: any,
+    key: string | undefined,
+    args: any[],
+  ) {
+    const { owner, repo } = splitRepoUrl(input.repositoryUrl);
+    return { owner, repo, ...input };
   }
 }
 
-export const IssueResource = createGithubResource({
+function splitRepoUrl(url: string) {
+  const [a, b, c, d, owner, repo] = url.split('/');
+  return { owner, repo };
+}
+
+export const IssueResource = githubResource({
   path: '/repos/:owner/:repo/issues/:number',
   schema: Issue,
+  dataExpiryLength: 60000,
   pollFrequency: 60000,
-});
+  searchParams: {} as IssueFilters | undefined,
+  paginationField: 'page',
+}).extend((Base) => ({
+  search: Base.getList.extend({
+    path: '/search/issues',
+    searchParams: {} as IssueFilters & { q: string },
+    schema: {
+      results: {
+        incompleteResults: false,
+        items: Base.getList.schema.results,
+        totalCount: 0,
+      },
+      link: '',
+    },
+  }),
+}));
+
 export default IssueResource;
 
-const stateToIcon: Record<string, React.ReactNode> = {
-  closed: <IssuesCloseOutlined />,
-  open: <InfoCircleOutlined />,
-};
+export interface IssueFilters {
+  milestone?: string;
+  state?: 'open' | 'closed' | 'all';
+  assignee?: string;
+  creator?: string;
+  mentioned?: string;
+  labels?: string;
+  page?: number | string;
+}

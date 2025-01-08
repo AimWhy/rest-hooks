@@ -1,20 +1,19 @@
 import {
-  ReceiveAction,
+  SetAction,
   State,
   ActionTypes,
   Controller,
   __INTERNAL__,
-} from '@rest-hooks/react';
+} from '@data-client/react';
 
-import { collapseFixture } from './collapseFixture.js';
-import type { Fixture, Interceptor } from './fixtureTypes.js';
+import type { Fixture } from './fixtureTypes.js';
 
 const { initialState, createReducer } = __INTERNAL__;
 
 export default function mockInitialState(
   fixtures: Fixture[] = [],
 ): State<unknown> {
-  const actions: ReceiveAction[] = [];
+  const actions: SetAction[] = [];
   const dispatch = (action: any) => {
     actions.push(action);
     return Promise.resolve();
@@ -32,14 +31,14 @@ export default function mockInitialState(
 }
 
 function dispatchFixture(
-  fixture: Fixture | Interceptor,
+  fixture: Fixture,
   args: any[],
   controller: Controller,
   fetchedAt?: number,
 ) {
   // eslint-disable-next-line prefer-const
   let { endpoint } = fixture;
-  const { response, error } = collapseFixture(fixture, args);
+  const { response, error } = fixture;
   if (controller.resolve) {
     controller.resolve(endpoint, {
       args,

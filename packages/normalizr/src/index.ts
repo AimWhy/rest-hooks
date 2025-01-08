@@ -3,23 +3,28 @@ Object.hasOwn =
   /* istanbul ignore next */ function hasOwn(it, key) {
     return Object.prototype.hasOwnProperty.call(it, key);
   };
-import { denormalize } from './denormalize.js';
+import { denormalize } from './denormalize/denormalize.js';
 import { isEntity } from './isEntity.js';
-import { normalize } from './normalize.js';
-import WeakListMap from './WeakListMap.js';
-export { default as inferResults } from './inferResults.js';
-export { DELETED } from './special.js';
+import WeakDependencyMap from './memo/WeakDependencyMap.js';
+import { normalize } from './normalizr/normalize.js';
 
+export { default as MemoCache } from './memo/MemoCache.js';
 export type {
   AbstractInstanceType,
   NormalizeReturnType,
   NormalizedSchema,
-  DenormalizeReturnType,
-  DenormalizeCache,
+  EntityPath,
+  Denormalize,
+  DenormalizeNullable,
+  Normalize,
+  NormalizeNullable,
+  SchemaArgs,
 } from './types.js';
+export type { NI } from './NoInfer.js';
 export * from './endpoint/types.js';
 export * from './interface.js';
 export * from './Expiry.js';
-export * from './normal.js';
+export { INVALID } from './denormalize/symbol.js';
+export { validateQueryKey } from './buildQueryKey.js';
 
-export { denormalize, normalize, isEntity, WeakListMap };
+export { denormalize, normalize, isEntity, WeakDependencyMap };

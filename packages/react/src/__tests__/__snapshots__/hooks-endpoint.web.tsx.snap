@@ -1,145 +1,124 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`useController().getState CacheProvider should eventually update 1`] = `
-CoolerArticle {
-  "author": null,
-  "content": "whatever",
-  "id": 1,
-  "tags": [
-    "a",
-    "best",
-    "react",
-  ],
-  "title": "hi ho",
-}
+[
+  CoolerArticle {
+    "author": null,
+    "content": "whatever",
+    "id": 1,
+    "tags": [
+      "a",
+      "best",
+      "react",
+    ],
+    "title": "hi ho",
+  },
+]
 `;
 
-exports[`useController().getState ExternalCacheProvider should eventually update 1`] = `
-CoolerArticle {
-  "author": null,
-  "content": "whatever",
-  "id": 1,
-  "tags": [
-    "a",
-    "best",
-    "react",
-  ],
-  "title": "hi ho",
-}
+exports[`useController().getState ExternalDataProvider should eventually update 1`] = `
+[
+  CoolerArticle {
+    "author": null,
+    "content": "whatever",
+    "id": 1,
+    "tags": [
+      "a",
+      "best",
+      "react",
+    ],
+    "title": "hi ho",
+  },
+]
 `;
 
 exports[`useController.fetch should dispatch an action that fetches a create 1`] = `
 {
+  "args": [
+    {
+      "content": "hi",
+    },
+  ],
   "endpoint": [Function],
+  "key": "POST http://test.com/article-cooler",
   "meta": {
-    "args": [
-      {
-        "content": "hi",
-      },
-    ],
-    "key": "POST http://test.com/article-cooler",
-    "options": [Function],
     "reject": [Function],
     "resolve": [Function],
-    "schema": [Function],
-    "throttle": false,
-    "type": "mutate",
   },
-  "payload": [Function],
-  "type": "rest-hooks/fetch",
+  "type": "rdc/fetch",
 }
 `;
 
 exports[`useController.fetch should dispatch an action that fetches a full update 1`] = `
 {
+  "args": [
+    {
+      "id": 1,
+    },
+    {
+      "content": "changed",
+    },
+  ],
   "endpoint": [Function],
+  "key": "PUT http://test.com/article-cooler/1",
   "meta": {
-    "args": [
-      {
-        "id": 1,
-      },
-      {
-        "content": "changed",
-      },
-    ],
-    "key": "PUT http://test.com/article-cooler/1",
-    "options": [Function],
     "reject": [Function],
     "resolve": [Function],
-    "schema": [Function],
-    "throttle": false,
-    "type": "mutate",
   },
-  "payload": [Function],
-  "type": "rest-hooks/fetch",
+  "type": "rdc/fetch",
 }
 `;
 
 exports[`useController.fetch should dispatch an action that fetches a partial update 1`] = `
 {
+  "args": [
+    {
+      "id": 1,
+    },
+    {
+      "content": "changed",
+    },
+  ],
   "endpoint": [Function],
+  "key": "PATCH http://test.com/article-cooler/1",
   "meta": {
-    "args": [
-      {
-        "id": 1,
-      },
-      {
-        "content": "changed",
-      },
-    ],
-    "key": "PATCH http://test.com/article-cooler/1",
-    "options": [Function],
     "reject": [Function],
     "resolve": [Function],
-    "schema": [Function],
-    "throttle": false,
-    "type": "mutate",
   },
-  "payload": [Function],
-  "type": "rest-hooks/fetch",
+  "type": "rdc/fetch",
 }
 `;
 
 exports[`useController.fetch should dispatch an action with updater in the meta if update shapes params are passed in 1`] = `
 {
+  "args": [
+    {
+      "content": "hi",
+    },
+  ],
   "endpoint": [Function],
+  "key": "POST http://test.com/article-cooler",
   "meta": {
-    "args": [
-      {
-        "content": "hi",
-      },
-    ],
-    "key": "POST http://test.com/article-cooler",
-    "options": [Function],
     "reject": [Function],
     "resolve": [Function],
-    "schema": [Function],
-    "throttle": false,
-    "type": "mutate",
   },
-  "payload": [Function],
-  "type": "rest-hooks/fetch",
+  "type": "rdc/fetch",
 }
 `;
 
 exports[`useController.fetch should refresh get details 1`] = `
 {
+  "args": [
+    {
+      "id": 1,
+    },
+  ],
   "endpoint": [Function],
+  "key": "GET http://test.com/article-cooler/1",
   "meta": {
-    "args": [
-      {
-        "id": 1,
-      },
-    ],
-    "key": "GET http://test.com/article-cooler/1",
-    "options": [Function],
     "reject": [Function],
     "resolve": [Function],
-    "schema": [Function],
-    "throttle": true,
-    "type": "read",
   },
-  "payload": [Function],
-  "type": "rest-hooks/fetch",
+  "type": "rdc/fetch",
 }
 `;

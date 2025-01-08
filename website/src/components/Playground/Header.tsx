@@ -1,5 +1,5 @@
-import React from 'react';
 import clsx from 'clsx';
+import React from 'react';
 
 import styles from './styles.module.css';
 
@@ -12,10 +12,12 @@ export default function Header({
   children,
   className,
   onClick,
+  small = false,
 }: {
   children: React.ReactNode;
   className?: string;
   onClick?: OnClick;
+  small?: boolean;
 }) {
   return (
     <div
@@ -23,6 +25,7 @@ export default function Header({
         styles.playgroundHeader,
         className,
         onClick ? styles.clickable : null,
+        { [styles.small]: small },
       )}
       onClick={onClick}
     >

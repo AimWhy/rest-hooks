@@ -1,22 +1,20 @@
-import { useLocation } from '@anansi/router';
-import { useLive } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 import { List } from 'antd';
-import { Issue, IssueResource } from 'resources/Issue';
+import parseLink from 'parse-link-header';
+import { memo } from 'react';
+
+import { Issue, IssueResource } from '@/resources/Issue';
 
 import IssueListItem from './IssueListItem';
-import LinkPagination from '../navigation/LinkPagination';
+import NextPage from './NextPage';
 
-export default function IssueList({ owner, repo }: Props) {
-  const location = useLocation();
-  const page =
-    new URLSearchParams(location?.search?.substring?.(1)).get('page') || '1';
-  const params = {
-    owner,
-    repo,
-    page,
-  };
-
-  const { results: issues, link } = useLive(IssueResource.getList, params);
+function IssueList({ owner, repo, query = '' }: Props) {
+  const q = `${query} repo:${owner}/${repo}`;
+  const {
+    results: { items: issues },
+    link,
+  } = useSuspense(IssueResource.search, { q });
+  const nextPage = parseLink(link)?.next?.page;
 
   return (
     <>
@@ -24,19 +22,14 @@ export default function IssueList({ owner, repo }: Props) {
         itemLayout="horizontal"
         dataSource={issues}
         renderItem={(issue) => <IssueListItem key={issue.pk()} issue={issue} />}
+        loadMore={nextPage ? <NextPage q={q} page={nextPage} /> : null}
       />
-      <div className="center">
-        <LinkPagination link={link} />
-      </div>
     </>
   );
 }
 
-type Props = { owner: string; repo: string } & (
-  | {
-      page: number;
-    }
-  | {
-      state?: Issue['state'];
-    }
-);
+export default memo(IssueList);
+
+type Props = { owner: string; repo: string; query?: string } & {
+  state?: Issue['state'];
+};

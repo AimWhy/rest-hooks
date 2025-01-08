@@ -1,10 +1,11 @@
-import { useController } from '@rest-hooks/react';
+import { useController } from '@data-client/react';
 import React, { createContext, useCallback, useMemo } from 'react';
-import { setAuth, unAuth } from 'resources/Auth';
-import UserResource from 'resources/User';
+
+import { setAuth, unAuth } from '@/resources/Auth';
+import UserResource, { User } from '@/resources/User';
 
 export const authdContext = createContext({
-  login(data: { login: string; token: string }): void {
+  async login(data: { login: string; token: string }): Promise<User> {
     throw new Error('context not set for auth');
   },
   logout(): void {
@@ -20,9 +21,9 @@ export function AuthdProvider({ children }: { children: React.ReactNode }) {
     ctrl.invalidate(UserResource.current);
   }, [ctrl]);
   const login = useCallback(
-    (data: { login: string; token: string }) => {
-      ctrl.fetch(UserResource.current);
+    async (data: { login: string; token: string }) => {
       setAuth(data);
+      return await ctrl.fetch(UserResource.current);
     },
     [ctrl],
   );

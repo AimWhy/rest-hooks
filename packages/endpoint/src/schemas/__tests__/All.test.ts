@@ -1,16 +1,15 @@
 // eslint-env jest
-import { inferResults, normalize } from '@rest-hooks/normalizr';
+import { normalize, MemoCache, denormalize } from '@data-client/normalizr';
 import { IDEntity } from '__tests__/new';
 import { fromJS } from 'immutable';
 
-import denormalize from './denormalize';
-import { schema, AbstractInstanceType } from '../..';
-import { DELETED } from '../../special';
+import { schema } from '../..';
+import { INVALID } from '../../special';
 
 let dateSpy: jest.SpyInstance<number, []>;
 beforeAll(() => {
   dateSpy = jest
-    // eslint-disable-next-line no-undef
+
     .spyOn(global.Date, 'now')
     .mockImplementation(() => new Date('2019-05-14T11:01:58.135Z').valueOf());
 });
@@ -23,7 +22,7 @@ describe.each([[]])(`${schema.All.name} normalization (%s)`, () => {
     class User extends IDEntity {}
     const sch = new schema.All(User);
     function normalizeBad() {
-      normalize('abc', sch);
+      normalize(sch, 'abc');
     }
     expect(normalizeBad).toThrowErrorMatchingSnapshot();
   });
@@ -32,17 +31,17 @@ describe.each([[]])(`${schema.All.name} normalization (%s)`, () => {
     class User extends IDEntity {}
     const sch = new schema.All(User);
     function normalizeBad() {
-      normalize('[{"id":5}]', sch);
+      normalize(sch, '[{"id":5}]');
     }
     expect(normalizeBad).toThrowErrorMatchingSnapshot();
   });
 
   test('normalizes Objects using their values', () => {
     class User extends IDEntity {}
-    const { result, entities } = normalize(
-      { foo: { id: '1' }, bar: { id: '2' } },
-      new schema.All(User),
-    );
+    const { result, entities } = normalize(new schema.All(User), {
+      foo: { id: '1' },
+      bar: { id: '2' },
+    });
     expect(result).toBeUndefined();
     expect(entities).toMatchSnapshot();
   });
@@ -52,7 +51,7 @@ describe.each([[]])(`${schema.All.name} normalization (%s)`, () => {
     test('normalizes a single entity', () => {
       const listSchema = new schema.All(Cats);
       expect(
-        normalize([{ id: '1' }, { id: '2' }], listSchema).entities,
+        normalize(listSchema, [{ id: '1' }, { id: '2' }]).entities,
       ).toMatchSnapshot();
     });
 
@@ -67,15 +66,12 @@ describe.each([[]])(`${schema.All.name} normalization (%s)`, () => {
         inferSchemaFn,
       );
 
-      const { result, entities } = normalize(
-        [
-          { type: 'Cat', id: '123' },
-          { type: 'people', id: '123' },
-          { id: '789', name: 'fido' },
-          { type: 'Cat', id: '456' },
-        ],
-        listSchema,
-      );
+      const { result, entities } = normalize(listSchema, [
+        { type: 'Cat', id: '123' },
+        { type: 'people', id: '123' },
+        { id: '789', name: 'fido' },
+        { type: 'Cat', id: '456' },
+      ]);
       expect(result).toBeUndefined();
       expect(entities).toMatchSnapshot();
       expect(inferSchemaFn.mock.calls).toMatchSnapshot();
@@ -85,7 +81,7 @@ describe.each([[]])(`${schema.All.name} normalization (%s)`, () => {
       class User extends IDEntity {}
       const users = new schema.All(User);
       expect(
-        normalize({ foo: { id: '1' }, bar: { id: '2' } }, users).entities,
+        normalize(users, { foo: { id: '1' }, bar: { id: '2' } }).entities,
       ).toMatchSnapshot();
     });
 
@@ -93,7 +89,7 @@ describe.each([[]])(`${schema.All.name} normalization (%s)`, () => {
       class User extends IDEntity {}
       const users = new schema.All(User);
       expect(
-        normalize([undefined, { id: '123' }, null], users).entities,
+        normalize(users, [undefined, { id: '123' }, null]).entities,
       ).toMatchSnapshot();
     });
   });
@@ -119,11 +115,7 @@ describe.each([
       };
       const sch = new schema.All(Cat);
       expect(
-        denormalize(
-          inferResults(sch, [], {}, entities),
-          sch,
-          createInput(entities),
-        ),
+        new MemoCache().query(sch, [], createInput(entities), {}),
       ).toMatchSnapshot();
     });
 
@@ -137,11 +129,7 @@ describe.each([
         },
       };
       expect(
-        denormalize(
-          inferResults(catSchema, [], {}, entities),
-          catSchema,
-          createInput(entities),
-        ),
+        new MemoCache().query(catSchema, [], createInput(entities), {}),
       ).toMatchSnapshot();
     });
 
@@ -154,20 +142,19 @@ describe.each([
           2: { id: '2', name: 'Jake' },
         },
       };
-      const input = inferResults(catSchema, [], {}, entities);
-      let [value, found] = denormalize(input, catSchema, createInput(entities));
-      expect(createOutput(value.results)).toMatchSnapshot();
-      expect(found).toBe(true);
-      [value, found] = denormalize(
-        createInput(input),
+      const value = new MemoCache().query(
         catSchema,
+        [],
         createInput(entities),
+        {},
       );
+      expect(value).not.toEqual(expect.any(Symbol));
+      if (typeof value === 'symbol' || value === undefined) return;
+      expect(createOutput(value.results)).toMatchSnapshot();
       expect(createOutput(value)).toMatchSnapshot();
-      expect(found).toBe(true);
     });
 
-    test('denormalizes removes undefined or DELETED entities', () => {
+    test('denormalizes removes undefined or INVALID entities', () => {
       class Cat extends IDEntity {}
       const catSchema = { results: new schema.All(Cat), nextPage: '' };
       const entities = {
@@ -175,23 +162,63 @@ describe.each([
           1: { id: '1', name: 'Milo' },
           2: { id: '2', name: 'Jake' },
           3: undefined,
-          4: DELETED,
+          4: INVALID,
         },
       };
-      const input = inferResults(catSchema, [], {}, entities);
-      let [value, found] = denormalize(input, catSchema, createInput(entities));
-      expect(createOutput(value.results)).toMatchSnapshot();
-      expect(found).toBe(true);
-      [value, found] = denormalize(
-        createInput(input),
+      const value = new MemoCache().query(
         catSchema,
-        createInput(entities),
+        [],
+        createInput(entities) as any,
+        {},
       );
+      expect(value).not.toEqual(expect.any(Symbol));
+      if (typeof value === 'symbol' || value === undefined) return;
+      expect(createOutput(value.results).length).toBe(2);
+      expect(createOutput(value.results)).toMatchSnapshot();
       expect(createOutput(value)).toMatchSnapshot();
-      expect(found).toBe(true);
     });
 
-    test('denormalizes should not be found when no entities are present', () => {
+    test('denormalize maintains referential equality until entities are added', () => {
+      class Cat extends IDEntity {}
+      (Cat as any).defaults;
+      const catSchema = { results: new schema.All(Cat), nextPage: '' };
+      let entities: Record<string, Record<string, object>> = {
+        Cat: {
+          1: { id: '1', name: 'Milo' },
+          2: { id: '2', name: 'Jake' },
+        },
+      };
+      const memo = new MemoCache();
+      const value = memo.query(catSchema, [], entities, {});
+
+      expect(createOutput(value).results?.length).toBe(2);
+      expect(createOutput(value).results).toMatchSnapshot();
+      const value2 = memo.query(catSchema, [], entities, {});
+      expect(createOutput(value).results[0]).toBe(
+        createOutput(value2).results[0],
+      );
+      expect(value).toBe(value2);
+
+      entities = {
+        ...entities,
+        Cat: {
+          ...entities.Cat,
+          3: { id: '3', name: 'Jelico' },
+        },
+      };
+      const value3 = memo.query(catSchema, [], entities, {});
+      expect(createOutput(value3).results?.length).toBe(3);
+      expect(createOutput(value3).results).toMatchSnapshot();
+      expect(createOutput(value).results[0]).toBe(
+        createOutput(value3).results[0],
+      );
+      expect(createOutput(value).results[2]).not.toBe(
+        createOutput(value3).results[2],
+      );
+      expect(value).not.toBe(value3);
+    });
+
+    test('denormalizes should be invalid when no entities are present', () => {
       class Cat extends IDEntity {}
       const catSchema = { results: new schema.All(Cat) };
       const entities = {
@@ -200,16 +227,15 @@ describe.each([
           2: { id: '2', name: 'Jake' },
         },
       };
-      const input = inferResults(catSchema, [], {}, entities);
 
-      const [value, found] = denormalize(
-        createInput(input),
+      const value = new MemoCache().query(
         catSchema,
+        [],
         createInput(entities),
+        {},
       );
-      expect(found).toBe(false);
 
-      expect(createOutput(value)).toEqual({ results: undefined });
+      expect(createOutput(value)).toBeUndefined();
     });
 
     test('denormalizes should not be found when no entities are present (polymorphic)', () => {
@@ -237,15 +263,14 @@ describe.each([
           2: { id: '2', name: 'Jake' },
         },
       };
-      const input = inferResults(listSchema, [], {}, entities);
-      const [value, found] = denormalize(
-        createInput(input),
+      const value = new MemoCache().query(
         listSchema,
+        [],
         createInput(entities),
+        {},
       );
-      expect(found).toBe(false);
 
-      expect(createOutput(value)).toEqual(undefined);
+      expect(createOutput(value)).toBeUndefined();
     });
 
     test('returns the input value if is null', () => {
@@ -261,7 +286,7 @@ describe.each([
           },
         },
       };
-      expect(denormalize('123', Taco, createInput(entities))).toMatchSnapshot();
+      expect(denormalize(Taco, '123', createInput(entities))).toMatchSnapshot();
     });
 
     test('denormalizes multiple entities', () => {
@@ -301,15 +326,14 @@ describe.each([
           },
         },
       };
-
-      const input = inferResults(listSchema, [], {}, entities);
-      const [value, found, deleted] = denormalize(
-        input,
+      const value = new MemoCache().query(
         listSchema,
-        createInput(entities),
+        [],
+        createInput(entities) as any,
+        {},
       );
-      expect(found).toBe(true);
-      expect(deleted).toBe(false);
+      expect(value).not.toEqual(expect.any(Symbol));
+      if (typeof value === 'symbol') return;
       expect(value).toMatchSnapshot();
       const first = value && value[0];
       // type check to ensure correct inference

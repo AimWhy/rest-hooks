@@ -1,17 +1,18 @@
-import { TodoResource } from './api';
+import NewTodo from './NewTodo';
+import { type Todo } from './resources';
 import TodoItem from './TodoItem';
-import TodoStats from './TodoStats';
 
-function TodoList() {
-  const userId = 1;
-  const todos = useSuspense(TodoResource.getList, { userId });
+export default function TodoList({ todos, userId }: Props) {
   return (
     <div>
-      <TodoStats userId={userId} />
       {todos.map(todo => (
         <TodoItem key={todo.pk()} todo={todo} />
       ))}
+      <NewTodo userId={userId} />
     </div>
   );
 }
-render(<TodoList />);
+interface Props {
+  todos: Todo[];
+  userId: number;
+}

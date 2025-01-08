@@ -1,198 +1,176 @@
-# Change Log
+# @data-client/img
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 0.14.15
 
-### [0.8.4](https://github.com/data-client/rest-hooks/compare/@rest-hooks/img@0.8.3...@rest-hooks/img@0.8.4) (2023-01-30)
+### Patch Changes
 
-### 📝 Documentation
+- [`ec23566`](https://github.com/reactive/data-client/commit/ec235662e1f4626404b88583a220f177075a2e7e) Thanks [@ntucker](https://github.com/ntucker)! - Fix <Img/> correctly suspends
 
-* Update github organization to data-client ([#2396](https://github.com/data-client/rest-hooks/issues/2396)) ([45faab1](https://github.com/data-client/rest-hooks/commit/45faab1962cad292d1f77a0a997e8c321a6917db))
+## 0.14.0
 
-### [0.8.3](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.8.2...@rest-hooks/img@0.8.3) (2023-01-12)
+### Patch Changes
 
-### 📦 Package
+- [#3134](https://github.com/reactive/data-client/pull/3134) [`2ad1811`](https://github.com/reactive/data-client/commit/2ad1811149cdc419f6462ace08efdb7766195b36) Thanks [@ntucker](https://github.com/ntucker)! - Expand peerdep support range to include ^0.14.0
 
-* Update babel packages ([#2348](https://github.com/coinbase/rest-hooks/issues/2348)) ([5d0a68e](https://github.com/coinbase/rest-hooks/commit/5d0a68ea00b021effeae185fcdea415cf50c0328))
+- Updated dependencies [[`2ad1811`](https://github.com/reactive/data-client/commit/2ad1811149cdc419f6462ace08efdb7766195b36), [`2ad1811`](https://github.com/reactive/data-client/commit/2ad1811149cdc419f6462ace08efdb7766195b36), [`2ad1811`](https://github.com/reactive/data-client/commit/2ad1811149cdc419f6462ace08efdb7766195b36), [`7bd322d`](https://github.com/reactive/data-client/commit/7bd322d585b0893561b3ffb3c5ad47b2764c18bd)]:
+  - @data-client/endpoint@0.14.0
 
-### [0.8.2](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.8.1...@rest-hooks/img@0.8.2) (2022-12-23)
+## 0.13.4
 
-### 📦 Package
+### Patch Changes
 
-* Update babel packages ([#2339](https://github.com/coinbase/rest-hooks/issues/2339)) ([2cc99b9](https://github.com/coinbase/rest-hooks/commit/2cc99b99aeece58b0e7674ca80d3372555612c63))
+- Updated dependencies [[`720ff0c`](https://github.com/reactive/data-client/commit/720ff0c3d833ff4d1eb5020694131e87282b585d)]:
+  - @data-client/endpoint@0.13.4
 
-### [0.8.1](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.8.0...@rest-hooks/img@0.8.1) (2022-12-05)
+## 0.13.0
 
-### 💅 Enhancement
+### Patch Changes
 
-* Include Object.hasOwn polyfill ([#2309](https://github.com/coinbase/rest-hooks/issues/2309)) ([14b93f6](https://github.com/coinbase/rest-hooks/commit/14b93f67f0589df5813909e0c1acd4cacad0a3ee))
+- [#3105](https://github.com/reactive/data-client/pull/3105) [`cf770de`](https://github.com/reactive/data-client/commit/cf770de244ad890b286c59ac305ceb6c3b1288ea) Thanks [@ntucker](https://github.com/ntucker)! - Support 0.13 of @data-client/react
 
-### 📦 Package
+## 0.12.8
 
-* Update babel packages ([#2308](https://github.com/coinbase/rest-hooks/issues/2308)) ([e3ee5ee](https://github.com/coinbase/rest-hooks/commit/e3ee5ee57431971ba4bdb47b48ed89933412374c))
+### Patch Changes
 
-## [0.8.0](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.7.2...@rest-hooks/img@0.8.0) (2022-11-16)
+- [#3071](https://github.com/reactive/data-client/pull/3071) [`7fba440`](https://github.com/reactive/data-client/commit/7fba44050a4e3fdcc37ab8405730b35366c293e1) Thanks [@ntucker](https://github.com/ntucker)! - React 19 JSX runtime compatibility.
 
-### 🚀 Features
+  BREAKING CHANGE: Min React version 16.8.4 -> 16.14
 
-* @rest-hooks/react latest version matching ([3f7b2c4](https://github.com/coinbase/rest-hooks/commit/3f7b2c4ef5d7ff9c29749a1ad8764d80388f058a))
+  16.14 is the first version of React to include JSX runtime.
 
-### [0.7.1](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.7.0...@rest-hooks/img@0.7.1) (2022-11-13)
+## 0.12.3
 
-**Note:** Version bump only for package @rest-hooks/img
+### Patch Changes
 
-## [0.7.0](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.8...@rest-hooks/img@0.7.0) (2022-11-13)
+- [`00d4205`](https://github.com/reactive/data-client/commit/00d4205f03562cfe4acd18215718e23ae5466b8d) Thanks [@ntucker](https://github.com/ntucker)! - Add funding package.json field
 
-### ⚠ 💥 BREAKING CHANGES
+- Updated dependencies [[`00d4205`](https://github.com/reactive/data-client/commit/00d4205f03562cfe4acd18215718e23ae5466b8d), [`8a8634c`](https://github.com/reactive/data-client/commit/8a8634c7a263cf99e9ce426b2c9b92fd2a12a259)]:
+  - @data-client/endpoint@0.12.3
 
-* Require @rest-hooks/react as peerdep
+## 0.12.2
 
-### 🚀 Features
+### Patch Changes
 
-* Add packages react and redux ([#2270](https://github.com/coinbase/rest-hooks/issues/2270)) ([6e28f5f](https://github.com/coinbase/rest-hooks/commit/6e28f5f465b6f4f5d444b56234f212863aeade31))
-* Use @rest-hooks/react instead of rest-hooks ([cd4722f](https://github.com/coinbase/rest-hooks/commit/cd4722f9e88701969f2dd0ec881632e4d3179f7d))
+- [`1dcc39b`](https://github.com/reactive/data-client/commit/1dcc39b0ee08bbe5d7aed3bec17050bcad58d406) Thanks [@ntucker](https://github.com/ntucker)! - Relax peerDeps to allow older versions
 
-### [0.6.8](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.7...@rest-hooks/img@0.6.8) (2022-11-06)
+## 0.12.1
 
-### 📦 Package
+### Patch Changes
 
-* Update babel packages ([#2255](https://github.com/coinbase/rest-hooks/issues/2255)) ([4d739a9](https://github.com/coinbase/rest-hooks/commit/4d739a9dbe2d9796f21e24ebb2022e10575bd0c4))
+- Updated dependencies [[`5b64cbf`](https://github.com/reactive/data-client/commit/5b64cbf3126c404b70853960a4bdedc268e3328c), [`5b64cbf`](https://github.com/reactive/data-client/commit/5b64cbf3126c404b70853960a4bdedc268e3328c), [`6e9d36b`](https://github.com/reactive/data-client/commit/6e9d36b6cb287763c0fcc3f07d9f2ef0df619d12)]:
+  - @data-client/react@0.12.1
 
-### [0.6.7](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.6...@rest-hooks/img@0.6.7) (2022-10-28)
+## 0.11.4
 
-### 📦 Package
+### Patch Changes
 
-* Update babel packages ([#2227](https://github.com/coinbase/rest-hooks/issues/2227)) ([4e652a1](https://github.com/coinbase/rest-hooks/commit/4e652a13552cbf467ca140738f9603aba06cffee))
+- [#3023](https://github.com/reactive/data-client/pull/3023) [`9dea825`](https://github.com/reactive/data-client/commit/9dea825cc979eeb1558f1e686cbbaacee6d137c5) Thanks [@renovate](https://github.com/apps/renovate)! - Compatibility with React 19 by removing defaultProps
 
-### [0.6.6](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.5...@rest-hooks/img@0.6.6) (2022-10-01)
+- Updated dependencies [[`dcb6b2f`](https://github.com/reactive/data-client/commit/dcb6b2fd4a5015242f43edc155352da6789cdb5d)]:
+  - @data-client/endpoint@0.11.4
 
-### 📦 Package
+## 0.11.0
 
-* Update all non-major dependencies ([#2190](https://github.com/coinbase/rest-hooks/issues/2190)) ([c2c7403](https://github.com/coinbase/rest-hooks/commit/c2c74033ecf2004ddebaf064af64f37894f20dec))
-* Update babel packages ([#2192](https://github.com/coinbase/rest-hooks/issues/2192)) ([7c9d3bc](https://github.com/coinbase/rest-hooks/commit/7c9d3bc8ea3019490a1f9e1978c3709b346d582d))
+### Patch Changes
 
-### [0.6.5](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.4...@rest-hooks/img@0.6.5) (2022-09-19)
+- [`ba636a7`](https://github.com/reactive/data-client/commit/ba636a74e77bf5cb8c2b327e161db09f4c4a7192) Thanks [@ntucker](https://github.com/ntucker)! - Support 0.11.0 of @data-client pkgs
 
-### 🐛 Bug Fix
+- Updated dependencies [[`2e169b7`](https://github.com/reactive/data-client/commit/2e169b705e4f8e2eea8005291a0e76e9d11764a4), [`6e55026`](https://github.com/reactive/data-client/commit/6e550260672507592d75c4781dc2563a50e664fa), [`6e55026`](https://github.com/reactive/data-client/commit/6e550260672507592d75c4781dc2563a50e664fa), [`73de27f`](https://github.com/reactive/data-client/commit/73de27fadb214c3c2995ca558daa9736312de7a9), [`59a407a`](https://github.com/reactive/data-client/commit/59a407a5bcaa8e5c6a948a85f5c52f106b24c5af), [`8377e0a`](https://github.com/reactive/data-client/commit/8377e0a157419f0f4c237c392a895fec1772854d), [`c129a25`](https://github.com/reactive/data-client/commit/c129a2558ecb21b5d9985c13747c555b88c51b3a), [`6e55026`](https://github.com/reactive/data-client/commit/6e550260672507592d75c4781dc2563a50e664fa), [`446f0b9`](https://github.com/reactive/data-client/commit/446f0b905f57c290e120c6f11a6b4708554283d1), [`bb24601`](https://github.com/reactive/data-client/commit/bb24601e5ca5b0d92b8db75f115fcfb99fb97563), [`6e55026`](https://github.com/reactive/data-client/commit/6e550260672507592d75c4781dc2563a50e664fa), [`446f0b9`](https://github.com/reactive/data-client/commit/446f0b905f57c290e120c6f11a6b4708554283d1), [`f68750f`](https://github.com/reactive/data-client/commit/f68750f8b0cafa66f6d50521e474db5e3d3c9cdd)]:
+  - @data-client/endpoint@0.11.0
 
-* React native to use es6 modules ([#2180](https://github.com/coinbase/rest-hooks/issues/2180)) ([31524ea](https://github.com/coinbase/rest-hooks/commit/31524ea2cbe6ab4bf4cfe77659ac5e69b0319763))
+## 0.10.0
 
-### 📦 Package
+### Patch Changes
 
-* Update babel packages ([#2174](https://github.com/coinbase/rest-hooks/issues/2174)) ([dab7ac7](https://github.com/coinbase/rest-hooks/commit/dab7ac798850fc0519ffe5793601757b10d949b2))
+- [#2912](https://github.com/reactive/data-client/pull/2912) [`922be79`](https://github.com/reactive/data-client/commit/922be79169a3eeea8e336eee519c165431ead474) Thanks [@ntucker](https://github.com/ntucker)! - Expand compatibility
 
-### [0.6.5-beta.1](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.4...@rest-hooks/img@0.6.5-beta.1) (2022-09-17)
+- Updated dependencies [[`922be79`](https://github.com/reactive/data-client/commit/922be79169a3eeea8e336eee519c165431ead474), [`69834b5`](https://github.com/reactive/data-client/commit/69834b50c6d2b33f46d7c63cabdc0744abf160ae), [`bf9c79c`](https://github.com/reactive/data-client/commit/bf9c79cb42e3df091eafe63fee619764a7ae4350)]:
+  - @data-client/endpoint@0.10.0
 
-### 📦 Package
+## 0.9.4
 
-* Update babel packages ([#2174](https://github.com/coinbase/rest-hooks/issues/2174)) ([dab7ac7](https://github.com/coinbase/rest-hooks/commit/dab7ac798850fc0519ffe5793601757b10d949b2))
+### Patch Changes
 
-### [0.6.5-beta.0](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.4...@rest-hooks/img@0.6.5-beta.0) (2022-09-16)
+- [`d1b51af7ac`](https://github.com/reactive/data-client/commit/d1b51af7ac4a8a7c0559f478cc9503be8e61514c) Thanks [@ntucker](https://github.com/ntucker)! - Fix unpkg bundles by ensuring dependencies are built in order
 
-### 📦 Package
+- Updated dependencies [[`d1b51af7ac`](https://github.com/reactive/data-client/commit/d1b51af7ac4a8a7c0559f478cc9503be8e61514c)]:
+  - @data-client/endpoint@0.9.4
 
-* Update babel packages ([#2174](https://github.com/coinbase/rest-hooks/issues/2174)) ([dab7ac7](https://github.com/coinbase/rest-hooks/commit/dab7ac798850fc0519ffe5793601757b10d949b2))
+## 0.9.3
 
-### [0.6.4](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.2...@rest-hooks/img@0.6.4) (2022-09-10)
+### Patch Changes
 
-### 📦 Package
+- [#2818](https://github.com/reactive/data-client/pull/2818) [`fc0092883f`](https://github.com/reactive/data-client/commit/fc0092883f5af42a5d270250482b7f0ba9845e95) Thanks [@ntucker](https://github.com/ntucker)! - Fix unpkg bundles and update names
 
-* Update all non-major dependencies ([#2119](https://github.com/coinbase/rest-hooks/issues/2119)) ([3003348](https://github.com/coinbase/rest-hooks/commit/3003348ba96781085a6f8a6a86a882438ba2b5ea))
-* Update all non-major dependencies ([#2136](https://github.com/coinbase/rest-hooks/issues/2136)) ([f7c8649](https://github.com/coinbase/rest-hooks/commit/f7c864998abc68cae1a4130f2de50e055c7a5269))
-* Update all non-major dependencies ([#2150](https://github.com/coinbase/rest-hooks/issues/2150)) ([eb480f1](https://github.com/coinbase/rest-hooks/commit/eb480f1f567944208483c9239256e7bcf81351e7))
-* Update babel packages ([#2124](https://github.com/coinbase/rest-hooks/issues/2124)) ([bab76ae](https://github.com/coinbase/rest-hooks/commit/bab76ae4ac54474634d3cb323b69ef9be5773a03))
-* Update babel packages ([#2140](https://github.com/coinbase/rest-hooks/issues/2140)) ([bc4d12d](https://github.com/coinbase/rest-hooks/commit/bc4d12d5369f4eee17f32d9379793cfc9b679d61))
-* Update babel packages ([#2161](https://github.com/coinbase/rest-hooks/issues/2161)) ([31b2c8f](https://github.com/coinbase/rest-hooks/commit/31b2c8ff3d9f9001c31f3f5c15bec1321a15361d))
+  - Client packages namespace into RDC
+    - @data-client/react - RDC
+    - @data-client/core - RDC.Core
+    - @data-client/redux - RDC.Redux
+  - Definition packages namespace top level
+    - @data-client/rest - Rest
+    - @data-client/graphql - GraphQL
+    - @data-client/img - Img
+    - @data-client/endpoint - Endpoint
+  - Utility
+    - @data-client/normalizr - normalizr
+    - @data-client/use-enhanced-reducer - EnhancedReducer
 
-### [0.6.3](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.2...@rest-hooks/img@0.6.3) (2022-09-04)
+- Updated dependencies [[`fc0092883f`](https://github.com/reactive/data-client/commit/fc0092883f5af42a5d270250482b7f0ba9845e95)]:
+  - @data-client/endpoint@0.9.3
 
-### 📦 Package
+## 0.9.2
 
-* Update all non-major dependencies ([#2119](https://github.com/coinbase/rest-hooks/issues/2119)) ([3003348](https://github.com/coinbase/rest-hooks/commit/3003348ba96781085a6f8a6a86a882438ba2b5ea))
-* Update all non-major dependencies ([#2136](https://github.com/coinbase/rest-hooks/issues/2136)) ([f7c8649](https://github.com/coinbase/rest-hooks/commit/f7c864998abc68cae1a4130f2de50e055c7a5269))
-* Update all non-major dependencies ([#2150](https://github.com/coinbase/rest-hooks/issues/2150)) ([eb480f1](https://github.com/coinbase/rest-hooks/commit/eb480f1f567944208483c9239256e7bcf81351e7))
-* Update babel packages ([#2124](https://github.com/coinbase/rest-hooks/issues/2124)) ([bab76ae](https://github.com/coinbase/rest-hooks/commit/bab76ae4ac54474634d3cb323b69ef9be5773a03))
-* Update babel packages ([#2140](https://github.com/coinbase/rest-hooks/issues/2140)) ([bc4d12d](https://github.com/coinbase/rest-hooks/commit/bc4d12d5369f4eee17f32d9379793cfc9b679d61))
+### Patch Changes
 
-### [0.6.2](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.1...@rest-hooks/img@0.6.2) (2022-07-26)
+- [`4ea0bc83f6`](https://github.com/reactive/data-client/commit/4ea0bc83f65f49cb2155f6aecdc5f8d1b168fd5e) Thanks [@ntucker](https://github.com/ntucker)! - Docs: Update repo links to reactive organization
 
-### 📦 Package
+- Updated dependencies [[`4ea0bc83f6`](https://github.com/reactive/data-client/commit/4ea0bc83f65f49cb2155f6aecdc5f8d1b168fd5e)]:
+  - @data-client/endpoint@0.9.2
 
-* Update all non-major dependencies ([#2113](https://github.com/coinbase/rest-hooks/issues/2113)) ([f9b7a6e](https://github.com/coinbase/rest-hooks/commit/f9b7a6e5b19a0d6f26208af517451affa161b070))
+## 0.9.0
 
-### [0.6.1](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.6.0...@rest-hooks/img@0.6.1) (2022-05-30)
+### Patch Changes
 
-### 📦 Package
+- Updated dependencies [[`386372ed4d`](https://github.com/reactive/data-client/commit/386372ed4d0b454687847ba2b8eed4369ef7cdf7)]:
+  - @data-client/endpoint@0.9.0
 
-* Use @babel/runtime@^7.13.0 to use CJS/ESM exports support ([#2019](https://github.com/coinbase/rest-hooks/issues/2019)) ([78a22f2](https://github.com/coinbase/rest-hooks/commit/78a22f29f86527ac10eb2c9b031984e044226dce))
+## 0.8.1
 
-### 📝 Documentation
+### Patch Changes
 
-* Update README with newest practices ([#1920](https://github.com/coinbase/rest-hooks/issues/1920)) ([9bbd76c](https://github.com/coinbase/rest-hooks/commit/9bbd76c4fb20125d6318bd8ac5cc4238be4ab3d5))
+- [#2797](https://github.com/reactive/data-client/pull/2797) [`c6ee872c7d`](https://github.com/reactive/data-client/commit/c6ee872c7d4bb669fa7b08a5343b24419c797cee) Thanks [@ntucker](https://github.com/ntucker)! - Fix published dependency range
 
-## [0.6.0](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.5.2...@rest-hooks/img@0.6.0) (2022-02-26)
+## 0.8.0
 
-### 🚀 Features
+### Patch Changes
 
-* Add component prop to Img ([#1725](https://github.com/coinbase/rest-hooks/issues/1725)) ([e272198](https://github.com/coinbase/rest-hooks/commit/e2721987f0b01a45489373eae031b5b239bf653e))
+- Updated dependencies [[`ff51e71f45`](https://github.com/reactive/data-client/commit/ff51e71f45857eb172f3fe05829e34c9abb68252), [`c535f6c0ac`](https://github.com/reactive/data-client/commit/c535f6c0ac915b5242c1c7694308b7ee7aab16a1), [`79e286109b`](https://github.com/reactive/data-client/commit/79e286109b5566f8e7acfdf0f44201263072d1d1)]:
+  - @data-client/endpoint@0.8.0
 
-### [0.5.2](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.5.1...@rest-hooks/img@0.5.2) (2021-10-18)
+## 0.2.1
 
-### 💅 Enhancement
+### Patch Changes
 
-* Mark compatibility with latest @rest-hooks/core ([#1409](https://github.com/coinbase/rest-hooks/issues/1409)) ([57993f3](https://github.com/coinbase/rest-hooks/commit/57993f38ea7ee12cc9eefb562572fea6de63cb1d))
+- ccaf9411c2: Support 0.4 @data-client/react
 
-### [0.5.1](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.5.0...@rest-hooks/img@0.5.1) (2021-10-11)
+## 0.2.0
 
-### 📝 Documentation
+### Minor Changes
 
-* Only validate circleCI badge against master ([#1322](https://github.com/coinbase/rest-hooks/issues/1322)) ([04e9642](https://github.com/coinbase/rest-hooks/commit/04e96426a865cbef362947da3a8f74f7347859e9))
-* Reorganize docs ([#1345](https://github.com/coinbase/rest-hooks/issues/1345)) ([fa49b6b](https://github.com/coinbase/rest-hooks/commit/fa49b6bcf1d6838b85ce21e728f0630e2746e68f))
+- a78831dc61: Support latest version in peerDeps
 
-## [0.5.0](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.5.0-beta.0...@rest-hooks/img@0.5.0) (2021-09-08)
+## 0.1.2
 
-### 🚀 Features
+### Patch Changes
 
-* Mark compatibility with upcoming versions ([#959](https://github.com/coinbase/rest-hooks/issues/959)) ([72da158](https://github.com/coinbase/rest-hooks/commit/72da158c19acf4c76b8b86eb37e063956b7347fd))
+- 5cacc5d0cd: peerDeps compatibility with next versions
 
-## [0.4.0](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.3.0...@rest-hooks/img@0.4.0) (2021-06-25)
+## 0.1.1
 
-### 🚀 Features
+### Patch Changes
 
-* Mark compatibility with upcoming versions ([#959](https://github.com/coinbase/rest-hooks/issues/959)) ([72da158](https://github.com/coinbase/rest-hooks/commit/72da158c19acf4c76b8b86eb37e063956b7347fd))
-
-## [0.3.0](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.2.4...@rest-hooks/img@0.3.0) (2021-06-13)
-
-### 🚀 Features
-
-* Support React 18 ([#907](https://github.com/coinbase/rest-hooks/issues/907)) ([63e8bc9](https://github.com/coinbase/rest-hooks/commit/63e8bc9887a080e1aa510d972645c037dfc96128))
-
-### [0.2.4](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.2.3...@rest-hooks/img@0.2.4) (2021-06-09)
-
-### 💅 Enhancement
-
-* 'module' entrypoint targets 2019 browsers ([#905](https://github.com/coinbase/rest-hooks/issues/905)) ([d988abe](https://github.com/coinbase/rest-hooks/commit/d988abe063fc67c74fce12e234c9c3ffdb7cc230))
-
-### [0.2.3](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.2.2...@rest-hooks/img@0.2.3) (2021-06-02)
-
-### 💅 Enhancement
-
-* Improve autoimport handling in vscode ([#890](https://github.com/coinbase/rest-hooks/issues/890)) ([f8f2bef](https://github.com/coinbase/rest-hooks/commit/f8f2bef411183676009c6a9df24a26d147c6d9f6))
-
-### [0.2.2](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.2.1...@rest-hooks/img@0.2.2) (2021-04-24)
-
-### 💅 Enhancement
-
-* Support TypeScript 3.7 ([#752](https://github.com/coinbase/rest-hooks/issues/752)) ([68a10e0](https://github.com/coinbase/rest-hooks/commit/68a10e06dc0718f5e480097e6056a7a7954d1161))
-
-### [0.2.1](https://github.com/coinbase/rest-hooks/compare/@rest-hooks/img@0.2.0...@rest-hooks/img@0.2.1) (2021-03-14)
-
-### 📝 Documentation
-
-* Update package tags ([#650](https://github.com/coinbase/rest-hooks/issues/650)) ([4ef465a](https://github.com/coinbase/rest-hooks/commit/4ef465a129cd59668cd9c3542bb9ec03c84d2a4d))
-
-## 0.2.0 (2021-03-01)
-
-### 🚀 Features
-
-* Add @rest-hooks/img ([#586](https://github.com/coinbase/rest-hooks/issues/586)) ([8dfa1a3](https://github.com/coinbase/rest-hooks/commit/8dfa1a362e63d7e26bb3bfc925be74452cfc3d29))
+- Updated dependencies [bf141cb5a5]
+- Updated dependencies [9788090c55]
+- Updated dependencies [9788090c55]
+- Updated dependencies [011cc20732]
+  - @data-client/endpoint@0.2.0

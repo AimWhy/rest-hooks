@@ -1,7 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`<CacheProvider /> should change state 1`] = `
+exports[`<DataProvider /> should change state 1`] = `
 {
+  "endpoints": {
+    "GET http://test.com/article-cooler/5": "5",
+  },
   "entities": {
     "CoolerArticle": {
       "5": {
@@ -30,17 +33,14 @@ exports[`<CacheProvider /> should change state 1`] = `
     },
   },
   "optimistic": [],
-  "results": {
-    "GET http://test.com/article-cooler/5": "5",
-  },
 }
 `;
 
-exports[`<CacheProvider /> should warn users about missing Suspense 1`] = `
+exports[`<DataProvider /> should warn users about missing Suspense 1`] = `
 [
   [
     "Uncaught suspense.
-Make sure to add your own Suspense boundaries: https://resthooks.io/docs/getting-started/data-dependency#async-fallbacks",
+Make sure to add your own Suspense boundaries: https://dataclient.io/docs/getting-started/data-dependency#boundaries",
   ],
 ]
 `;

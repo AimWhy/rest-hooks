@@ -1,4 +1,6 @@
-import loader from '@monaco-editor/loader';
+import { loader } from '@monaco-editor/react';
+
+import { MONACO_VERSION } from './MonacoPreloads';
 
 export let monacoMaster;
 
@@ -8,25 +10,30 @@ if (
 ) {
   const rhDeps = [
     'rest',
+    'rest/next',
+    'react/next',
+    'core/next',
     'core',
     'react',
     'endpoint',
     'normalizr',
     'graphql',
-    'hooks',
   ] as const;
 
   const suggestionDependencies = [
     'react',
-    'rest-hooks',
-    '@rest-hooks/rest',
-    '@rest-hooks/react',
-    '@rest-hooks/graphql',
-    '@rest-hooks/hooks',
+    '@data-client/rest',
+    '@data-client/react',
+    '@data-client/graphql',
     'bignumber.js',
   ];
 
   if (!monacoMaster) {
+    loader.config({
+      paths: {
+        vs: `https://cdn.jsdelivr.net/npm/monaco-editor@${MONACO_VERSION}/min/vs`,
+      },
+    });
     const monacoPromise = loader.init();
     monacoPromise.then(monaco => {
       // or make sure that it exists by other ways
@@ -35,7 +42,7 @@ if (
       monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
         allowNonTsExtensions: true,
         target: monaco.languages.typescript.ScriptTarget.ES2017,
-        jsx: monaco.languages.typescript.JsxEmit.React,
+        jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
         strict: true,
         strictNullChecks: true,
         exactOptionalPropertyTypes: true,
@@ -43,12 +50,12 @@ if (
         module: monaco.languages.typescript.ModuleKind.ESNext,
         moduleResolution:
           monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-        typeRoots: ['node_modules/@types'],
         allowSyntheticDefaultImports: true,
         skipLibCheck: true,
+        skipDefaultLibCheck: true,
         noImplicitAny: false,
       });
-      // TODO: load theme from docusaurus config
+      // TODO: load theme from docusaurus config so we eliminate DRY violation
       // see https://microsoft.github.io/monaco-editor/playground.html for full options
       monaco.editor.defineTheme('prism', {
         base: 'vs-dark',
@@ -75,6 +82,40 @@ if (
         },
       });
       //monaco.languages.typescript.getTypeScriptWorker().then(worker => worker)
+      // go to definition
+      monaco.editor.registerEditorOpener({
+        openCodeEditor(sourceEditor, resource, selectionOrPosition) {
+          if (resource.path.startsWith('/')) {
+            // alternatively set model directly in the editor if you have your own tab/navigation implementation\
+            const model = monaco.editor.getModel(resource);
+            const destinationEditor = monaco.editor
+              .getEditors()
+              .find(editor => editor.getModel() === model);
+            if (!destinationEditor) return false;
+            // focus event is handled by editor to show that tab
+            destinationEditor.focus();
+            requestIdleCallback(() => {
+              if (monaco.Range.isIRange(selectionOrPosition)) {
+                destinationEditor.revealRangeInCenterIfOutsideViewport(
+                  selectionOrPosition,
+                );
+                destinationEditor.setSelection(selectionOrPosition);
+              } else {
+                if (selectionOrPosition) {
+                  destinationEditor.revealPositionInCenterIfOutsideViewport(
+                    selectionOrPosition,
+                  );
+                  destinationEditor.setPosition(selectionOrPosition);
+                }
+              }
+              destinationEditor.focus();
+            });
+
+            return true;
+          }
+          return false;
+        },
+      });
       // autocomplete imports
       monaco.languages.registerCompletionItemProvider('typescript', {
         // These characters should trigger our `provideCompletionItems` function
@@ -88,6 +129,14 @@ if (
             endLineNumber: position.lineNumber,
             endColumn: position.column,
           });
+          // Get the current word
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn,
+          };
           // Match things like `from "` and `require("`
           if (
             /(([\s|\n]+from\s+)|(\brequire\b\s*\())["|'][^'^"]*$/.test(
@@ -116,6 +165,7 @@ if (
                     // Don't keep extension for JS files
                     insertText: file.replace(/\.tsx?$/, ''),
                     kind: monaco.languages.CompletionItemKind.Module,
+                    range,
                   };
                 });
               if (!completions.length) return;
@@ -148,6 +198,7 @@ if (
                   //detail: suggestionDependencies[name],
                   kind: monaco.languages.CompletionItemKind.Module,
                   insertText: name,
+                  range,
                 })),
               };
             }
@@ -159,28 +210,46 @@ if (
     Promise.allSettled([
       monacoPromise,
       import(
-        /* webpackChunkName: 'es2022DTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/lib.es2022.object.d.ts'
-      ),
-      import(
         /* webpackChunkName: 'reactDTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/react.d.ts'
       ),
       import(
         /* webpackChunkName: 'bignumberDTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/bignumber.d.ts'
       ),
       import(
-        /* webpackChunkName: 'resthooksDTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/rest-hooks.d.ts'
+        /* webpackChunkName: 'bignumberDTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/@number-flow/react.d.ts'
+      ),
+      import(
+        /* webpackChunkName: 'temporalDTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/temporal.d.ts'
+      ),
+      import(
+        /* webpackChunkName: 'uuidDTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/uuid.d.ts'
+      ),
+      import(
+        /* webpackChunkName: 'qsDTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/qs.d.ts'
+      ),
+      import(
+        /* webpackChunkName: 'globalsDTS', webpackPreload: true */ '!!raw-loader?esModule=false!./editor-types/globals.d.ts'
       ),
       ...rhDeps.map(
         dep =>
           import(
-            /* webpackChunkName: '[request]', webpackPreload: true */ `!!raw-loader?esModule=false!./editor-types/@rest-hooks/${dep}.d.ts`
+            /* webpackChunkName: '[request]', webpackPreload: true, webpackMode: "lazy-once" */ `!!raw-loader?esModule=false!./editor-types/@data-client/${dep}.d.ts`
           ),
       ),
     ]).then(([mPromise, ...settles]) => {
       if (mPromise.status !== 'fulfilled' || !mPromise.value) return;
       const monaco = mPromise.value;
-      const [es2022, react, bignumber, restHooks, ...rhLibs] = settles.map(
-        result => (result.status === 'fulfilled' ? result.value.default : ''),
+      const [
+        react,
+        bignumber,
+        numberFlow,
+        temporal,
+        uuid,
+        qs,
+        globals,
+        ...rhLibs
+      ] = settles.map(result =>
+        result.status === 'fulfilled' ? result.value.default : '',
       );
 
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
@@ -203,14 +272,55 @@ if (
       );
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
         `declare function render(component:JSX.Element):void;
+        declare function uuid(): string;
         declare function CurrentTime(props: {}):JSX.Element;
-        declare function CancelButton(props: { onClick: () => void }):JSX.Element;
-        declare function ResetableErrorBoundary(props: { children: JSX.ReactChild }):JSX.Element;
-        declare function randomFloatInRange(min: number, max: number, decimals?: number): number;`,
-      );
-      monaco.languages.typescript.typescriptDefaults.addExtraLib(
-        es2022,
-        'es2022',
+        declare function CancelButton(props: { onClick?: () => void }):JSX.Element;
+        declare function Avatar(props: { src: string }):JSX.Element;
+        declare function Formatted({ downColor, formatter, formatterFn, timeout, transition, transitionLength, upColor, value, stylePrefix, }: NumberProps):JSX.Element
+        declare function ResetableErrorBoundary(props: { children: React.ReactNode }):JSX.Element;
+        declare function TextInput(props:Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & { label?: React.ReactNode; loading?: boolean; size?: 'large' | 'medium' | 'small'; }):JSX.Element;
+        declare function TextArea(props:InputHTMLAttributes<HTMLTextAreaElement> & { label?: React.ReactNode;}):JSX.Element;
+        declare function SearchIcon():JSX.Element;
+        declare function Loading():JSX.Element;
+        declare function randomFloatInRange(min: number, max: number, decimals?: number): number;
+        declare interface NumberProps {
+          /**
+           * Color value when the component flashes 'down'.
+           */
+          downColor?: string;
+          /**
+           * One of the built in formatters.
+           */
+          formatter?: 'currency' | 'percentage' | 'number';
+          /**
+           * Pass your own formatter function.
+           */
+          formatterFn?: Formatter;
+          /**
+           * Prefix for the CSS selectors in the DOM.
+           */
+          stylePrefix?: string;
+          /**
+           * Amount of time the flashed state is visible for, in milliseconds.
+           */
+          timeout?: number;
+          /**
+           * Custom CSS transition property.
+           */
+          transition?: string;
+          /**
+           * Transition length, in milliseconds.
+           */
+          transitionLength?: number;
+          /**
+           * Color value when the component flashes 'up'.
+           */
+          upColor?: string;
+          /**
+           * Value to display. The only required prop.
+           */
+          value: number;
+        }`,
       );
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
         `declare module "react" { ${react} }`,
@@ -221,25 +331,42 @@ if (
         'file:///node_modules/bignumber.js/index.d.ts',
       );
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
-        `declare module "rest-hooks" { ${restHooks} }`,
-        'file:///node_modules/rest-hooks/index.d.ts',
+        `declare module "@number-flow/react" { ${numberFlow} };`,
+        'file:///node_modules/@number-flow/react/index.d.ts',
+      );
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        `declare module "@js-temporal/polyfill" { ${temporal} }`,
+        'file:///node_modules/@js-temporal/polyfill/index.d.ts',
+      );
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        `declare module "uuid" { ${uuid} }`,
+        'file:///node_modules/@types/uuid/index.d.ts',
+      );
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        `declare module "qs" { ${qs} }`,
+        'file:///node_modules/@types/qs/index.d.ts',
       );
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
         `declare globals { ${react} }`,
+      );
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        `declare globals { export { default as NumberFlow } from '@number-flow/react'; }`,
+      );
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        `declare globals { export { Temporal, DateTimeFormat } from '@js-temporal/polyfill'; }`,
       );
 
       rhLibs.forEach((lib, i) => {
         const dep = rhDeps[i];
         monaco.languages.typescript.typescriptDefaults.addExtraLib(
-          `declare module "@rest-hooks/${dep}" { ${lib} }`,
-          `file:///node_modules/@rest-hooks/${lib}/index.d.ts`,
+          `declare module "@data-client/${dep}" { ${lib} }`,
+          `file:///node_modules/@data-client/${dep}/index.d.ts`,
         );
-        if (['rest', 'react'].includes(dep)) {
-          monaco.languages.typescript.typescriptDefaults.addExtraLib(
-            `declare globals { ${lib} }`,
-          );
-        }
       });
+
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        `declare globals { ${globals} }`,
+      );
 
       monaco.languages.typescript.typescriptDefaults.setEagerModelSync(true);
       return monaco;

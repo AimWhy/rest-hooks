@@ -1,7 +1,9 @@
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
+import { Intl } from '@js-temporal/polyfill';
 import { Card, List, Layout, Typography } from 'antd';
 import Markdown from 'react-markdown';
-import { UserResource } from 'resources/User';
+
+import { UserResource } from '@/resources/User';
 
 import UserEvents from './UserEvents';
 import UserRepositories from './UserRepos';

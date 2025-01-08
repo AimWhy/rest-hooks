@@ -2,13 +2,15 @@
 title: Render as you Fetch
 ---
 
-A core design feature of Rest Hooks is decoupling actual data retrieval from data
+import StackBlitz from '@site/src/components/StackBlitz';
+
+A core design feature of Reactive Data Client is decoupling actual data retrieval from data
 usage. This means hooks that want to ensure data availability like [useFetch()](../api/useFetch)
 or [useSuspense()](../api/useSuspense) actually only dispatch the request to fetch. [NetworkManager](../api/NetworkManager)
 then uses its global awareness to determine whether to fetch. This means, for instance, that
 duplicate requests for data can be deduped into one fetch, with one promise to resolve.
 
-Another interesting implication is that fetches started imperatively via [Controller.fetch()](../api/Controller.md#fetch)
+Another interesting implication is that fetches started imperatively via [Controller.fetchIfStale()](../api/Controller.md#fetchIfStale) and [Controller.fetch()](../api/Controller.md#fetch)
 won't result in redundant fetches. This is known as 'fetch as you render,' and often results
 in an improved user experience.
 
@@ -16,8 +18,8 @@ These are some scenarios where this pattern is especially useful:
 
 - Server Side Rendering
 - Loading data in parallel with code
-- [Concurrent Mode](https://reactjs.org/docs/concurrent-mode-intro.html)
-  - [useTransition()](https://reactjs.org/docs/concurrent-mode-reference.html#usetransition)
+- [Concurrent Mode](https://react.dev/blog/2022/03/29/react-v18#what-is-concurrent-react)
+  - [useTransition()](https://react.dev/reference/react/useTransition)
 
 Fetch-as-you-render can be adopted incrementally. Components using data can [useSuspense()](../api/useSuspense)
 and be assured they will get their data when it's ready. And when render-as-you-fetch optimizations
@@ -31,14 +33,14 @@ and fetch optimization _loosely coupled_.
 In most cases the best time to pre-fetch data is at the routing layer. Doing this
 makes incorporating all of the above capabilities quite easy.
 
-Use [Controller.fetch](../api/Controller#fetch) in the route event handler (before startTransition)
+Use [Controller.fetchIfStale](../api/Controller#fetchIfStale) in the route event handler (before startTransition)
 
 <!--<iframe loading="lazy" src="https://stackblitz.com/github/ntucker/anansi/tree/master/examples/concurrent?embed=1&file=src/routing/routes.tsx&hideExplorer=1&hidedevtools=1&view=editor" width="100%" height="600"></iframe>-->
 
 ```ts
-import { Controller } from '@rest-hooks/core';
+import { Controller } from '@data-client/core';
 import { lazy, Route } from '@anansi/router';
-import { getImage } from '@rest-hooks/img';
+import { getImage } from '@data-client/img';
 
 export const routes: Route<Controller>[] = [
   {
@@ -50,16 +52,16 @@ export const routes: Route<Controller>[] = [
           id: Number.parseInt(match.id, 10),
         });
         // don't block on posts but start fetching
-        controller.fetch(PostResource.getList, { userId: match.id });
+        controller.fetchIfStale(PostResource.getList, { userId: match.id });
         await Promise.all([
-          controller.fetch(UserResource.get, match),
-          controller.fetch(getImage, {
+          controller.fetchIfStale(UserResource.get, match),
+          controller.fetchIfStale(getImage, {
             src: fakeUser.profileImage,
           }),
-          controller.fetch(getImage, {
+          controller.fetchIfStale(getImage, {
             src: fakeUser.coverImage,
           }),
-          controller.fetch(getImage, {
+          controller.fetchIfStale(getImage, {
             src: fakeUser.coverImageFallback,
           }),
         ]);
@@ -74,8 +76,8 @@ export const routes: Route<Controller>[] = [
 [UserDetail page](https://stackblitz.com/github/ntucker/anansi/tree/master/examples/concurrent?file=src%2Fpages%2FUserDetail%2Findex.tsx)
 
 ```tsx
-import { useSuspense } from '@rest-hooks/react';
-import { Img } from '@rest-hooks/img';
+import { useSuspense } from '@data-client/react';
+import { Img } from '@data-client/img';
 import { Card, Avatar } from 'antd';
 
 import { UserResource } from 'resources/Discuss';

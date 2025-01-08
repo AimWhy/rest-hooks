@@ -1,11 +1,11 @@
 ---
-title: Usage with class components
+title: Using hooks with class components
 ---
 import PkgTabs from '@site/src/components/PkgTabs';
 
 Hooks are great, but many of us are working with existing codebases or libraries
 with class based components. Some might be easy to migrate but others might be
-more diffcult. Should this block you from adopting rest-hooks? Of course not!
+more diffcult. Should this block you from adopting Reactive Data Client? Of course not!
 
 Using the simple [hook-hoc](https://github.com/ntucker/hook-hoc) interop library
 we can create Higher Order Components from hooks quite easily. This enables us
@@ -19,7 +19,7 @@ to easily replace any existing HOC with ease.
 
 ```tsx
 import withHook from 'hook-hoc';
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 
 import UserResource from 'resources/user';
 
@@ -51,7 +51,7 @@ and also potentially reusable, let's move it out to a named function:
 
 ```tsx
 import withHook from 'hook-hoc';
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 
 import UserResource from 'resources/user';
 
@@ -83,7 +83,7 @@ client-side filtering as well as [debouncing](https://usehooks.com/useDebounce/)
 You can combine any hooks here - the sky's the limit.
 
 ```tsx
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 
 import UserResource from 'resources/user';
 

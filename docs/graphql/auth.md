@@ -1,13 +1,12 @@
 ---
-title: GraphQL Authentication
+title: GraphQL Authentication patterns for Reactive Data Client
 sidebar_label: Authentication
 ---
-<head>
-  <title>GraphQL Authentication patterns for Rest Hooks</title>
-</head>
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
+
+# GraphQL Authentication
 
 ## Cookie Auth
 
@@ -15,12 +14,12 @@ Here's an example using simple cookie auth:
 
 ```ts title="schema/endpoint.ts"
 export const gql = new GQLEndpoint('https://nosy-baritone.glitch.me', {
-  getFetchInit(init: RequestInit): RequestInit {
+  getRequestInit(body: any): Promise<RequestInit> {
     return {
-      ...init,
+      ...super.getRequestInit(body),
       credentials: 'same-origin',
     };
-  },
+  }
 });
 export default gql;
 ```

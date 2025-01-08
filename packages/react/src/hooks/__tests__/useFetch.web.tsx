@@ -1,13 +1,17 @@
-import { initialState, State, ActionTypes, Controller } from '@rest-hooks/core';
-import { CacheProvider } from '@rest-hooks/react';
+import {
+  initialState,
+  State,
+  ActionTypes,
+  Controller,
+} from '@data-client/core';
+import { CacheProvider } from '@data-client/react';
 import { render } from '@testing-library/react';
-import { renderHook } from '@testing-library/react-hooks';
 import { CoolerArticleResource, StaticArticleResource } from '__tests__/new';
 import nock from 'nock';
 import React, { Suspense } from 'react';
-// relative imports to avoid circular dependency in tsconfig references
 
-import { makeRenderRestHook } from '../../../../test';
+// relative imports to avoid circular dependency in tsconfig references
+import { makeRenderDataClient, renderHook } from '../../../../test';
 import { StateContext, ControllerContext } from '../../context';
 import { users, payload } from '../test-fixtures';
 import useFetch from '../useFetch';
@@ -31,17 +35,17 @@ async function testDispatchFetch(
   expect(dispatch.mock.calls.length).toBe(payloads.length);
   let i = 0;
   for (const call of dispatch.mock.calls) {
-    delete call[0]?.meta?.createdAt;
+    delete call[0]?.meta?.fetchedAt;
     delete call[0]?.meta?.promise;
     expect(call[0]).toMatchSnapshot();
     const action = call[0];
-    const res = await action.payload();
+    const res = await action.endpoint(...action.args);
     expect(res).toEqual(payloads[i]);
     i++;
   }
 }
 
-function testRestHook(
+function testDataClient(
   callback: () => void,
   state: State<unknown>,
   dispatch = (v: ActionTypes) => Promise.resolve(),
@@ -83,12 +87,12 @@ afterAll(() => {
 });
 
 describe('useFetch', () => {
-  let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+  let renderDataClient: ReturnType<typeof makeRenderDataClient>;
   beforeEach(() => {
     mynock.get(`/article-cooler/${payload.id}`).reply(200, payload);
     mynock.get(`/article-static/${payload.id}`).reply(200, payload);
     mynock.get(`/user/`).reply(200, users);
-    renderRestHook = makeRenderRestHook(CacheProvider);
+    renderDataClient = makeRenderDataClient(CacheProvider);
   });
   afterEach(() => {
     nock.cleanAll();
@@ -105,7 +109,7 @@ describe('useFetch', () => {
   it('should not dispatch will null params', () => {
     const dispatch = jest.fn();
     let params: any = null;
-    const { rerender } = testRestHook(
+    const { rerender } = testDataClient(
       () => {
         useFetch(CoolerArticleResource.get, params);
       },
@@ -155,7 +159,7 @@ describe('useFetch', () => {
         response: payload,
       },
     ];
-    const { result, rerender } = renderRestHook(
+    const { result, rerender } = renderDataClient(
       () => {
         return useFetch(CoolerArticleResource.get, { id: payload.id });
       },
@@ -167,7 +171,7 @@ describe('useFetch', () => {
     rerender();
     await result.current;
     expect(fetchMock).toHaveBeenCalledTimes(0);
-    // eslint-disable-next-line require-atomic-updates
+
     time += 610000000;
     rerender();
     await result.current;

@@ -1,8 +1,8 @@
-import { useCache } from '@rest-hooks/react';
-import { queryRemaining } from 'resources/TodoResource';
+import { useQuery } from '@data-client/react';
+import { queryRemainingTodos } from 'resources/TodoResource';
 
 export default function TodoStats({ userId }: { userId?: number }) {
-  const remaining = useCache(queryRemaining, { userId });
+  const remaining = useQuery(queryRemainingTodos, { userId });
 
-  return <div>{remaining} tasks remaining</div>;
+  return <div>{remaining ?? 0} tasks remaining</div>;
 }

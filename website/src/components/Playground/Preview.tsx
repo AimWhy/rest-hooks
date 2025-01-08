@@ -1,33 +1,35 @@
-import { useScrollPositionBlocker } from '@docusaurus/theme-common/internal';
+import {
+  DataProvider,
+  PollingSubscription,
+  SubscriptionManager,
+  NetworkManager,
+} from '@data-client/react';
 import {
   type Fixture,
   type Interceptor,
   MockResolver,
-} from '@rest-hooks/test/browser';
+} from '@data-client/test/browser';
+import { useScrollPositionBlocker } from '@docusaurus/theme-common/internal';
 import clsx from 'clsx';
 import React, { memo, useCallback, useState, useMemo, lazy } from 'react';
-import {
-  CacheProvider,
-  PollingSubscription,
-  SubscriptionManager,
-  NetworkManager,
-} from 'rest-hooks';
 
 import Boundary from './Boundary';
 import StoreInspector from './StoreInspector';
 import styles from './styles.module.css';
 import { useTabStorage } from '../../utils/tabStorage';
 
-function Preview({
+function Preview<T>({
   groupId,
   defaultOpen,
   row,
   fixtures,
+  getInitialInterceptorData,
 }: {
   groupId: string;
   row: boolean;
   defaultOpen: 'y' | 'n';
-  fixtures: (Fixture | Interceptor)[];
+  fixtures: (Fixture | Interceptor<T>)[];
+  getInitialInterceptorData?: () => T;
 }) {
   const [choice, setTabGroupChoice] = useTabStorage(
     `docusaurus.tab.${groupId}`,
@@ -61,32 +63,32 @@ function Preview({
   );
 
   const hiddenResult = !(selectedValue === 'n' || !row);
-
   return (
-    <CacheProvider managers={managers}>
-      <MockResolver fixtures={fixtures} silenceMissing={true}>
+    <DataProvider managers={managers}>
+      <MockResolver
+        fixtures={fixtures}
+        silenceMissing={true}
+        getInitialInterceptorData={getInitialInterceptorData}
+      >
         <div
-          className={clsx(styles.playgroundPreview, {
+          className={clsx('playground-preview', styles.playgroundPreview, {
             [styles.hidden]: hiddenResult,
           })}
         >
-          <Boundary fallback={<LivePreviewLoader />}>
+          <Boundary fallback={null}>
             <PreviewBlockLazy />
           </Boundary>
         </div>
         <StoreInspector selectedValue={selectedValue} toggle={toggle} />
       </MockResolver>
-    </CacheProvider>
+    </DataProvider>
   );
 }
 export default memo(Preview);
 
-function LivePreviewLoader() {
-  return <div>Loading...</div>;
-}
 const PreviewBlockLazy = lazy(
   () =>
     import(
-      /* webpackChunkName: '[request]', webpackPreload: true */ './PreviewBlock'
+      /* webpackChunkName: 'PreviewBlock', webpackPreload: true */ './PreviewBlock'
     ),
 );

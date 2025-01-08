@@ -1,10 +1,9 @@
 ---
-title: useError()
+title: useError() - Accessing error metadata
+sidebar_label: useError()
 ---
 
-<head>
-  <title>useError() - Accessing error metadata</title>
-</head>
+# useError()
 
 ```typescript
 export interface SyntheticError extends Error {
@@ -21,8 +20,7 @@ function useError(
 
 [NetworkError](./types#networkerror)
 
-Provides error information about a request. This builds on [useMeta()](./useMeta),
-but adds some additional logic.
+Provides error information about a request.
 
 Used in
 

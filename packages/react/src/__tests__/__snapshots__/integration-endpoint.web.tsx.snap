@@ -1,41 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CacheProvider Endpoint should gracefully abort in useSuspense() 1`] = `[AbortError: Aborted]`;
+exports[`DataProvider Endpoint should gracefully abort in useSuspense() 1`] = `[AbortError: Aborted]`;
 
-exports[`CacheProvider Endpoint should resolve useSuspense() with SimpleRecords 1`] = `
-[
-  PaginatedArticle {
-    "author": User {
-      "email": "bob@bob.com",
-      "id": 23,
-      "isAdmin": false,
-      "username": "charles",
-    },
-    "content": "whatever",
-    "id": 5,
-    "tags": [
-      "a",
-      "best",
-      "react",
-    ],
-    "title": "hi ho",
-  },
-  PaginatedArticle {
-    "author": User {
-      "email": "bob@bob.com",
-      "id": 23,
-      "isAdmin": false,
-      "username": "charles",
-    },
-    "content": "whatever",
-    "id": 3,
-    "tags": [],
-    "title": "the next time",
-  },
-]
-`;
-
-exports[`CacheProvider should filter Query based on arguments 1`] = `
+exports[`DataProvider Query should work as endpoint Schema 1`] = `
 [
   CoolerArticle {
     "author": User {
@@ -56,7 +23,7 @@ exports[`CacheProvider should filter Query based on arguments 1`] = `
 ]
 `;
 
-exports[`CacheProvider should filter Query based on arguments 2`] = `
+exports[`DataProvider Query should work as endpoint Schema 2`] = `
 [
   CoolerArticle {
     "author": User {
@@ -86,7 +53,58 @@ exports[`CacheProvider should filter Query based on arguments 2`] = `
 ]
 `;
 
-exports[`CacheProvider should filter Query based on arguments 3`] = `
+exports[`DataProvider should filter Query based on arguments 1`] = `
+[
+  CoolerArticle {
+    "author": User {
+      "email": "bob@bob.com",
+      "id": 23,
+      "isAdmin": false,
+      "username": "charles",
+    },
+    "content": "whatever",
+    "id": 5,
+    "tags": [
+      "a",
+      "best",
+      "react",
+    ],
+    "title": "hi ho",
+  },
+]
+`;
+
+exports[`DataProvider should filter Query based on arguments 2`] = `
+[
+  CoolerArticle {
+    "author": User {
+      "email": "bob@bob.com",
+      "id": 23,
+      "isAdmin": false,
+      "username": "charles",
+    },
+    "content": "whatever",
+    "id": 5,
+    "tags": [
+      "a",
+      "best",
+      "react",
+    ],
+    "title": "hi ho",
+  },
+  CoolerArticle {
+    "author": null,
+    "content": "whatever",
+    "id": 1000,
+    "tags": [
+      "a",
+    ],
+    "title": "bob says",
+  },
+]
+`;
+
+exports[`DataProvider should filter Query based on arguments 3`] = `
 [
   CoolerArticle {
     "author": User {
@@ -135,7 +153,7 @@ exports[`CacheProvider should filter Query based on arguments 3`] = `
 ]
 `;
 
-exports[`CacheProvider should passthrough union with unexpected schema attribute 1`] = `
+exports[`DataProvider should passthrough union with unexpected schema attribute 1`] = `
 [
   [
     "Schema attribute "another" is not expected.
@@ -174,52 +192,17 @@ Value: {
 ]
 `;
 
-exports[`CacheProvider should resolve useSuspense() with SimpleRecords 1`] = `
-[
-  PaginatedArticle {
-    "author": User {
-      "email": "bob@bob.com",
-      "id": 23,
-      "isAdmin": false,
-      "username": "charles",
-    },
-    "content": "whatever",
-    "id": 5,
-    "tags": [
-      "a",
-      "best",
-      "react",
-    ],
-    "title": "hi ho",
-  },
-  PaginatedArticle {
-    "author": User {
-      "email": "bob@bob.com",
-      "id": 23,
-      "isAdmin": false,
-      "username": "charles",
-    },
-    "content": "whatever",
-    "id": 3,
-    "tags": [],
-    "title": "the next time",
-  },
-]
-`;
-
-exports[`CacheProvider useSuspense() should throw errors on malformed response 1`] = `
+exports[`DataProvider useSuspense() should throw errors on malformed response 1`] = `
 [Error: Error processing GET http://test.com/article-cooler/878
 
 Full Schema: {
-  "name": "CoolerArticle",
+  "key": "CoolerArticle",
   "schema": {
     "author": {
-      "name": "User",
-      "schema": {},
-      "key": "User"
+      "key": "User",
+      "schema": {}
     }
-  },
-  "key": "CoolerArticle"
+  }
 }
 
 Error:
@@ -227,8 +210,8 @@ Attempted to initialize CoolerArticle with an array, but named members were expe
 
 This is likely due to a malformed response.
 Try inspecting the network response or fetch() return value.
-Or use debugging tools: https://resthooks.io/docs/guides/debugging
-Learn more about schemas: https://resthooks.io/docs/api/schema
+Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+Learn more about schemas: https://dataclient.io/docs/api/schema
 If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
 
 First three members: [
@@ -236,42 +219,9 @@ First three members: [
 ]]
 `;
 
-exports[`ExternalCacheProvider Endpoint should gracefully abort in useSuspense() 1`] = `[AbortError: Aborted]`;
+exports[`ExternalDataProvider Endpoint should gracefully abort in useSuspense() 1`] = `[AbortError: Aborted]`;
 
-exports[`ExternalCacheProvider Endpoint should resolve useSuspense() with SimpleRecords 1`] = `
-[
-  PaginatedArticle {
-    "author": User {
-      "email": "bob@bob.com",
-      "id": 23,
-      "isAdmin": false,
-      "username": "charles",
-    },
-    "content": "whatever",
-    "id": 5,
-    "tags": [
-      "a",
-      "best",
-      "react",
-    ],
-    "title": "hi ho",
-  },
-  PaginatedArticle {
-    "author": User {
-      "email": "bob@bob.com",
-      "id": 23,
-      "isAdmin": false,
-      "username": "charles",
-    },
-    "content": "whatever",
-    "id": 3,
-    "tags": [],
-    "title": "the next time",
-  },
-]
-`;
-
-exports[`ExternalCacheProvider should filter Query based on arguments 1`] = `
+exports[`ExternalDataProvider Query should work as endpoint Schema 1`] = `
 [
   CoolerArticle {
     "author": User {
@@ -292,7 +242,7 @@ exports[`ExternalCacheProvider should filter Query based on arguments 1`] = `
 ]
 `;
 
-exports[`ExternalCacheProvider should filter Query based on arguments 2`] = `
+exports[`ExternalDataProvider Query should work as endpoint Schema 2`] = `
 [
   CoolerArticle {
     "author": User {
@@ -322,7 +272,58 @@ exports[`ExternalCacheProvider should filter Query based on arguments 2`] = `
 ]
 `;
 
-exports[`ExternalCacheProvider should filter Query based on arguments 3`] = `
+exports[`ExternalDataProvider should filter Query based on arguments 1`] = `
+[
+  CoolerArticle {
+    "author": User {
+      "email": "bob@bob.com",
+      "id": 23,
+      "isAdmin": false,
+      "username": "charles",
+    },
+    "content": "whatever",
+    "id": 5,
+    "tags": [
+      "a",
+      "best",
+      "react",
+    ],
+    "title": "hi ho",
+  },
+]
+`;
+
+exports[`ExternalDataProvider should filter Query based on arguments 2`] = `
+[
+  CoolerArticle {
+    "author": User {
+      "email": "bob@bob.com",
+      "id": 23,
+      "isAdmin": false,
+      "username": "charles",
+    },
+    "content": "whatever",
+    "id": 5,
+    "tags": [
+      "a",
+      "best",
+      "react",
+    ],
+    "title": "hi ho",
+  },
+  CoolerArticle {
+    "author": null,
+    "content": "whatever",
+    "id": 1000,
+    "tags": [
+      "a",
+    ],
+    "title": "bob says",
+  },
+]
+`;
+
+exports[`ExternalDataProvider should filter Query based on arguments 3`] = `
 [
   CoolerArticle {
     "author": User {
@@ -371,7 +372,7 @@ exports[`ExternalCacheProvider should filter Query based on arguments 3`] = `
 ]
 `;
 
-exports[`ExternalCacheProvider should passthrough union with unexpected schema attribute 1`] = `
+exports[`ExternalDataProvider should passthrough union with unexpected schema attribute 1`] = `
 [
   [
     "Schema attribute "another" is not expected.
@@ -410,52 +411,17 @@ Value: {
 ]
 `;
 
-exports[`ExternalCacheProvider should resolve useSuspense() with SimpleRecords 1`] = `
-[
-  PaginatedArticle {
-    "author": User {
-      "email": "bob@bob.com",
-      "id": 23,
-      "isAdmin": false,
-      "username": "charles",
-    },
-    "content": "whatever",
-    "id": 5,
-    "tags": [
-      "a",
-      "best",
-      "react",
-    ],
-    "title": "hi ho",
-  },
-  PaginatedArticle {
-    "author": User {
-      "email": "bob@bob.com",
-      "id": 23,
-      "isAdmin": false,
-      "username": "charles",
-    },
-    "content": "whatever",
-    "id": 3,
-    "tags": [],
-    "title": "the next time",
-  },
-]
-`;
-
-exports[`ExternalCacheProvider useSuspense() should throw errors on malformed response 1`] = `
+exports[`ExternalDataProvider useSuspense() should throw errors on malformed response 1`] = `
 [Error: Error processing GET http://test.com/article-cooler/878
 
 Full Schema: {
-  "name": "CoolerArticle",
+  "key": "CoolerArticle",
   "schema": {
     "author": {
-      "name": "User",
-      "schema": {},
-      "key": "User"
+      "key": "User",
+      "schema": {}
     }
-  },
-  "key": "CoolerArticle"
+  }
 }
 
 Error:
@@ -463,8 +429,8 @@ Attempted to initialize CoolerArticle with an array, but named members were expe
 
 This is likely due to a malformed response.
 Try inspecting the network response or fetch() return value.
-Or use debugging tools: https://resthooks.io/docs/guides/debugging
-Learn more about schemas: https://resthooks.io/docs/api/schema
+Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+Learn more about schemas: https://dataclient.io/docs/api/schema
 If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
 
 First three members: [

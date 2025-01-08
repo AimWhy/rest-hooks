@@ -1,0 +1,25 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@2.3.1/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "reactive/data-client" }],
+  "commit": false,
+  "linked": [
+    [
+      "@data-client/core",
+      "@data-client/endpoint",
+      "@data-client/graphql",
+      "@data-client/img",
+      "@data-client/normalizr",
+      "@data-client/react",
+      "@data-client/rest",
+      "@data-client/test"
+    ]
+  ],
+  "fixed": [],
+  "access": "public",
+  "baseBranch": "master",
+  "updateInternalDependencies": "patch",
+  "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
+    "onlyUpdatePeerDependentsWhenOutOfRange": true
+  },
+  "ignore": []
+}

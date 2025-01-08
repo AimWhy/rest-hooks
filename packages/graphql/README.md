@@ -1,18 +1,18 @@
-# Rest Hooks for GraphQL
+# Data Client for GraphQL
 
-[![CircleCI](https://circleci.com/gh/data-client/rest-hooks/tree/master.svg?style=shield)](https://circleci.com/gh/data-client/rest-hooks)
-[![Coverage Status](https://img.shields.io/codecov/c/gh/data-client/rest-hooks/master.svg?style=flat-square)](https://app.codecov.io/gh/data-client/rest-hooks?branch=master)
-[![npm downloads](https://img.shields.io/npm/dm/@rest-hooks/graphql.svg?style=flat-square)](https://www.npmjs.com/package/@rest-hooks/graphql)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/@rest-hooks/graphql?style=flat-square)](https://bundlephobia.com/result?p=@rest-hooks/graphql)
-[![npm version](https://img.shields.io/npm/v/@rest-hooks/graphql.svg?style=flat-square)](https://www.npmjs.com/package/@rest-hooks/graphql)
+[![CircleCI](https://circleci.com/gh/reactive/data-client/tree/master.svg?style=shield)](https://circleci.com/gh/reactive/data-client)
+[![Coverage Status](https://img.shields.io/codecov/c/gh/reactive/data-client/master.svg?style=flat-square)](https://app.codecov.io/gh/reactive/data-client?branch=master)
+[![npm downloads](https://img.shields.io/npm/dm/@data-client/graphql.svg?style=flat-square)](https://www.npmjs.com/package/@data-client/graphql)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@data-client/graphql?style=flat-square)](https://bundlephobia.com/result?p=@data-client/graphql)
+[![npm version](https://img.shields.io/npm/v/@data-client/graphql.svg?style=flat-square)](https://www.npmjs.com/package/@data-client/graphql)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 [![Chat](https://img.shields.io/discord/768254430381735967.svg?style=flat-square&colorB=758ED3)](https://discord.gg/35nb8Mz)
 
-[GraphQL Endpoints](https://resthooks.io/graphql) for [Rest Hooks](https://resthooks.io)
+[GraphQL Endpoints](https://dataclient.io/graphql) for [Data Client](https://dataclient.io)
 
 <div align="center">
 
-**[📖Read The Docs](https://resthooks.io/graphql)** &nbsp;|&nbsp; [🎮Github Demo](https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/github-app?file=src%2Fresources%2FRepository.tsx)
+**[📖Read The Docs](https://dataclient.io/graphql)** &nbsp;|&nbsp; [🎮Github Demo](https://stackblitz.com/github/reactive/data-client/tree/master/examples/github-app?file=src%2Fresources%2FRepository.tsx)
 
 </div>
 
@@ -26,8 +26,8 @@ const gql = new GQLEndpoint('https://nosy-baritone.glitch.me');
 
 ```typescript
 class User extends GQLEntity {
-  readonly name: string = '';
-  readonly email: string = '';
+  name = '';
+  email = '';
 }
 ```
 
@@ -90,3 +90,87 @@ const controller = useController();
 const createReview = useFetcher(createReview);
 return <ReviewForm onSubmit={data => controller.fetch(createReview, data)} />;
 ```
+
+## API
+
+#### Networking definition
+  - [Endpoints](https://dataclient.io/rest/api/Endpoint): [GQLEndpoint](https://dataclient.io/graphql/api/GQLEndpoint)
+
+<table>
+<caption>
+<a href="https://dataclient.io/docs/concepts/normalization">Data model</a>
+</caption>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Mutable</th>
+<th>Schema</th>
+<th>Description</th>
+<th><a href="https://dataclient.io/rest/api/schema#queryable">Queryable</a></th>
+</tr>
+</thead>
+<tbody><tr>
+<td rowSpan="4"><a href="https://en.wikipedia.org/wiki/Object_(computer_science)">Object</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Entity">Entity</a>, <a href="https://dataclient.io/rest/api/EntityMixin">EntityMixin</a>, <a href="https://dataclient.io/graphql/api/GQLEntity">GQLEntity</a></td>
+<td>single <em>unique</em> object</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Union">Union(Entity)</a></td>
+<td>polymorphic objects (<code>A | B</code>)</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Object">Object</a></td>
+<td>statically known keys</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td><a href="https://dataclient.io/rest/api/Invalidate">Invalidate(Entity)</a></td>
+<td><a href="https://dataclient.io/docs/concepts/expiry-policy#invalidate-entity">delete an entity</a></td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td rowSpan="3"><a href="https://en.wikipedia.org/wiki/List_(abstract_data_type)">List</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Collection">Collection(Array)</a></td>
+<td>growable lists</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Array">Array</a></td>
+<td>immutable lists</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/All">All</a></td>
+<td>list of all entities of a kind</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td rowSpan="2"><a href="https://en.wikipedia.org/wiki/Associative_array">Map</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Collection">Collection(Values)</a></td>
+<td>growable maps</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Values">Values</a></td>
+<td>immutable maps</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td>any</td>
+<td align="center"></td>
+<td><a href="https://dataclient.io/rest/api/Query">Query(Queryable)</a></td>
+<td>memoized custom transforms</td>
+<td align="center">✅</td>
+</tr>
+</tbody></table>

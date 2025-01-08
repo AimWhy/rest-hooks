@@ -2,9 +2,9 @@ import { compile, PathFunction, parse } from 'path-to-regexp';
 
 import { ShortenPath } from './pathTypes.js';
 
-const urlBaseCache: Record<string, PathFunction<object>> = {};
+const urlBaseCache: Record<string, PathFunction<object>> = Object.create(null);
 export function getUrlBase(path: string): PathFunction {
-  if (!Object.hasOwn(urlBaseCache, path)) {
+  if (!(path in urlBaseCache)) {
     urlBaseCache[path] = compile(path, {
       encode: encodeURIComponent,
       validate: false,
@@ -13,9 +13,9 @@ export function getUrlBase(path: string): PathFunction {
   return urlBaseCache[path];
 }
 
-const urlTokensCache: Record<string, Set<string>> = {};
+const urlTokensCache: Record<string, Set<string>> = Object.create(null);
 export function getUrlTokens(path: string): Set<string> {
-  if (!Object.hasOwn(urlTokensCache, path)) {
+  if (!(path in urlTokensCache)) {
     urlTokensCache[path] = new Set(
       parse(path).map(t => (typeof t === 'string' ? t : `${t['name']}`)),
     );
@@ -34,11 +34,11 @@ export function isPojo(obj: unknown): obj is Record<string, any> {
 }
 
 export function shortenPath<S extends string>(path: S): ShortenPath<S> {
+  const lastColonIndex = path.lastIndexOf(':');
+  if (lastColonIndex === -1)
+    throw new Error('Resource path requires at least one :parameter');
   // this is for when not specifying a specific item like create/list
-  let shortUrlRoot: ShortenPath<S> = path.substring(
-    0,
-    path.lastIndexOf(':'),
-  ) as any;
+  let shortUrlRoot: ShortenPath<S> = path.substring(0, lastColonIndex) as any;
   if (shortUrlRoot[shortUrlRoot.length - 1] === '/')
     shortUrlRoot = shortUrlRoot.substring(
       0,

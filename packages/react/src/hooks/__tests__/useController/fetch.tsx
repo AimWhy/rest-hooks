@@ -1,13 +1,23 @@
-import { ResolveType } from '@rest-hooks/core';
-import { CacheProvider } from '@rest-hooks/react';
-import { CacheProvider as ExternalCacheProvider } from '@rest-hooks/redux';
-import { act } from '@testing-library/react-hooks';
-import { CoolerArticle, FutureArticleResource } from '__tests__/new';
+import { ResolveType } from '@data-client/core';
+import { CacheProvider } from '@data-client/react';
+import { DataProvider as ExternalDataProvider } from '@data-client/react/redux';
+import {
+  CoolerArticle,
+  CoolerArticleResource,
+  FirstUnion,
+  FutureArticleResource,
+  UnionResource,
+} from '__tests__/new';
 import nock from 'nock';
 
-import { useCache, useController, useSuspense } from '../..';
+import { useCache, useSuspense } from '../..';
 // relative imports to avoid circular dependency in tsconfig references
-import { makeRenderRestHook, FixtureEndpoint } from '../../../../../test';
+import {
+  makeRenderDataClient,
+  FixtureEndpoint,
+  act,
+} from '../../../../../test';
+import useController from '../../useController';
 
 export const payload = {
   id: 5,
@@ -48,11 +58,11 @@ export const nested = [
 
 describe.each([
   ['CacheProvider', CacheProvider],
-  ['ExternalCacheProvider', ExternalCacheProvider],
+  ['ExternalDataProvider', ExternalDataProvider],
 ] as const)(`%s`, (_, makeProvider) => {
   // TODO: add nested resource test case that has multiple partials to test merge functionality
 
-  let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+  let renderDataClient: ReturnType<typeof makeRenderDataClient>;
   let mynock: nock.Scope;
 
   beforeEach(() => {
@@ -90,19 +100,27 @@ describe.each([
   });
 
   beforeEach(() => {
-    renderRestHook = makeRenderRestHook(makeProvider);
+    renderDataClient = makeRenderDataClient(makeProvider);
   });
 
   let errorspy: jest.SpyInstance;
   beforeEach(() => {
-    errorspy = jest.spyOn(global.console, 'error');
+    errorspy = jest.spyOn(global.console, 'error').mockImplementation(() => {});
+    jest.spyOn(global.console, 'warn').mockImplementation(() => {});
   });
   afterEach(() => {
     errorspy.mockRestore();
   });
+  let warnSpy: jest.SpyInstance;
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+  beforeEach(() =>
+    (warnSpy = jest.spyOn(console, 'warn')).mockImplementation(() => {}),
+  );
 
   it('should fetch', async () => {
-    const { result } = renderRestHook(() => {
+    const { result } = renderDataClient(() => {
       return {
         data: useCache(FutureArticleResource.get, payload.id),
         fetch: useController().fetch,
@@ -118,7 +136,11 @@ describe.each([
     );
     expect(result.current.data).toBeDefined();
     expect(result.current.data?.content).toEqual(payload.content);
-    expect(response).toEqual(payload);
+    expect(response).toEqual(CoolerArticle.fromJS(payload));
+    expect(response.content).toBe(payload.content);
+
+    // @ts-expect-error
+    () => response.slkdf;
 
     // type tests
     // TODO: move these to own unit tests if/when applicable
@@ -146,7 +168,7 @@ describe.each([
       args: [10000],
       response: payload,
     };
-    const { result } = renderRestHook(
+    const { result } = renderDataClient(
       () => {
         return {
           data: useCache(FutureArticleResource.get, id),
@@ -174,7 +196,7 @@ describe.each([
     ];
     // use nock, and use resolver
     for (const resolverFixtures of [undefined, fixtures]) {
-      const { result, waitForNextUpdate } = renderRestHook(
+      const { result, waitForNextUpdate } = renderDataClient(
         () => {
           const articles = useSuspense(FutureArticleResource.getList);
           const fetch = useController().fetch;
@@ -193,16 +215,16 @@ describe.each([
         article.content;
         // @ts-expect-error
         article.asdf;
-        // @ts-expect-error
-        article.pk;
+        article.pk();
       });
 
-      expect(result.current.articles.map(({ id }) => id)).toEqual([1, 5, 3]);
+      expect(result.current.articles.map(({ id }) => id)).toEqual([5, 3, 1]);
     }
   });
 
   it('should log error message when user update method throws', async () => {
     const endpoint = FutureArticleResource.create.extend({
+      schema: CoolerArticle,
       update: () => {
         throw new Error('usererror');
       },
@@ -215,7 +237,7 @@ describe.each([
         response,
       },
     ];
-    const { result, waitForNextUpdate } = renderRestHook(
+    const { result, waitForNextUpdate } = renderDataClient(
       () => {
         const articles = useSuspense(FutureArticleResource.getList);
         const fetch = useController().fetch;
@@ -232,7 +254,7 @@ describe.each([
       // still keeps old list
       expect(result.current.articles.map(({ id }) => id)).toEqual([5, 3]);
 
-    expect(errorspy.mock.calls).toMatchSnapshot();
+    expect(errorspy.mock.calls[0]).toMatchSnapshot();
   });
 
   it('should not suspend once deleted and redirected at same time', async () => {
@@ -246,7 +268,7 @@ describe.each([
       .delete(`/article-cooler/${temppayload.id}`)
       .reply(204, '');
     const throws: Promise<any>[] = [];
-    const { result, waitForNextUpdate, rerender } = renderRestHook(
+    const { result, waitForNextUpdate, rerender } = renderDataClient(
       ({ id }) => {
         try {
           return [
@@ -269,19 +291,74 @@ describe.each([
     const [data, fetch] = result.current;
     expect(data).toBeInstanceOf(CoolerArticle);
     expect(data?.title).toBe(temppayload.title);
-    expect(throws.length).toBe(1);
+    // react 19 suspends twice
+    expect(throws.length).toBeGreaterThanOrEqual(1);
 
     mynock
       .persist()
       .get(`/article-cooler/${temppayload.id}`)
       .reply(200, { ...temppayload, title: 'othertitle' });
 
-    expect(throws.length).toBe(1);
+    // react 19 suspends twice
+    expect(throws.length).toBeGreaterThanOrEqual(1);
     await act(async () => {
       await fetch(FutureArticleResource.delete, temppayload.id);
       rerender({ id: null });
     });
-    expect(throws.length).toBe(1);
+    // react 19 suspends twice
+    expect(throws.length).toBeGreaterThanOrEqual(1);
     expect(result.current[0]).toBe(null);
+  });
+
+  it('should return denormalized value when schema is present', async () => {
+    const { controller } = renderDataClient(
+      () => {
+        return 'hi';
+      },
+      {
+        resolverFixtures: [
+          {
+            endpoint: CoolerArticleResource.get,
+            args: [{ id: payload.id }],
+            response: payload,
+          },
+        ],
+      },
+    );
+    const ret = await controller.fetch(CoolerArticleResource.get, {
+      id: payload.id,
+    });
+    expect(ret.content).toEqual(payload.content);
+    expect(ret).toBeInstanceOf(CoolerArticle);
+    expect(warnSpy.mock.calls.length).toBe(0);
+  });
+
+  it('should return denormalized value when schema is present (unions)', async () => {
+    const response = [
+      null,
+      { id: '5', body: 'hi', type: 'first' },
+      { id: '6', body: 'hi', type: 'another' },
+      { id: '7', body: 'hi' },
+    ];
+    const { controller } = renderDataClient(
+      () => {
+        return 'hi';
+      },
+      {
+        resolverFixtures: [
+          {
+            endpoint: UnionResource.getList,
+            args: [],
+            response,
+          },
+        ],
+      },
+    );
+    const ret = await controller.fetch(UnionResource.getList);
+    expect(ret[0]).toBeNull();
+    expect(ret[1]).toBeInstanceOf(FirstUnion);
+    expect(ret[2]).toEqual(response[2]);
+    expect(ret[3]).toEqual(response[3]);
+    expect(warnSpy.mock.calls).toMatchSnapshot();
   });
 });

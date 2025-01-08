@@ -1,4 +1,4 @@
-import { schema } from '@rest-hooks/endpoint';
+import { schema } from '@data-client/endpoint';
 import nock from 'nock';
 
 import GQLEndpoint from '../GQLEndpoint';
@@ -137,6 +137,15 @@ describe('GQLEndpoint', () => {
     expect(response.slkd).toBeUndefined();
   });
 
+  it('testKey should match keys', () => {
+    expect(userDetail.testKey(userDetail.key({ name: 'bob' }))).toBeTruthy();
+    expect(
+      userDetail.testKey(userDetail.key({ name: 'charles' })),
+    ).toBeTruthy();
+    expect(userDetail.testKey(userDetail.key({ name: 'alice' }))).toBeTruthy();
+    expect(userDetail.testKey(userDetail.key({ name: 'xxx?*' }))).toBeTruthy();
+  });
+
   it('should query no schema', async () => {
     const response = await userDetailNoSchema({ name: 'Fong' });
     expect(response.user).toBeDefined();
@@ -222,7 +231,6 @@ describe('GQLEndpoint', () => {
     expect(error).toBeDefined();
     expect(error.status).toBe(400);
 
-    // eslint-disable-next-line require-atomic-updates
     console.error = oldError;
   });
 });

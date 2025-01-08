@@ -1,18 +1,11 @@
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 import { Card } from 'antd';
-import { CommentResource } from 'resources/Comment';
+
+import { CommentResource } from '@/resources/Comment';
 
 import CommentInline from './CommentInline';
 
-export default function CommentsList({
-  owner,
-  repo,
-  number,
-}: {
-  owner: string;
-  repo: string;
-  number: string | number;
-}) {
+export default function CommentsList({ owner, repo, number }: Props) {
   const { results: comments } = useSuspense(CommentResource.getList, {
     owner: owner,
     repo,
@@ -29,4 +22,9 @@ export default function CommentsList({
 }
 export function CardLoading() {
   return <Card style={{ marginTop: 16 }} loading={true} />;
+}
+interface Props {
+  owner: string;
+  repo: string;
+  number: string | number;
 }

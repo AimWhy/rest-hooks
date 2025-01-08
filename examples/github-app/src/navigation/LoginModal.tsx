@@ -1,4 +1,4 @@
-import { Button, Modal } from 'antd';
+import { Modal } from 'antd';
 import { useCallback, useContext } from 'react';
 
 import { authdContext } from './authdContext';
@@ -18,10 +18,13 @@ export default function LoginModal({
   const handleCancel = useCallback(() => {
     handleClose();
   }, []);
-  const onFinish = useCallback((data: { login: string; token: string }) => {
-    login(data);
-    handleClose();
-  }, []);
+  const onFinish = useCallback(
+    async (data: { login: string; token: string }) => {
+      await login(data);
+      handleClose();
+    },
+    [handleClose, login],
+  );
 
   return (
     <Modal

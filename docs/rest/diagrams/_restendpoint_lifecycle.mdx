@@ -6,12 +6,14 @@ flowchart TB
     subgraph Prepare Fetch
       subgraph URL
         direction BT
-        urlPrefix-->url("url(...args)")
+        urlPrefix-->url("url(urlParams)")
         path-->url
+        searchToString("searchToString()")-->url
+        searchParams-->searchToString("searchToString()")
       end
       subgraph INIT
       direction BT
-        getHeaders("getHeaders()")-->reqinit("getRequestInit(...args)")
+        getHeaders("getHeaders()")-->reqinit("getRequestInit(body)")
         method-->reqinit
         signal-->reqinit
       end
@@ -21,6 +23,8 @@ flowchart TB
     parse-->process("process()")
     end
     click url "/rest/api/RestEndpoint#url"
+    click searchToString "/rest/api/RestEndpoint#searchToString"
+    click searchParams "/rest/api/RestEndpoint#searchParams"
     click urlPrefix "/rest/api/RestEndpoint#urlPrefix"
     click path "/rest/api/RestEndpoint#path"
     click getHeaders "/rest/api/RestEndpoint#getHeaders"

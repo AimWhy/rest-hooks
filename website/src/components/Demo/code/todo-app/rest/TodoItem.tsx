@@ -1,30 +1,28 @@
-import { TodoResource, type Todo } from './api';
+import { TodoResource, type Todo } from './resources';
 
 export default function TodoItem({ todo }: { todo: Todo }) {
   const controller = useController();
+  const handleChange = e =>
+    controller.fetch(
+      TodoResource.partialUpdate,
+      { id: todo.id },
+      { completed: e.currentTarget.checked },
+    );
+  const handleDelete = () =>
+    controller.fetch(TodoResource.delete, {
+      id: todo.id,
+    });
   return (
-    <div>
+    <div className="listItem nogap">
       <label>
         <input
           type="checkbox"
           checked={todo.completed}
-          onChange={e =>
-            controller.fetch(
-              TodoResource.partialUpdate,
-              { id: todo.id },
-              { completed: e.currentTarget.checked },
-            )
-          }
+          onChange={handleChange}
         />
         {todo.completed ? <strike>{todo.title}</strike> : todo.title}
       </label>
-      <CancelButton
-        onClick={() =>
-          controller.fetch(TodoResource.delete, {
-            id: todo.id,
-          })
-        }
-      />
+      <CancelButton onClick={handleDelete} />
     </div>
   );
 }

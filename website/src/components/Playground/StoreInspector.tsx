@@ -1,9 +1,9 @@
-import { StateContext } from 'rest-hooks';
-import React, { useContext, memo, useMemo } from 'react';
+import { StateContext } from '@data-client/react';
 import clsx from 'clsx';
+import React, { useContext, memo, useMemo } from 'react';
 
-import Tree from './Tree';
 import styles from './styles.module.css';
+import Tree from './Tree';
 
 function StoreInspector({
   toggle,
@@ -20,9 +20,13 @@ function StoreInspector({
     <>
       <div className={styles.debugToggle} onClick={toggle}>
         Store
-        <span className={clsx(styles.arrow, rotation, styles.vertical)}>▶</span>
+        <span className={clsx(styles.arrow, rotation, styles.vertical)}>
+          ▶
+        </span>
       </div>
-      {isSelected ? <StoreTreeM /> : null}
+      {isSelected ?
+        <StoreTreeM />
+      : null}
     </>
   );
 }

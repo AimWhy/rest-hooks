@@ -1,17 +1,31 @@
 ---
-title: Endpoint
+title: Endpoint - Strongly typed API definitions
+sidebar_label: Endpoint
 ---
-
-<head>
-  <title>Endpoint - Strongly typed API definitions</title>
-</head>
-
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
+import HooksPlayground from '@site/src/components/HooksPlayground';
 
-Endpoint defines a standard interface that describes the nature of an networking endpoint.
-It is both strongly typed, and encapsulates runtime-relevant information.
+# Endpoint
+
+`Endpoint` are for any asynchronous function (one that returns a Promise).
+
+`Endpoints` define a strongly typed standard interface of relevant metadata and lifecycles
+useful for Reactive Data Client and other stores.
+
+Package: [@data-client/endpoint](https://www.npmjs.com/package/@data-client/endpoint)
+
+:::tip
+
+Endpoint is a protocol independent class. Try using the protocol specific patterns
+[REST](./RestEndpoint.md), [GraphQL](/graphql/api/GQLEndpoint),
+or [getImage](/docs/guides/img-media#just-images) instead.
+
+:::
+
+<details>
+<summary><b>Interface</b></summary>
 
 <Tabs
 defaultValue="Interface"
@@ -84,25 +98,63 @@ export interface EndpointExtraOptions<F extends FetchFunction = FetchFunction> {
   readonly errorPolicy?: (error: any) => 'soft' | undefined;
   /** User-land extra data to send */
   readonly extra?: any;
-  /** Enables optimistic updates for this request - uses return value as assumed network response
-   * @deprecated use https://resthooks.io./Endpoint.md#getoptimisticresponse instead
-   */
-  readonly optimisticUpdate?: (...args: Parameters<F>) => ResolveType<F>;
 }
 ```
 
 </TabItem>
 </Tabs>
 
-Package: [@rest-hooks/endpoint](https://www.npmjs.com/package/@rest-hooks/endpoint)
+</details>
 
-:::tip
+## Usage
 
-Endpoint is a protocol independent class. Try using the protocol specific patterns
-[REST](./RestEndpoint.md), [GraphQL](/graphql/api/GQLEndpoint),
-or [getImage](/docs/guides/img-media#just-images) instead.
+`Endpoint` makes existing async functions usable in any Reactive Data Client context with full TypeScript enforcement.
 
-:::
+<HooksPlayground defaultOpen="n">
+
+```ts title="interface" collapsed
+export interface Todo {
+  id: number;
+  userId: number;
+  title: string;
+  completed: boolean;
+}
+```
+
+```ts title="api" {11}
+import { Todo } from './interface';
+
+const getTodoOriginal = (id: number): Promise<Todo> =>
+  Promise.resolve({
+    id,
+    title: 'delectus aut autem ' + id,
+    completed: false,
+    userId: 1,
+  });
+
+export const getTodo = new Endpoint(getTodoOriginal);
+```
+
+```tsx title="React"
+import { getTodo } from './api';
+
+function TodoDetail() {
+  const todo = useSuspense(getTodo, 1);
+  return <div>{todo.title}</div>;
+}
+render(<TodoDetail />);
+```
+
+</HooksPlayground>
+
+### Configuration sharing
+
+Use [Endpoint.extend()](#extend) instead of `{...getTodo}` (spread)
+
+```ts
+const getTodoNormalized = getTodo.extend({ schema: Todo });
+const getTodoUpdatingEveryFiveSeconds = getTodo.extend({ pollFrequency: 5000 });
+```
 
 ## Lifecycle
 
@@ -130,10 +182,38 @@ Serializes the parameters. This is used to build a lookup key in global stores.
 Default:
 
 ```typescript
-`${this.fetch.name} ${JSON.stringify(params)}`;
+`${this.name} ${JSON.stringify(params)}`;
 ```
 
-### sideEffect: true | undefined {#sideeffect}
+:::warning Overrides
+
+When overriding `key`, be sure to also include an updated [testKey](#testKey) if
+you intend on using that method.
+
+:::
+
+### testKey(key): boolean {#testKey}
+
+Returns `true` if the provided (fetch) [key](#key) matches this endpoint.
+
+This is used for mock interceptors with with [&lt;MockResolver /&gt;](/docs/api/MockResolver)
+
+### name: string {#name}
+
+Used in [key](#key) to distinguish endpoints. Should be globally unique.
+
+Defaults to `this.fetch.name`
+
+:::warning
+
+This may break in production builds that change function names.
+This is often know as [function name mangling](https://terser.org/docs/api-reference#mangle-options).
+
+In these cases you can override `name` or disable function mangling.
+
+:::
+
+### sideEffect: boolean {#sideeffect}
 
 Used to indicate endpoint might have side-effects (non-idempotent). This restricts it
 from being used with [useSuspense()](/docs/api/useSuspense) or [useFetch()](/docs/api/useFetch) as those can hit the
@@ -144,133 +224,41 @@ endpoint an unpredictable number of times.
 Declarative definition of how to [process responses](./schema)
 
 - [where](./schema) to expect [Entities](./Entity.md)
-- Classes to [deserialize fields](/rest/guides/network-transform#deserializing-fields)
+- Functions to [deserialize fields](/rest/guides/network-transform#deserializing-fields)
 
 Not providing this option means no entities will be extracted.
 
 ```tsx
-import { Entity } from '@rest-hooks/normalizr';
-import { Endpoint } from '@rest-hooks/endpoint';
+import { Entity } from '@data-client/normalizr';
+import { Endpoint } from '@data-client/endpoint';
 
 class User extends Entity {
-  readonly id: string = '';
-  readonly username: string = '';
-
-  pk() { return this.id;}
+  id = '';
+  username = '';
 }
 
-const UserDetail = new Endpoint(
+const getUser = new Endpoint(
     ({ id }) ⇒ fetch(`/users/${id}`),
     { schema: User }
 );
 ```
 
-### extend(EndpointOptions): Endpoint {#extend}
+import EndpointLifecycle from './_EndpointLifecycle.mdx';
+
+<EndpointLifecycle />
+
+### extend(options): Endpoint {#extend}
 
 Can be used to further customize the endpoint definition
 
 ```typescript
-const UserDetail = new Endpoint(({ id }) ⇒ fetch(`/users/${id}`));
+const getUser = new Endpoint(({ id }) ⇒ fetch(`/users/${id}`));
 
 
-const UserDetailNormalized = UserDetail.extend({ schema: User });
+const getUserNormalized = getUser.extend({ schema: User });
 ```
 
 In addition to the members, `fetch` can be sent to override the fetch function.
-
-### EndpointExtraOptions
-
-#### dataExpiryLength?: number {#dataexpirylength}
-
-Custom data cache lifetime for the fetched resource. Will override the value set in NetworkManager.
-
-[Learn more about expiry time](/docs/concepts/expiry-policy#expiry-time)
-
-#### errorExpiryLength?: number {#errorexpirylength}
-
-Custom data error lifetime for the fetched resource. Will override the value set in NetworkManager.
-
-#### errorPolicy?: (error: any) => 'soft' | undefined {#errorpolicy}
-
-'soft' will use stale data (if exists) in case of error; undefined or not providing option will result
-in error.
-
-[Learn more about errorPolicy](/docs/concepts/expiry-policy#error-policy)
-
-#### invalidIfStale: boolean {#invalidifstale}
-
-Indicates stale data should be considered unusable and thus not be returned from the cache. This means
-that useSuspense() will suspend when data is stale even if it already exists in cache.
-
-#### pollFrequency: number {#pollfrequency}
-
-Frequency in millisecond to poll at. Requires using [useSubscription()](/docs/api/useSubscription) or
-[useLive()](/docs/api/useLive) to have an effect.
-
-#### getOptimisticResponse: (snap, ...args) => fakePayload {#getoptimisticresponse}
-
-When provided, any fetches with this endpoint will behave as though the `fakePayload` return value
-from this function was a succesful network response. When the actual fetch completes (regardless
-of failure or success), the optimistic update will be replaced with the actual network response.
-
-[Optimistic update guide](../guides/optimistic-updates.md)
-
-#### optimisticUpdate: (...args) => fakePayload {#optimisticupdate}
-
-:::caution Deprecated
-
-Use [endpoint.getOptimisticResponse](#getOptimisticResponse) instead.
-
-:::
-
-#### update(normalizedResponseOfThis, ...args) => ({ [endpointKey]: (normalizedResponseOfEndpointToUpdate) => updatedNormalizedResponse) }) {#update}
-
-```ts title="UpdateType.ts"
-type UpdateFunction<
-  Source extends EndpointInterface,
-  Updaters extends Record<string, any> = Record<string, any>,
-> = (
-  source: ResultEntry<Source>,
-  ...args: Parameters<Source>
-) => { [K in keyof Updaters]: (result: Updaters[K]) => Updaters[K] };
-```
-
-Simplest case:
-
-```ts title="userEndpoint.ts"
-const createUser = new Endpoint(postToUserFunction, {
-  schema: User,
-  update: (newUserId: string) => ({
-    [userList.key()]: (users = []) => [newUserId, ...users],
-  }),
-});
-```
-
-More updates:
-
-```typescript title="Component.tsx"
-const allusers = useSuspense(userList);
-const adminUsers = useSuspense(userList, { admin: true });
-```
-
-The endpoint below ensures the new user shows up immediately in the usages above.
-
-```ts title="userEndpoint.ts"
-const createUser = new Endpoint(postToUserFunction, {
-  schema: User,
-  update: (newUserId, newUser)  => {
-    const updates = {
-      [userList.key()]: (users = []) => [newUserId, ...users],
-    ];
-    if (newUser.isAdmin) {
-      updates[userList.key({ admin: true })] = (users = []) => [newUserId, ...users];
-    }
-    return updates;
-  },
-});
-```
-
-See usage with [Resource or RestEndpoint](./RestEndpoint.md#update)
 
 ## Examples
 
@@ -284,7 +272,7 @@ values={[
 <TabItem value="Basic">
 
 ```typescript
-import { Endpoint } from '@rest-hooks/endpoint';
+import { Endpoint } from '@data-client/endpoint';
 
 const UserDetail = new Endpoint(
   ({ id }) ⇒ fetch(`/users/${id}`).then(res => res.json())
@@ -295,14 +283,12 @@ const UserDetail = new Endpoint(
 <TabItem value="With Schema">
 
 ```typescript
-import { Endpoint } from '@rest-hooks/endpoint';
-import { Entity } from '@rest-hooks/react';
+import { Endpoint } from '@data-client/endpoint';
+import { Entity } from '@data-client/react';
 
 class User extends Entity {
-  readonly id: string = '';
-  readonly username: string = '';
-
-  pk() { return this.id; }
+  id = '';
+  username = '';
 }
 
 const UserDetail = new Endpoint(
@@ -315,14 +301,12 @@ const UserDetail = new Endpoint(
 <TabItem value="List">
 
 ```typescript
-import { Endpoint } from '@rest-hooks/endpoint';
-import { Entity } from '@rest-hooks/react';
+import { Endpoint } from '@data-client/endpoint';
+import { Entity } from '@data-client/react';
 
 class User extends Entity {
-  readonly id: string = '';
-  readonly username: string = '';
-
-  pk() { return this.id; }
+  id = '';
+  username = '';
 }
 
 const UserList = new Endpoint(
@@ -395,7 +379,3 @@ TypeScript the definition of a networking API.
 - A function to uniquely store those results
 - Optional: information about how to store the data in a normalized cache
 - Optional: whether the request could have side effects - to prevent repeat calls
-
-## See also
-
-- [Index](./Index.md)

@@ -1,26 +1,13 @@
-import type { Schema } from '@rest-hooks/normalizr';
-
-import { SUBSCRIBE_TYPE, UNSUBSCRIBE_TYPE } from '../actionTypes.js';
+import { SUBSCRIBE, UNSUBSCRIBE } from '../actionTypes.js';
+import Controller from '../controller/Controller.js';
 import type {
   Manager,
-  State,
-  MiddlewareAPI,
   Middleware,
-  Dispatch,
   UnsubscribeAction,
   SubscribeAction,
 } from '../types.js';
 
 type Actions = UnsubscribeAction | SubscribeAction;
-
-/** Properties sent to Subscription constructor */
-export interface SubscriptionInit {
-  schema?: Schema | undefined;
-  fetch: () => Promise<any>;
-  key: string;
-  getState: () => State<unknown>;
-  frequency?: number | undefined;
-}
 
 /** Interface handling a single resource subscription */
 export interface Subscription {
@@ -31,49 +18,53 @@ export interface Subscription {
 
 /** The static class that constructs Subscription */
 export interface SubscriptionConstructable {
-  new (init: SubscriptionInit, dispatch: Dispatch<any>): Subscription;
+  new (
+    action: Omit<SubscribeAction, 'type'>,
+    controller: Controller,
+  ): Subscription;
 }
 
-/** Handles subscription actions -> fetch or receive actions
+/** Handles subscription actions -> fetch or set actions
  *
  * Constructor takes a SubscriptionConstructable class to control how
  * subscriptions are handled. (e.g., polling, websockets)
  *
- * @see https://resthooks.io/docs/api/SubscriptionManager
+ * @see https://dataclient.io/docs/api/SubscriptionManager
  */
-export default class SubscriptionManager<S extends SubscriptionConstructable>
-  implements Manager
+export default class SubscriptionManager<
+  S extends SubscriptionConstructable = SubscriptionConstructable,
+> implements Manager<Actions>
 {
   protected subscriptions: {
     [key: string]: InstanceType<S>;
   } = {};
 
-  protected declare readonly Subscription: S;
-  protected declare middleware: Middleware;
+  declare protected readonly Subscription: S;
+  protected controller: Controller = new Controller();
 
   constructor(Subscription: S) {
     this.Subscription = Subscription;
-
-    this.middleware = <C extends MiddlewareAPI>({ dispatch, getState }: C) => {
-      return (next: C['dispatch']): C['dispatch'] =>
-        action => {
-          switch (action.type) {
-            case SUBSCRIBE_TYPE:
-              try {
-                this.handleSubscribe(action, dispatch, getState);
-              } catch (e) {
-                console.error(e);
-              }
-              return Promise.resolve();
-            case UNSUBSCRIBE_TYPE:
-              this.handleUnsubscribe(action, dispatch);
-              return Promise.resolve();
-            default:
-              return next(action);
-          }
-        };
-    };
   }
+
+  middleware: Middleware = controller => {
+    this.controller = controller;
+    return next => action => {
+      switch (action.type) {
+        case SUBSCRIBE:
+          try {
+            this.handleSubscribe(action);
+          } catch (e) {
+            console.error(e);
+          }
+          return Promise.resolve();
+        case UNSUBSCRIBE:
+          this.handleUnsubscribe(action);
+          return Promise.resolve();
+        default:
+          return next(action);
+      }
+    };
+  };
 
   /** Ensures all subscriptions are cleaned up. */
   cleanup() {
@@ -82,45 +73,32 @@ export default class SubscriptionManager<S extends SubscriptionConstructable>
     }
   }
 
-  /** Called when middleware intercepts 'rest-hooks/subscribe' action.
+  /** Called when middleware intercepts 'rdc/subscribe' action.
    *
    */
-  protected handleSubscribe(
-    action: SubscribeAction,
-    dispatch: (action: any) => Promise<void>,
-    getState: () => State<unknown>,
-  ) {
-    const key = action.meta.key;
-    const frequency = action.meta.options?.pollFrequency;
+  protected handleSubscribe(action: SubscribeAction) {
+    const key = action.key;
 
     if (key in this.subscriptions) {
+      const frequency = action.endpoint.pollFrequency;
       this.subscriptions[key].add(frequency);
     } else {
       this.subscriptions[key] = new this.Subscription(
-        {
-          schema: action.meta.schema,
-          fetch: action.meta.fetch,
-          frequency,
-          key,
-          getState,
-        },
-        dispatch,
+        action,
+        this.controller,
       ) as InstanceType<S>;
     }
   }
 
-  /** Called when middleware intercepts 'rest-hooks/unsubscribe' action.
+  /** Called when middleware intercepts 'rdc/unsubscribe' action.
    *
    */
-  protected handleUnsubscribe(
-    action: UnsubscribeAction,
-    dispatch: (action: any) => Promise<void>,
-  ) {
-    const key = action.meta.key;
-    const frequency = action.meta.options?.pollFrequency;
+  protected handleUnsubscribe(action: UnsubscribeAction) {
+    const key = action.key;
 
     /* istanbul ignore else */
     if (key in this.subscriptions) {
+      const frequency = action.endpoint.pollFrequency;
       const empty = this.subscriptions[key].remove(frequency);
       if (empty) {
         delete this.subscriptions[key];
@@ -128,17 +106,5 @@ export default class SubscriptionManager<S extends SubscriptionConstructable>
     } else if (process.env.NODE_ENV !== 'production') {
       console.error(`Mismatched unsubscribe: ${key} is not subscribed`);
     }
-  }
-
-  /** Attaches Manager to store
-   *
-   * Intercepts 'rest-hooks/subscribe'/'rest-hooks/unsubscribe' to register resources that
-   * need to be kept up to date.
-   *
-   * Will possibly dispatch 'rest-hooks/fetch' or 'rest-hooks/receive' to keep resources fresh
-   *
-   */
-  getMiddleware() {
-    return this.middleware;
   }
 }

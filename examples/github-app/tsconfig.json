@@ -1,21 +1,23 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
-    "baseUrl": "./src",
+    "baseUrl": "./",
     "target": "esnext",
     "module": "esnext",
     "lib": ["dom", "esnext"],
-    "jsx": "react-jsx",
+    "jsx": "preserve", // this is just to make it work with older typescript versions in our tests
     "declaration": true,
     "strict": true,
     "moduleResolution": "node",
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "types": ["@anansi/webpack-config/types"],
+    "types": ["@anansi/webpack-config/types","./src/types/remark-remove-comments"],
     "paths": {
-      "resources/*": ["resources/*"]
+      "@/*": ["./src/*"],
+      "@/resources/*": ["./src/resources/*"]
     },
     "noEmit": true
   },

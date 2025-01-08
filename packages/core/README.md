@@ -1,27 +1,34 @@
-# [![🛌🎣 Rest hooks](../../packages/rest-hooks/rest_hooks_logo_and_text.svg?sanitize=true)](https://resthooks.io)
+<h1>
+<div align="center">
+<a href="https://dataclient.io" target="_blank" rel="noopener">
+  <img alt="Reactive Data Client" src="./data_client_logo_and_text.svg?sanitize=true">
+</a>
+</div>
+</h1>
 
-[![CircleCI](https://circleci.com/gh/data-client/rest-hooks/tree/master.svg?style=shield)](https://circleci.com/gh/data-client/rest-hooks)
-[![Coverage Status](https://img.shields.io/codecov/c/gh/data-client/rest-hooks/master.svg?style=flat-square)](https://app.codecov.io/gh/data-client/rest-hooks?branch=master)
-[![npm downloads](https://img.shields.io/npm/dt/@rest-hooks/core.svg?style=flat-square)](https://www.npmjs.com/package/@rest-hooks/core)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/@rest-hooks/core?style=flat-square)](https://bundlephobia.com/result?p=@rest-hooks/core)
-[![npm version](https://img.shields.io/npm/v/@rest-hooks/core.svg?style=flat-square)](https://www.npmjs.com/package/@rest-hooks/core)
+[![CircleCI](https://circleci.com/gh/reactive/data-client/tree/master.svg?style=shield)](https://circleci.com/gh/reactive/data-client)
+[![Coverage Status](https://img.shields.io/codecov/c/gh/reactive/data-client/master.svg?style=flat-square)](https://app.codecov.io/gh/reactive/data-client?branch=master)
+[![npm downloads](https://img.shields.io/npm/dt/@data-client/core.svg?style=flat-square)](https://www.npmjs.com/package/@data-client/core)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@data-client/core?style=flat-square)](https://bundlephobia.com/result?p=@data-client/core)
+[![npm version](https://img.shields.io/npm/v/@data-client/core.svg?style=flat-square)](https://www.npmjs.com/package/@data-client/core)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 Reducer/flux normalized, framework-agnostic data store. Includes managers/middleware, global referential equality guarantees,
-automatic expiry policies, data normalization. Consumes [TypeScript Standard Endpoints](https://www.npmjs.com/package/@rest-hooks/endpoint)
+automatic expiry policies, data normalization. Consumes [TypeScript Standard Endpoints](https://www.npmjs.com/package/@data-client/endpoint)
 
 <div align="center">
 
-**[📖Read The Docs](https://resthooks.io/docs)** &nbsp;|&nbsp; [🏁Getting Started](https://resthooks.io/docs/getting-started/installation) &nbsp;|&nbsp;
-[🎮Todo Demo](https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/todo-app?file=src%2Fpages%2FHome%2FTodoList.tsx) &nbsp;|&nbsp;
-[🎮Github Demo](https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/github-app?file=src%2Fpages%2FIssueList.tsx)
+**[📖Read The Docs](https://dataclient.io/docs)** &nbsp;|&nbsp; [🏁Getting Started](https://dataclient.io/docs/getting-started/installation) &nbsp;|&nbsp;
+[🎮Todo Demo](https://stackblitz.com/github/reactive/data-client/tree/master/examples/todo-app?file=src%2Fpages%2FHome%2FTodoList.tsx) &nbsp;|&nbsp;
+[🎮Github Demo](https://stackblitz.com/github/reactive/data-client/tree/master/examples/github-app?file=src%2Fpages%2FIssueList.tsx) &nbsp;|&nbsp;
+[🎮NextJS SSR Demo](https://stackblitz.com/github/reactive/data-client/tree/master/examples/nextjs?file=components%2Ftodo%2FTodoList.tsx)
 
 </div>
 
 ### Framework Implementations
 
-- [React](https://www.npmjs.com/package/@rest-hooks/react)
-- [React-Redux](https://www.npmjs.com/package/@rest-hooks/redux)
+- [React](https://www.npmjs.com/package/@data-client/react)
+- [React-Redux](https://dataclient.io/docs/guides/redux)
 
 ### Sample React Hook suspense implementation
 
@@ -31,7 +38,7 @@ function useSuspense(endpoint, ...args)
   const controller = useController();
 
   const key = args[0] !== null ? endpoint.key(...args) : '';
-  const cacheResults = key && state.results[key];
+  const cacheResults = key && state.endpoints[key];
   const meta = state.meta[key];
 
   // Compute denormalized value
@@ -69,3 +76,27 @@ function useSuspense(endpoint, ...args)
   return data;
 }
 ```
+
+
+## API
+
+- [Controller](https://dataclient.io/docs/api/Controller)
+  - [ctrl.fetch](https://dataclient.io/docs/api/Controller#fetch)
+  - [ctrl.fetchIfStale](https://dataclient.io/docs/api/Controller#fetchIfStale)
+  - [ctrl.expireAll](https://dataclient.io/docs/api/Controller#expireAll)
+  - [ctrl.invalidate](https://dataclient.io/docs/api/Controller#invalidate)
+  - [ctrl.invalidateAll](https://dataclient.io/docs/api/Controller#invalidateAll)
+  - [ctrl.resetEntireStore](https://dataclient.io/docs/api/Controller#resetEntireStore)
+  - [ctrl.set](https://dataclient.io/docs/api/Controller#set)
+  - [ctrl.setResponse](https://dataclient.io/docs/api/Controller#setResponse)
+  - [ctrl.setError](https://dataclient.io/docs/api/Controller#setError)
+  - [ctrl.resolve](https://dataclient.io/docs/api/Controller#resolve)
+  - [ctrl.subscribe](https://dataclient.io/docs/api/Controller#subscribe)
+  - [ctrl.unsubscribe](https://dataclient.io/docs/api/Controller#unsubscribe)
+  - [ctrl.get](https://dataclient.io/docs/api/Controller#get)
+  - [ctrl.getResponse](https://dataclient.io/docs/api/Controller#getResponse)
+  - [ctrl.getError](https://dataclient.io/docs/api/Controller#getError)
+  - [ctrl.snapshot](https://dataclient.io/docs/api/Controller#snapshot)
+  - [ctrl.getState](https://dataclient.io/docs/api/Controller#getState)
+- Middleware: [LogoutManager](https://dataclient.io/docs/api/LogoutManager), [NetworkManager](https://dataclient.io/docs/api/NetworkManager), [SubscriptionManager](https://dataclient.io/docs/api/SubscriptionManager), [PollingSubscription](https://dataclient.io/docs/api/PollingSubscription), [DevToolsManager](https://dataclient.io/docs/api/DevToolsManager)
+- State: createReducer(), initialState, applyManager

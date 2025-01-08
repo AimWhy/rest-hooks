@@ -1,9 +1,8 @@
-import { CacheProvider } from '@rest-hooks/react';
-import { makeRenderRestHook } from '@rest-hooks/test';
-import { FixtureEndpoint } from '@rest-hooks/test/mockState';
+import { CacheProvider } from '@data-client/react';
+import { makeRenderDataClient, renderHook } from '@data-client/test';
+import { act } from '@data-client/test';
+import { FixtureEndpoint } from '@data-client/test/mockState';
 import { waitFor } from '@testing-library/react';
-import { renderHook } from '@testing-library/react-hooks';
-import { act } from '@testing-library/react-hooks';
 import { CoolerArticleDetail, FutureArticleResource } from '__tests__/new';
 import nock from 'nock';
 import { useEffect } from 'react';
@@ -56,11 +55,11 @@ export const nested: FixtureEndpoint = {
     },
   ],
 };
-let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+let renderDataClient: ReturnType<typeof makeRenderDataClient>;
 let mynock: nock.Scope;
 
 beforeEach(() => {
-  renderRestHook = makeRenderRestHook(CacheProvider);
+  renderDataClient = makeRenderDataClient(CacheProvider);
   mynock = nock(/.*/).defaultReplyHeaders({
     'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json',
@@ -72,7 +71,7 @@ afterEach(() => {
 
 describe('resetEntireStore', () => {
   it('should result in useCache having no entry', async () => {
-    const { result, controller } = renderRestHook(
+    const { result, controller } = renderDataClient(
       () => {
         return {
           data: useCache(FutureArticleResource.get, 5),
@@ -104,7 +103,7 @@ describe('resetEntireStore', () => {
 
   describe('integration', () => {
     beforeEach(() => {
-      renderRestHook = makeRenderRestHook(CacheProvider);
+      renderDataClient = makeRenderDataClient(CacheProvider);
     });
     afterEach(() => {
       jest.useRealTimers();
@@ -125,7 +124,7 @@ describe('resetEntireStore', () => {
         })
         .persist();
 
-      const { result, rerender, controller } = renderRestHook(() => {
+      const { result, rerender, controller } = renderDataClient(() => {
         return useSuspense(CoolerArticleDetail, { id: 9999 });
       });
       expect(result.current).toBeUndefined();
@@ -147,10 +146,10 @@ describe('resetEntireStore', () => {
     });
 
     /**
-     * upon reset, all inflight requests will not dispatch receives
+     * upon reset, all inflight requests will not dispatch sets
      *    promises still reject so external listeners know (abort signals do this as well)
      */
-    it('should not receive fetches that started before RESET', async () => {
+    it('should not set fetches that started before RESET', async () => {
       const detail: FixtureEndpoint = {
         endpoint: CoolerArticleDetail,
         args: [{ id: 9999 }],
@@ -166,7 +165,7 @@ describe('resetEntireStore', () => {
         })
         .persist();
 
-      const { result, rerender, controller } = renderRestHook(
+      const { result, rerender, controller } = renderDataClient(
         () => {
           return useCache(CoolerArticleDetail, { id: 9999 });
         },
@@ -205,7 +204,7 @@ describe('resetEntireStore', () => {
         .persist();
       jest.useRealTimers();
 
-      const { unmount, result } = renderRestHook(() => {
+      const { unmount, result } = renderDataClient(() => {
         return useFetch(CoolerArticleDetail, { id: 9999 });
       });
 

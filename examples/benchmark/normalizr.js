@@ -1,102 +1,122 @@
-import { Entity } from '@rest-hooks/endpoint';
+import data from './data.json' with { type: 'json' };
 import {
+  Entity,
   normalize,
   denormalize,
-  WeakListMap,
-  inferResults,
-} from '@rest-hooks/normalizr';
-
-import data from './data.json' assert { type: 'json' };
+  initialState,
+  MemoCache,
+  WeakDependencyMap,
+} from './dist/index.js';
 import { printStatus } from './printStatus.js';
 import {
   ProjectSchema,
   ProjectQuery,
   ProjectQuerySorted,
   ProjectWithBuildTypesDescription,
+  ProjectSchemaMixin,
+  User,
 } from './schemas.js';
+import userData from './user.json' with { type: 'json' };
 
-const { result, entities } = normalize(data, ProjectSchema);
-const queryState = normalize(data, ProjectQuery);
-queryState.result = inferResults(
+const { result, entities } = normalize(ProjectSchema, data);
+const queryState = normalize(ProjectQuery, data);
+const queryMemo = new MemoCache();
+queryState.result = queryMemo.buildQueryKey(
   ProjectQuery,
   [],
-  queryState.indexes,
   queryState.entities,
+  queryState.indexes,
 );
-const queryInfer = inferResults(
-  ProjectQuerySorted.schema,
+const queryInfer = queryMemo.buildQueryKey(
+  ProjectQuerySorted,
   [],
-  queryState.indexes,
   queryState.entities,
+  queryState.indexes,
 );
+
+let githubState = normalize(User, userData);
+
+const date = Date.now()
+const actionMeta = {
+  fetchedAt: date,
+  date,
+  expiresAt: date + 10000000,
+};
 
 export default function addNormlizrSuite(suite) {
-  let denormCache = {
-    entities: {},
-    results: { '/fake': new WeakListMap(), '/fakeQuery': new WeakListMap() },
-  };
+  const memo = new MemoCache();
   // prime the cache
-  denormalize(
-    result,
-    ProjectSchema,
-    entities,
-    denormCache.entities,
-    denormCache.results['/fake'],
-  );
-  denormalize(
-    queryState.result,
-    ProjectQuery,
-    queryState.entities,
-    denormCache.entities,
-    denormCache.results['/fakeQuery'],
-  );
+  memo.denormalize(ProjectSchema, result, entities, []);
+  memo.denormalize(ProjectQuery, queryState.result, queryState.entities, []);
+  %OptimizeFunctionOnNextCall(memo.denormalize);
   %OptimizeFunctionOnNextCall(denormalize);
+  %OptimizeFunctionOnNextCall(normalize);
 
+  let curState = initialState;
   return suite
     .add('normalizeLong', () => {
-      return normalize(data, ProjectSchema);
+      normalize(ProjectSchema, data, [], curState, actionMeta);
+      curState = { ...initialState, entities: {}, endpoints: {} };
     })
     .add('infer All', () => {
-      return inferResults(
+      return new MemoCache().buildQueryKey(
         ProjectQuery,
         [],
-        queryState.indexes,
         queryState.entities,
+        queryState.indexes,
       );
     })
     .add('denormalizeLong', () => {
-      return denormalize(result, ProjectSchema, entities);
+      return new MemoCache().denormalize(ProjectSchema, result, entities);
+    })
+    .add('denormalizeLong donotcache', () => {
+      return denormalize(ProjectSchema, result, entities);
+    })
+    .add('denormalizeShort donotcache 500x', () => {
+      for (let i = 0; i < 500; ++i) {
+        denormalize(User, 'gnoff', githubState.entities);
+      }
+    })
+    .add('denormalizeShort 500x', () => {
+      for (let i = 0; i < 500; ++i) {
+        new MemoCache().denormalize(User, 'gnoff', githubState.entities);
+      }
+    })
+    .add('denormalizeShort 500x withCache', () => {
+      for (let i = 0; i < 500; ++i) {
+        memo.denormalize(User, 'gnoff', githubState.entities, []);
+      }
+    })
+    .add('denormalizeLong with mixin Entity', () => {
+      return new MemoCache().denormalize(ProjectSchemaMixin, result, entities);
     })
     .add('denormalizeLong withCache', () => {
-      return denormalize(
-        result,
-        ProjectSchema,
-        entities,
-        denormCache.entities,
-        denormCache.results['/fake'],
-      );
+      return memo.denormalize(ProjectSchema, result, entities, []);
     })
     .add('denormalizeLong All withCache', () => {
-      return denormalize(
-        queryState.result,
+      return memo.denormalize(
         ProjectQuery,
+        queryState.result,
         queryState.entities,
-        denormCache.entities,
-        denormCache.results['/fakeQuery'],
+        [],
       );
     })
     .add('denormalizeLong Query-sorted withCache', () => {
-      return denormalize(
+      return memo.denormalize(
+        ProjectQuerySorted,
         queryInfer,
-        ProjectQuerySorted.schema,
         queryState.entities,
-        denormCache.entities,
-        denormCache.results['/fakeQuery'],
+        [],
       );
+    })
+    .add('denormalizeLongAndShort withEntityCacheOnly', () => {
+      memo.endpoints = new WeakDependencyMap();
+      memo.denormalize(ProjectSchema, result, entities);
+      memo.denormalize(User, 'gnoff', githubState.entities);
     })
     .on('complete', function () {
       if (process.env.SHOW_OPTIMIZATION) {
-        printStatus(denormalize);
+        printStatus(memo.denormalize);
         printStatus(Entity.normalize);
         printStatus(Entity.denormalize);
         printStatus(ProjectWithBuildTypesDescription.prototype.pk);

@@ -1,15 +1,14 @@
-import { Entity, Schema } from '@rest-hooks/endpoint';
-import { GQLEndpoint } from '@rest-hooks/graphql';
+import { GQLEndpoint } from '@data-client/graphql';
+import { Entity, Schema, ShortenPath, schema } from '@data-client/rest';
 import {
-  PathArgs,
-  RestEndpoint,
-  ShortenPath,
-  Resource,
-  createResource,
   GetEndpoint,
   RestGenerics,
-  type EndpointExtraOptions,
-} from '@rest-hooks/rest';
+  RestEndpoint,
+  Resource,
+  resource,
+  ResourceGenerics,
+  ResourceOptions,
+} from '@data-client/rest';
 import { camelCase, snakeCase } from 'lodash';
 
 import { getAuth } from './Auth';
@@ -17,11 +16,8 @@ import { getAuth } from './Auth';
 const HOST = 'https://api.github.com';
 
 export class GithubEntity extends Entity {
-  readonly id: number = -1;
-
-  pk() {
-    return this.id?.toString();
-  }
+  // -1 is not valid, so this indicates it was not initialized
+  id = -1;
 }
 
 export const GithubGqlEndpoint = new GQLEndpoint(
@@ -45,12 +41,15 @@ export class GithubEndpoint<
 > extends RestEndpoint<O> {
   urlPrefix = HOST;
 
-  getRequestInit(body: any): RequestInit {
+  async getRequestInit(body: any) {
     let init: RequestInit;
     if (body) {
-      init = super.getRequestInit(deeplyApplyKeyTransform(body, snakeCase));
+      init = await super.getRequestInit(
+        deeplyApplyKeyTransform(body, snakeCase),
+      );
+    } else {
+      init = await super.getRequestInit(body);
     }
-    init = super.getRequestInit(body);
     if (getAuth()) {
       init.mode = 'cors';
       init.headers = {
@@ -65,7 +64,8 @@ export class GithubEndpoint<
     const results = await super.parseResponse(response);
     if (
       (response.headers && response.headers.has('link')) ||
-      Array.isArray(results)
+      (this.schema as any)?.link ||
+      (this.schema as any)?.results
     ) {
       return {
         link: response.headers.get('link'),
@@ -80,45 +80,43 @@ export class GithubEndpoint<
   }
 }
 
-export function createGithubResource<U extends string, S extends Schema>({
-  path,
-  schema,
-  Endpoint = GithubEndpoint,
-}: {
-  readonly path: U;
-  readonly schema: S;
-  readonly Endpoint?: typeof GithubEndpoint;
-  urlPrefix?: string;
-} & EndpointExtraOptions): GithubResource<U, S> {
-  const baseResource = createResource({ path, schema, Endpoint });
+export function githubResource<O extends ResourceGenerics>(
+  options: Readonly<O> & ResourceOptions,
+): GithubResource<O> {
+  const baseResource = resource({
+    Endpoint: GithubEndpoint,
+    paginationField: 'page',
+    ...options,
+  });
 
-  const getList: GetEndpoint<
-    PathArgs<ShortenPath<U>>,
-    { results: S[]; link: string }
-  > = baseResource.getList.extend({
-    schema: { results: [schema], link: '' },
+  return baseResource.extend({
+    getList: {
+      schema: {
+        results: baseResource.getList.schema as schema.Collection<
+          O['schema'][]
+        >,
+        link: '',
+      },
+    },
   }) as any;
-  const getNextPage = getList.paginated(
-    ({ page, ...rest }: { page: string | number } & PathArgs<ShortenPath<U>>) =>
-      (Object.keys(rest).length ? [rest] : []) as any,
-  );
-
-  return {
-    ...baseResource,
-    getList,
-    getNextPage,
-  };
 }
 
-export interface GithubResource<U extends string, S extends Schema>
-  extends Omit<Resource<U, S>, 'getList'> {
+export interface GithubResource<
+  O extends ResourceGenerics = {
+    path: string;
+    schema: Schema;
+    paginationField: 'page';
+  },
+> extends Omit<Resource<O>, 'getList'> {
   getList: GetEndpoint<
-    PathArgs<ShortenPath<U>>,
-    { results: S[]; link: string }
-  >;
-  getNextPage: GetEndpoint<
-    PathArgs<ShortenPath<U>> & { page: string | number },
-    { results: S[]; link: string }
+    Omit<O, 'schema' | 'path'> & {
+      readonly path: ShortenPath<O['path']>;
+      readonly schema: {
+        results: schema.Collection<O['schema'][]>;
+        link: string;
+      };
+      readonly paginationField: 'page';
+    }
   >;
 }
 

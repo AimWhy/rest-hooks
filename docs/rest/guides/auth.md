@@ -5,44 +5,56 @@ sidebar_label: Authentication
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
+import EndpointPlayground from '@site/src/components/HTTP/EndpointPlayground';
 
 All network requests are run through the [getRequestInit](../api/RestEndpoint.md#getRequestInit) optionally
 defined in your [RestEndpoint](../api/RestEndpoint.md).
 
-## Cookie Auth
+## Cookie Auth (credentials)
 
-Here's an example using simple cookie auth:
+Here's an example using simple [cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies) auth by sending [fetch credentials](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#sending_a_request_with_credentials_included):
 
-```ts title="api/AuthdEndpoint.ts"
-import { RestEndpoint } from '@rest-hooks/rest';
+<EndpointPlayground input="/my/1" init={{method: 'GET', headers: {'Content-Type': 'application/json', 'Cookie': 'session=abc;'}}} status={200} response={{  "id": "1","title": "this post"}}>
+
+```ts title="AuthdEndpoint" {9}
+import { RestEndpoint } from '@data-client/rest';
 
 export default class AuthdEndpoint<
   O extends RestGenerics = any,
 > extends RestEndpoint<O> {
-  getRequestInit(body: any): RequestInit {
+  async getRequestInit(body: any): Promise<RequestInit> {
     return {
-      ...super.getRequestInit(body),
-      // highlight-next-line
+      ...(await super.getRequestInit(body)),
       credentials: 'same-origin',
     };
   }
 }
 ```
 
-```ts title="api/MyResource.ts"
-import { createResource, Entity } from '@rest-hooks/rest';
-import AuthdEndpoint from 'api/AuthdEndpoint';
+```ts title="MyResource" collapsed
+import { resource, Entity } from '@data-client/rest';
+import AuthdEndpoint from './AuthdEndpoint';
 
 class MyEntity extends Entity {
-  /* Define MyEntity */
+  id = '';
+  title = '';
 }
 
-export const MyResource = createResource({
+export const MyResource = resource({
   path: '/my/:id',
   schema: MyEntity,
   Endpoint: AuthdEndpoint,
 });
 ```
+
+```ts title="Request" column
+import { MyResource } from './MyResource';
+MyResource.get({ id: 1 });
+```
+
+</EndpointPlayground>
+
+See [Django Integration](./django.md) for an example that also includes [CSRF protection](https://docs.djangoproject.com/en/5.0/howto/csrf/#using-csrf-protection-with-ajax).
 
 ## Access Tokens or JWT
 
@@ -51,110 +63,235 @@ defaultValue="static"
 values={[
 { label: 'static member', value: 'static' },
 { label: 'function singleton', value: 'function' },
+{ label: 'async function', value: 'async' },
 ]}>
 <TabItem value="static">
 
-```ts title="api/AuthdEndpoint.ts"
-import { RestEndpoint } from '@rest-hooks/rest';
+<EndpointPlayground input="/my/1" init={{method: 'GET', headers: {'Content-Type': 'application/json', 'Access-Token': 'mytoken'}}} status={200} response={{  "id": "1","title": "this post"}}>
+
+```ts title="login" collapsed
+export const login = async (data: FormData) =>
+  (
+    await fetch('/login', { method: 'POST', body: data })
+  ).json() as Promise<{
+    accessToken: string;
+  }>;
+```
+
+```ts title="AuthdEndpoint" {7,15,22}
+import { RestEndpoint } from '@data-client/rest';
+import { login } from './login';
 
 export default class AuthdEndpoint<
   O extends RestGenerics = any,
 > extends RestEndpoint<O> {
-  // highlight-next-line
   declare static accessToken?: string;
 
-  getHeaders(headers: HeadersInit): HeadersInit {
+  getHeaders(headers: HeadersInit) {
+    // TypeScript doesn't infer properly
+    const EP = this.constructor as typeof AuthdEndpoint;
+    if (!EP.accessToken) return headers;
     return {
       ...headers,
-      // highlight-next-line
-      'Access-Token': this.constructor.accessToken,
+      'Access-Token': EP.accessToken,
     };
   }
 }
+
+export const handleLogin = async e => {
+  const { accessToken } = await login(new FormData(e.target));
+  AuthdEndpoint.accessToken = accessToken;
+};
 ```
 
-Upon login we set the token:
+```tsx title="Auth" collapsed
+import { handleLogin } from './AuthdEndpoint';
 
-```tsx title="Auth.tsx"
-import AuthdEndpoint from 'api/AuthdEndpoint';
-
-function Auth() {
-  const handleLogin = useCallback(
-    async e => {
-      const { accessToken } = await login(new FormData(e.target));
-      // success!
-      // highlight-next-line
-      AuthdEndpoint.accessToken = accessToken;
-    },
-    [login],
-  );
-
+export default function Auth() {
   return <AuthForm onSubmit={handleLogin} />;
 }
 ```
 
-</TabItem>
-<TabItem value="function">
-
-```ts title="api/AuthdEndpoint.ts"
-import { getAuthToken } from 'authorization-singleton';
-import { RestEndpoint } from '@rest-hooks/rest';
-
-export default class AuthdEndpoint<
-  O extends RestGenerics = any,
-> extends RestEndpoint<O> {
-  getHeaders(headers: HeadersInit): HeadersInit {
-    return {
-      ...headers,
-      // highlight-next-line
-      'Access-Token': getAuthToken(),
-    };
-  }
-}
-```
-
-Upon login we set the token:
-
-```tsx title="Auth.tsx"
-import { setAuthToken } from 'authorization-singleton';
-import AuthdResource from 'resources/AuthdResource';
-
-function Auth() {
-  const handleLogin = useCallback(
-    async e => {
-      const { accessToken } = await login(new FormData(e.target));
-      // success!
-      // highlight-next-line
-      setAuthToken(accessToken);
-    },
-    [login],
-  );
-
-  return <AuthForm onSubmit={handleLogin} />;
-}
-```
-
-</TabItem>
-</Tabs>
-
-```ts title="api/MyResource.ts"
-import { createResource, Entity } from '@rest-hooks/rest';
-import AuthdEndpoint from 'api/AuthdEndpoint';
+```ts title="MyResource" collapsed
+import { resource, Entity } from '@data-client/rest';
+import AuthdEndpoint from './AuthdEndpoint';
 
 class MyEntity extends Entity {
-  /* Define MyEntity */
+  id = '';
+  title = '';
 }
 
-export const MyResource = createResource({
+export const MyResource = resource({
   path: '/my/:id',
   schema: MyEntity,
   Endpoint: AuthdEndpoint,
 });
 ```
 
+```ts title="Request" column
+import { MyResource } from './MyResource';
+MyResource.get({ id: 1 });
+```
+
+</EndpointPlayground>
+
+</TabItem>
+<TabItem value="async">
+
+<EndpointPlayground input="/my/1" init={{method: 'GET', headers: {'Content-Type': 'application/json', 'Access-Token': 'mytoken'}}} status={200} response={{  "id": "1","title": "this post"}}>
+
+```ts title="login" collapsed
+export const login = async (data: FormData) =>
+  (
+    await fetch('/login', { method: 'POST', body: data })
+  ).json() as Promise<{
+    accessToken: string;
+  }>;
+
+let token = '';
+// imagine this used an async API like indexedDB
+export const getAuthToken = async () => token;
+export const setAuthToken = (accessToken: string) => {
+  token = accessToken;
+};
+```
+
+```ts title="AuthdEndpoint" {10,17}
+import { RestEndpoint } from '@data-client/rest';
+import { getAuthToken, setAuthToken, login } from './login';
+
+export default class AuthdEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
+  async getHeaders(headers: HeadersInit) {
+    return {
+      ...headers,
+      'Access-Token': await getAuthToken(),
+    };
+  }
+}
+
+export const handleLogin = async e => {
+  const { accessToken } = await login(new FormData(e.target));
+  setAuthToken(accessToken);
+};
+```
+
+```tsx title="Auth" collapsed
+import { handleLogin } from './AuthdEndpoint';
+
+export default function Auth() {
+  return <AuthForm onSubmit={handleLogin} />;
+}
+```
+
+```ts title="MyResource" collapsed
+import { resource, Entity } from '@data-client/rest';
+import AuthdEndpoint from './AuthdEndpoint';
+
+class MyEntity extends Entity {
+  id = '';
+  title = '';
+  pk() {
+    return this.id;
+  }
+}
+
+export const MyResource = resource({
+  path: '/my/:id',
+  schema: MyEntity,
+  Endpoint: AuthdEndpoint,
+});
+```
+
+```ts title="Request" column
+import { MyResource } from './MyResource';
+MyResource.get({ id: 1 });
+```
+
+</EndpointPlayground>
+
+</TabItem>
+<TabItem value="function">
+
+<EndpointPlayground input="/my/1" init={{method: 'GET', headers: {'Content-Type': 'application/json', 'Access-Token': 'mytoken'}}} status={200} response={{  "id": "1","title": "this post"}}>
+
+```ts title="login" collapsed
+export const login = async (data: FormData) =>
+  (
+    await fetch('/login', { method: 'POST', body: data })
+  ).json() as Promise<{
+    accessToken: string;
+  }>;
+
+let token = '';
+export const getAuthToken = () => token;
+export const setAuthToken = (accessToken: string) => {
+  token = accessToken;
+};
+```
+
+```ts title="AuthdEndpoint" {10,17}
+import { RestEndpoint } from '@data-client/rest';
+import { getAuthToken, setAuthToken, login } from './login';
+
+export default class AuthdEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
+  getHeaders(headers: HeadersInit) {
+    return {
+      ...headers,
+      'Access-Token': getAuthToken(),
+    };
+  }
+}
+
+export const handleLogin = async e => {
+  const { accessToken } = await login(new FormData(e.target));
+  setAuthToken(accessToken);
+};
+```
+
+```tsx title="Auth" collapsed
+import { handleLogin } from './AuthdEndpoint';
+
+export default function Auth() {
+  return <AuthForm onSubmit={handleLogin} />;
+}
+```
+
+```ts title="MyResource" collapsed
+import { resource, Entity } from '@data-client/rest';
+import AuthdEndpoint from './AuthdEndpoint';
+
+class MyEntity extends Entity {
+  id = '';
+  title = '';
+  pk() {
+    return this.id;
+  }
+}
+
+export const MyResource = resource({
+  path: '/my/:id',
+  schema: MyEntity,
+  Endpoint: AuthdEndpoint,
+});
+```
+
+```ts title="Request" column
+import { MyResource } from './MyResource';
+MyResource.get({ id: 1 });
+```
+
+</EndpointPlayground>
+
+</TabItem>
+</Tabs>
+
 ## Auth Headers from React Context
 
-:::caution
+:::warning
 
 Using React Context for state that is not displayed (like auth tokens) is not recommended.
 This will result in unnecessary re-renders and application complexity.
@@ -169,16 +306,16 @@ values={[
 ]}>
 <TabItem value="resource">
 
-We can transform any [Resource](../api/createResource.md) into one that uses hooks to create endpoints
+We can transform any [Resource](../api/resource.md) into one that uses hooks to create endpoints
 by using [hookifyResource](../api/hookifyResource.md)
 
-```ts title="api/Post.ts"
-import { createResource, hookifyResource } from '@rest-hooks/rest';
+```ts title="resources/Post.ts"
+import { resource, hookifyResource } from '@data-client/rest';
 
 // Post defined here
 
 export const PostResource = hookifyResource(
-  createResource({ path: '/posts/:id', schema: Post }),
+  resource({ path: '/posts/:id', schema: Post }),
   function useInit(): RequestInit {
     const accessToken = useAuthContext();
     return {
@@ -193,8 +330,8 @@ export const PostResource = hookifyResource(
 Then we can get the endpoints as hooks in our React Components
 
 ```tsx
-import { useSuspense } from '@rest-hooks/react';
-import { PostResource } from 'api/Post';
+import { useSuspense } from '@data-client/react';
+import { PostResource } from 'resources/Post';
 
 function PostDetail({ id }) {
   const post = useSuspense(PostResource.useGet(), { id });
@@ -202,7 +339,7 @@ function PostDetail({ id }) {
 }
 ```
 
-:::caution
+:::warning
 
 Using this means all endpoint calls must only occur during a function render.
 
@@ -213,7 +350,9 @@ function CreatePost() {
   const createPost = PostResource.useCreate();
 
   return (
-    <form onSubmit={e => controller.fetch(createPost, new FormData(e.target))}>
+    <form
+      onSubmit={e => controller.fetch(createPost, new FormData(e.target))}
+    >
       {/* ... */}
     </form>
   );
@@ -228,7 +367,7 @@ function CreatePost() {
 We will first provide an easy way of using the context to alter the fetch headers.
 
 ```ts title="api/AuthdEndpoint.ts"
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint } from '@data-client/rest';
 
 export default class AuthdEndpoint<
   O extends RestGenerics = any,
@@ -258,7 +397,7 @@ function useEndpoint(endpoint: RestEndpoint) {
 }
 ```
 
-:::caution
+:::warning
 
 Using this means all endpoint calls must only occur during a function render.
 
@@ -270,7 +409,9 @@ function CreatePost() {
 
   return (
     <form
-      onSubmit={e => controller.fetch(createPost, {}, new FormData(e.target))}
+      onSubmit={e =>
+        controller.fetch(createPost, {}, new FormData(e.target))
+      }
     >
       {/* ... */}
     </form>

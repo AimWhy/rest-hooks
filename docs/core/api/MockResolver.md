@@ -1,79 +1,71 @@
 ---
-title: '<MockResolver />'
+title: MockResolver - Data Mocking for React
+sidebar_label: <MockResolver />
 ---
 
+# &lt;MockResolver />
+
 ```typescript
-function MockResolver({
-  children,
-  fixtures,
-}: {
+function MockResolver<T>(props: {
   children: React.ReactNode;
-  fixtures: (Fixture | Interceptor)[];
+  fixtures: (Fixture | Interceptor<T>)[];
+  getInitialInterceptorData: () => T;
 }): JSX.Element;
 ```
 
 &lt;MockResolver /\> enables easy loading of fixtures to see what different network responses might look like.
 This is useful for [storybook](../guides/storybook.md) as well as component testing.
 
-### Arguments
+## Arguments
 
-#### fixtures
+### fixtures
 
-```typescript
-export interface SuccessFixture<
-  E extends EndpointInterface = EndpointInterface,
-> {
-  readonly endpoint: E;
-  readonly args: Parameters<E>;
-  readonly response:
-    | ResolveType<E>
-    | ((...args: Parameters<E>) => ResolveType<E>);
-  readonly error?: false;
-  /** Number of miliseconds to wait before resolving */
-  readonly delay?: number;
-  /** Waits to run `response()` after `delay` time */
-  readonly delayCollapse?: boolean;
-}
-
-export interface ErrorFixture<E extends EndpointInterface = EndpointInterface> {
-  readonly endpoint: E;
-  readonly args: Parameters<E>;
-  readonly response: any;
-  readonly error: true;
-  /** Number of miliseconds to wait before resolving */
-  readonly delay?: number;
-  /** Waits to run `response()` after `delay` time */
-  readonly delayCollapse?: boolean;
-}
-
-export interface Interceptor<
-  E extends EndpointInterface & {
-    testKey(key: string): boolean;
-  } = EndpointInterface & { testKey(key: string): boolean },
-> {
-  readonly endpoint: E;
-  readonly response: (...args: Parameters<E>) => ResolveType<E>;
-  /** Number of miliseconds (or function that returns) to wait before resolving */
-  readonly delay?: number | ((...args: Parameters<E>) => number);
-  /** Waits to run `response()` after `delay` time */
-  readonly delayCollapse?: boolean;
-}
-
-export type Fixture = SuccessFixture | ErrorFixture;
+```ts
+(Fixture | Interceptor<T>)[]
 ```
 
-This prop specifies the fixtures to use data from. Each item represents a fetch defined by the
+This prop specifies the [fixtures or interceptors](./Fixtures.md) to use data from. Each item represents a fetch defined by the
 [Endpoint](/rest/api/Endpoint) and params. `Result` contains the JSON response expected from said fetch.
+
+### getInitialInterceptorData
+
+Function that initializes the `this` attribute for all interceptors.
+
+```ts
+<MockResolver
+  fixtures={[
+    {
+      endpoint: new RestEndpoint({
+        path: '/api/count/increment',
+        method: 'POST',
+        body: undefined,
+      }),
+      response() {
+        return {
+          // highlight-next-line
+          count: (this.count = this.count + 1),
+        };
+      },
+      delay: () => 500 + Math.random() * 4500,
+    },
+  ]}
+  // highlight-next-line
+  getInitialInterceptorData={() => ({ count: 0 })}
+>
+  {children}
+</MockResolver>
+```
 
 ## Example
 
 ```tsx
-import { MockResolver } from '@rest-hooks/test';
+import { MockResolver } from '@data-client/test';
 
 import ArticleResource from 'resources/ArticleResource';
 import MyComponentToTest from 'components/MyComponentToTest';
 
 const results = [
+  // fixture
   {
     endpoint: ArticleResource.getList,
     args: [{ maxResults: 10 }] as const,
@@ -92,6 +84,7 @@ const results = [
       },
     ],
   },
+  // interceptor
   {
     endpoint: ArticleResource.partialUpdate,
     response: ({ id }, body) => ({

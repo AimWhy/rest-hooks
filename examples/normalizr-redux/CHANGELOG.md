@@ -1,141 +1,204 @@
-# Change Log
+# normalizr-redux-example
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 0.1.43
 
-### [0.1.2](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.1.1...normalizr-redux-example@0.1.2) (2022-12-23)
+### Patch Changes
 
-### 📦 Package
+- Updated dependencies [[`99cd041`](https://github.com/reactive/data-client/commit/99cd04152532e13d8fb092ea800d381391d5aacd)]:
+  - @data-client/endpoint@0.14.17
 
-* Update all non-major dependencies ([#2225](https://github.com/coinbase/rest-hooks/issues/2225)) ([404f56c](https://github.com/coinbase/rest-hooks/commit/404f56c9112e50d063578e0df84616152d9b803c))
-* Update babel packages ([#2227](https://github.com/coinbase/rest-hooks/issues/2227)) ([4e652a1](https://github.com/coinbase/rest-hooks/commit/4e652a13552cbf467ca140738f9603aba06cffee))
-* Update babel packages ([#2237](https://github.com/coinbase/rest-hooks/issues/2237)) ([e9ce203](https://github.com/coinbase/rest-hooks/commit/e9ce2032b799992ddbb57729f9521e8d3ecf7393))
-* Update babel packages ([#2255](https://github.com/coinbase/rest-hooks/issues/2255)) ([4d739a9](https://github.com/coinbase/rest-hooks/commit/4d739a9dbe2d9796f21e24ebb2022e10575bd0c4))
-* Update babel packages ([#2308](https://github.com/coinbase/rest-hooks/issues/2308)) ([e3ee5ee](https://github.com/coinbase/rest-hooks/commit/e3ee5ee57431971ba4bdb47b48ed89933412374c))
-* Update babel packages ([#2339](https://github.com/coinbase/rest-hooks/issues/2339)) ([2cc99b9](https://github.com/coinbase/rest-hooks/commit/2cc99b99aeece58b0e7674ca80d3372555612c63))
+## 0.1.42
 
-### [0.1.1](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.1.0...normalizr-redux-example@0.1.1) (2022-10-01)
+### Patch Changes
 
-### 📦 Package
+- Updated dependencies [[`4580e62`](https://github.com/reactive/data-client/commit/4580e628764ab43de3e4607f8584bc6cb4173021), [`1f7b191`](https://github.com/reactive/data-client/commit/1f7b1913e9301230d9fdae23baba9e3c582e005c), [`43a955c`](https://github.com/reactive/data-client/commit/43a955c18684b4e0f5c1d79b2504e8ad2910816b)]:
+  - @data-client/endpoint@0.14.16
 
-* Update all non-major dependencies ([#2190](https://github.com/coinbase/rest-hooks/issues/2190)) ([c2c7403](https://github.com/coinbase/rest-hooks/commit/c2c74033ecf2004ddebaf064af64f37894f20dec))
-* Update babel packages ([#2192](https://github.com/coinbase/rest-hooks/issues/2192)) ([7c9d3bc](https://github.com/coinbase/rest-hooks/commit/7c9d3bc8ea3019490a1f9e1978c3709b346d582d))
+## 0.1.41
 
-## [0.1.0](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.14...normalizr-redux-example@0.1.0) (2022-09-19)
+### Patch Changes
 
-### 🚀 Features
+- Updated dependencies [[`3b337e7`](https://github.com/reactive/data-client/commit/3b337e74e3f22f2fe48f6eb37084bbf58859bbe1), [`11d4ccf`](https://github.com/reactive/data-client/commit/11d4ccfb4c630c25b847bf59ca1028eed8c2369e)]:
+  - @data-client/endpoint@0.14.12
 
-* Move schema implementations to @rest-hooks/endpoint ([#2159](https://github.com/coinbase/rest-hooks/issues/2159)) ([a4be8c0](https://github.com/coinbase/rest-hooks/commit/a4be8c08ea515a27254ea480da2baffa1534b09d))
+## 0.1.40
 
-### 📦 Package
+### Patch Changes
 
-* Update babel packages ([#2174](https://github.com/coinbase/rest-hooks/issues/2174)) ([dab7ac7](https://github.com/coinbase/rest-hooks/commit/dab7ac798850fc0519ffe5793601757b10d949b2))
+- Updated dependencies [[`87a65ba`](https://github.com/reactive/data-client/commit/87a65ba8b5f266a299ac3d9c78b6605deee5f4e2)]:
+  - @data-client/endpoint@0.14.11
 
-## [0.1.0-beta.1](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.14...normalizr-redux-example@0.1.0-beta.1) (2022-09-17)
+## 0.1.39
 
-### 🚀 Features
+### Patch Changes
 
-* Move schema implementations to @rest-hooks/endpoint ([#2159](https://github.com/coinbase/rest-hooks/issues/2159)) ([a4be8c0](https://github.com/coinbase/rest-hooks/commit/a4be8c08ea515a27254ea480da2baffa1534b09d))
+- Updated dependencies [[`cde7121`](https://github.com/reactive/data-client/commit/cde71212706a46bbfd13dd76e8cfc478b22fe2ab), [`cde7121`](https://github.com/reactive/data-client/commit/cde71212706a46bbfd13dd76e8cfc478b22fe2ab)]:
+  - @data-client/endpoint@0.14.10
 
-### 📦 Package
+## 0.1.38
 
-* Update babel packages ([#2174](https://github.com/coinbase/rest-hooks/issues/2174)) ([dab7ac7](https://github.com/coinbase/rest-hooks/commit/dab7ac798850fc0519ffe5793601757b10d949b2))
+### Patch Changes
 
-## [0.1.0-beta.0](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.14...normalizr-redux-example@0.1.0-beta.0) (2022-09-16)
+- Updated dependencies [[`3fa9eb9`](https://github.com/reactive/data-client/commit/3fa9eb907d8760171da065168796b87e802d6666)]:
+  - @data-client/endpoint@0.14.6
 
-### 🚀 Features
+## 0.1.37
 
-* Move schema implementations to @rest-hooks/endpoint ([#2159](https://github.com/coinbase/rest-hooks/issues/2159)) ([ffaed57](https://github.com/coinbase/rest-hooks/commit/ffaed57a3b397f6eeb69ab3a9fd51366b298b3e5))
+### Patch Changes
 
-### 📦 Package
+- Updated dependencies [[`0adad92`](https://github.com/reactive/data-client/commit/0adad9209265c388eb6d334afe681610bccfb877)]:
+  - @data-client/endpoint@0.14.4
 
-* Update babel packages ([#2174](https://github.com/coinbase/rest-hooks/issues/2174)) ([dab7ac7](https://github.com/coinbase/rest-hooks/commit/dab7ac798850fc0519ffe5793601757b10d949b2))
+## 0.1.36
 
-### [0.0.14](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.12...normalizr-redux-example@0.0.14) (2022-09-10)
+### Patch Changes
 
-### 📦 Package
+- Updated dependencies [[`501cb82`](https://github.com/reactive/data-client/commit/501cb82c999030fd269b40eb760ae0dda568c569), [`501cb82`](https://github.com/reactive/data-client/commit/501cb82c999030fd269b40eb760ae0dda568c569), [`3058a8a`](https://github.com/reactive/data-client/commit/3058a8a7738eeea0a197c9ba2db2e8ee51e2fca3)]:
+  - @data-client/endpoint@0.14.3
 
-* Update `@octokit/rest` to v19 ([#2082](https://github.com/coinbase/rest-hooks/issues/2082)) ([0b53b34](https://github.com/coinbase/rest-hooks/commit/0b53b347b328b58314ca769919ffb6501ea0b67d))
-* Update all non-major dependencies ([#2113](https://github.com/coinbase/rest-hooks/issues/2113)) ([f9b7a6e](https://github.com/coinbase/rest-hooks/commit/f9b7a6e5b19a0d6f26208af517451affa161b070))
-* Update all non-major dependencies ([#2119](https://github.com/coinbase/rest-hooks/issues/2119)) ([3003348](https://github.com/coinbase/rest-hooks/commit/3003348ba96781085a6f8a6a86a882438ba2b5ea))
-* Update all non-major dependencies ([#2136](https://github.com/coinbase/rest-hooks/issues/2136)) ([f7c8649](https://github.com/coinbase/rest-hooks/commit/f7c864998abc68cae1a4130f2de50e055c7a5269))
-* Update all non-major dependencies ([#2150](https://github.com/coinbase/rest-hooks/issues/2150)) ([eb480f1](https://github.com/coinbase/rest-hooks/commit/eb480f1f567944208483c9239256e7bcf81351e7))
-* Update babel packages ([#2124](https://github.com/coinbase/rest-hooks/issues/2124)) ([bab76ae](https://github.com/coinbase/rest-hooks/commit/bab76ae4ac54474634d3cb323b69ef9be5773a03))
-* Update babel packages ([#2140](https://github.com/coinbase/rest-hooks/issues/2140)) ([bc4d12d](https://github.com/coinbase/rest-hooks/commit/bc4d12d5369f4eee17f32d9379793cfc9b679d61))
-* Update babel packages ([#2161](https://github.com/coinbase/rest-hooks/issues/2161)) ([31b2c8f](https://github.com/coinbase/rest-hooks/commit/31b2c8ff3d9f9001c31f3f5c15bec1321a15361d))
+## 0.1.35
 
-### [0.0.13](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.12...normalizr-redux-example@0.0.13) (2022-09-04)
+### Patch Changes
 
-### 📦 Package
+- Updated dependencies [[`428d618`](https://github.com/reactive/data-client/commit/428d618ce057d4eef23592a64ec9d1c6fb82f43f), [`428d618`](https://github.com/reactive/data-client/commit/428d618ce057d4eef23592a64ec9d1c6fb82f43f), [`428d618`](https://github.com/reactive/data-client/commit/428d618ce057d4eef23592a64ec9d1c6fb82f43f)]:
+  - @data-client/endpoint@0.14.1
 
-* Update `@octokit/rest` to v19 ([#2082](https://github.com/coinbase/rest-hooks/issues/2082)) ([0b53b34](https://github.com/coinbase/rest-hooks/commit/0b53b347b328b58314ca769919ffb6501ea0b67d))
-* Update all non-major dependencies ([#2113](https://github.com/coinbase/rest-hooks/issues/2113)) ([f9b7a6e](https://github.com/coinbase/rest-hooks/commit/f9b7a6e5b19a0d6f26208af517451affa161b070))
-* Update all non-major dependencies ([#2119](https://github.com/coinbase/rest-hooks/issues/2119)) ([3003348](https://github.com/coinbase/rest-hooks/commit/3003348ba96781085a6f8a6a86a882438ba2b5ea))
-* Update all non-major dependencies ([#2136](https://github.com/coinbase/rest-hooks/issues/2136)) ([f7c8649](https://github.com/coinbase/rest-hooks/commit/f7c864998abc68cae1a4130f2de50e055c7a5269))
-* Update all non-major dependencies ([#2150](https://github.com/coinbase/rest-hooks/issues/2150)) ([eb480f1](https://github.com/coinbase/rest-hooks/commit/eb480f1f567944208483c9239256e7bcf81351e7))
-* Update babel packages ([#2124](https://github.com/coinbase/rest-hooks/issues/2124)) ([bab76ae](https://github.com/coinbase/rest-hooks/commit/bab76ae4ac54474634d3cb323b69ef9be5773a03))
-* Update babel packages ([#2140](https://github.com/coinbase/rest-hooks/issues/2140)) ([bc4d12d](https://github.com/coinbase/rest-hooks/commit/bc4d12d5369f4eee17f32d9379793cfc9b679d61))
+## 0.1.34
 
-### [0.0.12](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.11...normalizr-redux-example@0.0.12) (2022-05-30)
+### Patch Changes
 
-### 📦 Package
+- Updated dependencies [[`2ad1811`](https://github.com/reactive/data-client/commit/2ad1811149cdc419f6462ace08efdb7766195b36), [`2ad1811`](https://github.com/reactive/data-client/commit/2ad1811149cdc419f6462ace08efdb7766195b36), [`2ad1811`](https://github.com/reactive/data-client/commit/2ad1811149cdc419f6462ace08efdb7766195b36), [`7bd322d`](https://github.com/reactive/data-client/commit/7bd322d585b0893561b3ffb3c5ad47b2764c18bd)]:
+  - @data-client/endpoint@0.14.0
 
-* [@anansi](https://github.com/anansi), types, antd, eslint, node, redux, typescript, webpack ([#2015](https://github.com/coinbase/rest-hooks/issues/2015)) ([972d646](https://github.com/coinbase/rest-hooks/commit/972d6463c6d1946254673bb7029898b19ce4ffdd))
+## 0.1.33
 
-### [0.0.11](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.10...normalizr-redux-example@0.0.11) (2022-04-30)
+### Patch Changes
 
-**Note:** Version bump only for package normalizr-redux-example
+- Updated dependencies [[`720ff0c`](https://github.com/reactive/data-client/commit/720ff0c3d833ff4d1eb5020694131e87282b585d)]:
+  - @data-client/endpoint@0.13.4
 
-### [0.0.10](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.9...normalizr-redux-example@0.0.10) (2022-04-16)
+## 0.1.32
 
-**Note:** Version bump only for package normalizr-redux-example
+### Patch Changes
 
-### [0.0.9](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.8...normalizr-redux-example@0.0.9) (2022-04-08)
+- Updated dependencies [[`4bc9145`](https://github.com/reactive/data-client/commit/4bc914574116d285f81546ffe37ead3e8aa339dc), [`2080c87`](https://github.com/reactive/data-client/commit/2080c8751df147a839f03eade9804d57291d12fb), [`4bc9145`](https://github.com/reactive/data-client/commit/4bc914574116d285f81546ffe37ead3e8aa339dc)]:
+  - @data-client/endpoint@0.12.7
 
-**Note:** Version bump only for package normalizr-redux-example
+## 0.1.31
 
-### [0.0.8](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.7...normalizr-redux-example@0.0.8) (2022-04-02)
+### Patch Changes
 
-**Note:** Version bump only for package normalizr-redux-example
+- Updated dependencies [[`19832bc`](https://github.com/reactive/data-client/commit/19832bc1ee15805788697748b275c134ea81ebf6)]:
+  - @data-client/endpoint@0.12.6
 
-### [0.0.7](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.5...normalizr-redux-example@0.0.7) (2022-04-01)
+## 0.1.30
 
-**Note:** Version bump only for package normalizr-redux-example
+### Patch Changes
 
-### [0.0.6](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.1-beta.2...normalizr-redux-example@0.0.6) (2022-03-17)
+- Updated dependencies [[`00d4205`](https://github.com/reactive/data-client/commit/00d4205f03562cfe4acd18215718e23ae5466b8d), [`8a8634c`](https://github.com/reactive/data-client/commit/8a8634c7a263cf99e9ce426b2c9b92fd2a12a259)]:
+  - @data-client/endpoint@0.12.3
 
-**Note:** Version bump only for package normalizr-redux-example
+## 0.1.29
 
-### [0.0.5](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.4...normalizr-redux-example@0.0.5) (2022-03-10)
+### Patch Changes
 
-**Note:** Version bump only for package normalizr-redux-example
+- Updated dependencies [[`dcb6b2f`](https://github.com/reactive/data-client/commit/dcb6b2fd4a5015242f43edc155352da6789cdb5d)]:
+  - @data-client/endpoint@0.11.4
 
-### [0.0.4](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.3...normalizr-redux-example@0.0.4) (2021-10-11)
+## 0.1.28
 
-**Note:** Version bump only for package normalizr-redux-example
+### Patch Changes
 
-### [0.0.3](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.2...normalizr-redux-example@0.0.3) (2021-09-29)
+- Updated dependencies [[`ce164d2`](https://github.com/reactive/data-client/commit/ce164d286c8afcb2593a86abbf23948a08aa40ba)]:
+  - @data-client/endpoint@0.11.3
 
-**Note:** Version bump only for package normalizr-redux-example
+## 0.1.27
 
-### [0.0.2](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.1...normalizr-redux-example@0.0.2) (2021-09-29)
+### Patch Changes
 
-**Note:** Version bump only for package normalizr-redux-example
+- Updated dependencies [[`13c6466`](https://github.com/reactive/data-client/commit/13c64662bce3813869140bc709badffc59929c5e)]:
+  - @data-client/endpoint@0.11.1
 
-### [0.0.1](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.1-beta.2...normalizr-redux-example@0.0.1) (2021-09-08)
+## 0.1.26
 
-**Note:** Version bump only for package normalizr-redux-example
+### Patch Changes
 
-### [0.0.1-beta.2](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.1-beta.1...normalizr-redux-example@0.0.1-beta.2) (2021-09-06)
+- Updated dependencies [[`2e169b7`](https://github.com/reactive/data-client/commit/2e169b705e4f8e2eea8005291a0e76e9d11764a4), [`6e55026`](https://github.com/reactive/data-client/commit/6e550260672507592d75c4781dc2563a50e664fa), [`6e55026`](https://github.com/reactive/data-client/commit/6e550260672507592d75c4781dc2563a50e664fa), [`73de27f`](https://github.com/reactive/data-client/commit/73de27fadb214c3c2995ca558daa9736312de7a9), [`59a407a`](https://github.com/reactive/data-client/commit/59a407a5bcaa8e5c6a948a85f5c52f106b24c5af), [`8377e0a`](https://github.com/reactive/data-client/commit/8377e0a157419f0f4c237c392a895fec1772854d), [`c129a25`](https://github.com/reactive/data-client/commit/c129a2558ecb21b5d9985c13747c555b88c51b3a), [`6e55026`](https://github.com/reactive/data-client/commit/6e550260672507592d75c4781dc2563a50e664fa), [`446f0b9`](https://github.com/reactive/data-client/commit/446f0b905f57c290e120c6f11a6b4708554283d1), [`bb24601`](https://github.com/reactive/data-client/commit/bb24601e5ca5b0d92b8db75f115fcfb99fb97563), [`6e55026`](https://github.com/reactive/data-client/commit/6e550260672507592d75c4781dc2563a50e664fa), [`446f0b9`](https://github.com/reactive/data-client/commit/446f0b905f57c290e120c6f11a6b4708554283d1), [`f68750f`](https://github.com/reactive/data-client/commit/f68750f8b0cafa66f6d50521e474db5e3d3c9cdd)]:
+  - @data-client/endpoint@0.11.0
 
-**Note:** Version bump only for package normalizr-redux-example
+## 0.1.25
 
-### [0.0.1-beta.1](https://github.com/coinbase/rest-hooks/compare/normalizr-redux-example@0.0.1-beta.0...normalizr-redux-example@0.0.1-beta.1) (2021-07-12)
+### Patch Changes
 
-**Note:** Version bump only for package normalizr-redux-example
+- Updated dependencies [[`922be79`](https://github.com/reactive/data-client/commit/922be79169a3eeea8e336eee519c165431ead474), [`69834b5`](https://github.com/reactive/data-client/commit/69834b50c6d2b33f46d7c63cabdc0744abf160ae), [`bf9c79c`](https://github.com/reactive/data-client/commit/bf9c79cb42e3df091eafe63fee619764a7ae4350)]:
+  - @data-client/endpoint@0.10.0
 
-### 0.0.1-beta.0 (2021-06-30)
+## 0.1.24
 
-### 📝 Documentation
+### Patch Changes
 
-* Update links ([#954](https://github.com/coinbase/rest-hooks/issues/954)) ([80c4f90](https://github.com/coinbase/rest-hooks/commit/80c4f90cc36e26297751fa8d5ee710f819d169b3))
+- Updated dependencies [[`e3314a7`](https://github.com/reactive/data-client/commit/e3314a7ca64919c093b838048caaa8b7530fa7c8)]:
+  - @data-client/endpoint@0.9.9
+
+## 0.1.23
+
+### Patch Changes
+
+- Updated dependencies [[`57d87d6d85`](https://github.com/reactive/data-client/commit/57d87d6d851c19b4fd22eb57c629a7f2cab01f87)]:
+  - @data-client/endpoint@0.9.8
+
+## 0.1.22
+
+### Patch Changes
+
+- Updated dependencies [[`d1b51af7ac`](https://github.com/reactive/data-client/commit/d1b51af7ac4a8a7c0559f478cc9503be8e61514c)]:
+  - @data-client/endpoint@0.9.4
+
+## 0.1.21
+
+### Patch Changes
+
+- Updated dependencies [[`fc0092883f`](https://github.com/reactive/data-client/commit/fc0092883f5af42a5d270250482b7f0ba9845e95)]:
+  - @data-client/endpoint@0.9.3
+
+## 0.1.20
+
+### Patch Changes
+
+- Updated dependencies [[`4ea0bc83f6`](https://github.com/reactive/data-client/commit/4ea0bc83f65f49cb2155f6aecdc5f8d1b168fd5e)]:
+  - @data-client/endpoint@0.9.2
+
+## 0.1.19
+
+### Patch Changes
+
+- Updated dependencies [[`386372ed4d`](https://github.com/reactive/data-client/commit/386372ed4d0b454687847ba2b8eed4369ef7cdf7)]:
+  - @data-client/endpoint@0.9.0
+
+## 0.1.18
+
+### Patch Changes
+
+- Updated dependencies [[`664d3eacff`](https://github.com/reactive/data-client/commit/664d3eacff08c3c75e8ed7c3ccc64ee21faa6f7f), [`26a3843d1b`](https://github.com/reactive/data-client/commit/26a3843d1b61900c385d8626d7062d6f0424c137)]:
+  - @data-client/endpoint@0.8.2
+
+## 0.1.17
+
+### Patch Changes
+
+- Updated dependencies [[`ff51e71f45`](https://github.com/reactive/data-client/commit/ff51e71f45857eb172f3fe05829e34c9abb68252), [`c535f6c0ac`](https://github.com/reactive/data-client/commit/c535f6c0ac915b5242c1c7694308b7ee7aab16a1), [`79e286109b`](https://github.com/reactive/data-client/commit/79e286109b5566f8e7acfdf0f44201263072d1d1)]:
+  - @data-client/endpoint@0.8.0
+
+## 0.1.16
+
+### Patch Changes
+
+- Updated dependencies [a8936f5e6d]
+  - @data-client/endpoint@0.2.8
+
+## 0.1.15
+
+### Patch Changes
+
+- Updated dependencies [b60a4a558e]
+  - @data-client/endpoint@0.2.7

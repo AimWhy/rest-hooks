@@ -1,26 +1,22 @@
 import { Link, useRoutes } from '@anansi/router';
 import { EllipsisOutlined } from '@ant-design/icons';
+import { useCache, useController } from '@data-client/react';
+import { Intl } from '@js-temporal/polyfill';
 import { css } from '@linaria/core';
-import { useCache, useController } from '@rest-hooks/react';
 import { Card, Avatar, Button, Tag, Popover } from 'antd';
-import FlexRow from 'components/FlexRow';
 import React, { memo, useCallback, useState } from 'react';
 import Markdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
 import remarkRemoveComments from 'remark-remove-comments';
-import { CommentResource, Comment } from 'resources/Comment';
-import { UserResource } from 'resources/User';
+
+import FlexRow from '@/components/FlexRow';
+import { CommentResource, Comment } from '@/resources/Comment';
+import { UserResource } from '@/resources/User';
 
 import CommentForm from './CommentForm';
 
 const { Meta } = Card;
-
-const commentList = css`
-  .ant-card-meta-detail {
-    width: 100%;
-  }
-`;
 
 function CommentInline({ comment }: { comment: Comment }) {
   const [editing, setEditing] = useState(false);
@@ -63,6 +59,12 @@ function CommentInline({ comment }: { comment: Comment }) {
   );
 }
 export default memo(CommentInline);
+
+const commentList = css`
+  .ant-card-meta-detail {
+    width: 100%;
+  }
+`;
 
 function CommentControls({
   comment,

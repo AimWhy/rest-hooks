@@ -9,22 +9,25 @@
   - [Union](#uniondefinition-schemaattribute)
   - [Values](#valuesdefinition-schemaattribute)
 
-## `normalize(data, schema)`
+## `normalize(schema, data, args?, prevState?, meta?)`
 
 Normalizes input data per the schema definition provided.
 
-- `data`: **required** Input JSON (or plain JS object) data that needs normalization.
 - `schema`: **required** A schema definition
+- `data`: **required** Input JSON (or plain JS object) data that needs normalization.
+- `args`: Array of args to use in lookups for mutable/querable types like Entity and Collection
 
 ### Usage
 
 ```js
-import { normalize, schema } from '@rest-hooks/normalizr';
+import { schema } from '@data-client/endpoint';
+import { normalize } from '@data-client/normalizr';
 
 const myData = { users: [{ id: 1 }, { id: 2 }] };
-const user = new schema.Entity('users');
-const mySchema = { users: [user] };
-const normalizedData = normalize(myData, mySchema);
+class User { id = 0 }
+const userSchema = new schema.EntityMixin(User);
+const mySchema = { users: [userSchema] };
+const normalizedData = normalize(mySchema, myData);
 ```
 
 ### Output
@@ -33,7 +36,7 @@ const normalizedData = normalize(myData, mySchema);
 {
   result: { users: [ 1, 2 ] },
   entities: {
-    users: {
+    User: {
       '1': { id: 1 },
       '2': { id: 2 }
     }
@@ -41,38 +44,116 @@ const normalizedData = normalize(myData, mySchema);
 }
 ```
 
-## `denormalize(input, schema, entities): [denormalized, foundAllEntities]`
+## `denormalize(schema, input, entities)`
 
 Denormalizes an input based on schema and provided entities from a plain object or Immutable data. The reverse of `normalize`.
 
-_Special Note:_ Be careful with denormalization. Prematurely reverting your data to large, nested objects could cause performance impacts in React (and other) applications.
-
 If your schema and data have recursive references, only the first instance of an entity will be given. Subsequent references will be returned as the `id` provided.
 
-- `input`: **required** The normalized result that should be _de-normalized_. Usually the same value that was given in the `result` key of the output of `normalize`.
 - `schema`: **required** A schema definition that was used to get the value for `input`.
+- `input`: **required** The normalized result that should be _de-normalized_. Usually the same value that was given in the `result` key of the output of `normalize`.
 - `entities`: **required** An object, keyed by entity schema names that may appear in the denormalized output. Also accepts an object with Immutable data.
 
 ### Usage
 
 ```js
-import { denormalize, schema } from '@rest-hooks/normalizr';
+import { schema } from '@data-client/endpoint';
+import { denormalize } from '@data-client/normalizr';
 
-const user = new schema.Entity('users');
-const mySchema = { users: [user] };
-const entities = { users: { '1': { id: 1 }, '2': { id: 2 } } };
-const denormalizedData = denormalize({ users: [1, 2] }, mySchema, entities);
+class User { id = 0 }
+const userSchema = new schema.EntityMixin(User);
+const mySchema = { users: [userSchema] };
+const entities = { User: { '1': { id: 1 }, '2': { id: 2 } } };
+const denormalizedData = denormalize(mySchema, { users: [1, 2] }, entities);
 ```
 
 ### Output
 
 ```js
 {
-  users: [{ id: 1 }, { id: 2 }];
+  users: [User { id: 1 }, User { id: 2 }];
 }
 ```
 
 ## `schema`
+
+Available from [@data-client/endpoint](https://www.npmjs.com/package/@data-client/endpoint)
+
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Mutable</th>
+<th>Schema</th>
+<th>Description</th>
+<th><a href="https://dataclient.io/rest/api/schema#queryable">Queryable</a></th>
+</tr>
+</thead>
+<tbody><tr>
+<td rowSpan="4"><a href="https://en.wikipedia.org/wiki/Object_(computer_science)">Object</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Entity">Entity</a></td>
+<td>single <em>unique</em> object</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Union">Union(Entity)</a></td>
+<td>polymorphic objects (<code>A | B</code>)</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Object">Object</a></td>
+<td>statically known keys</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td><a href="https://dataclient.io/rest/api/Invalidate">Invalidate(Entity)</a></td>
+<td><a href="https://dataclient.io/docs/concepts/expiry-policy#invalidate-entity">delete an entity</a></td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td rowSpan="3"><a href="https://en.wikipedia.org/wiki/List_(abstract_data_type)">List</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Collection">Collection(Array)</a></td>
+<td>growable lists</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Array">Array</a></td>
+<td>immutable lists</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/All">All</a></td>
+<td>list of all entities of a kind</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td rowSpan="2"><a href="https://en.wikipedia.org/wiki/Associative_array">Map</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Collection">Collection(Values)</a></td>
+<td>growable maps</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Values">Values</a></td>
+<td>immutable maps</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td>any</td>
+<td align="center"></td>
+<td><a href="https://dataclient.io/rest/api/Query">Query(Queryable)</a></td>
+<td>memoized custom transforms</td>
+<td align="center">✅</td>
+</tr>
+</tbody></table>
 
 ### `Array(definition, schemaAttribute)`
 
@@ -95,14 +176,16 @@ _Note: The same behavior can be defined with shorthand syntax: `[ mySchema ]`_
 To describe a simple array of a singular entity type:
 
 ```js
+import { schema } from '@data-client/endpoint';
+
 const data = [{ id: '123', name: 'Jim' }, { id: '456', name: 'Jane' }];
-const userSchema = new schema.Entity('users');
+const userSchema = new schema.EntityMixin(class User {id='';name='';});
 
 const userListSchema = new schema.Array(userSchema);
 // or use shorthand syntax:
 const userListSchema = [userSchema];
 
-const normalizedData = normalize(data, userListSchema);
+const normalizedData = normalize(userListSchema, data);
 ```
 
 #### Output
@@ -110,7 +193,7 @@ const normalizedData = normalize(data, userListSchema);
 ```js
 {
   entities: {
-    users: {
+    User: {
       '123': { id: '123', name: 'Jim' },
       '456': { id: '456', name: 'Jane' }
     }
@@ -126,10 +209,12 @@ _Note: If your data returns an object that you did not provide a mapping for, th
 For example:
 
 ```js
+import { schema } from '@data-client/endpoint';
+
 const data = [{ id: 1, type: 'admin' }, { id: 2, type: 'user' }];
 
-const userSchema = new schema.Entity('users');
-const adminSchema = new schema.Entity('admins');
+const userSchema = new schema.EntityMixin(class User {id='';type='user';});
+const adminSchema = new schema.EntityMixin(class Admin {id='';type='admin';});
 const myArray = new schema.Array(
   {
     admins: adminSchema,
@@ -138,7 +223,7 @@ const myArray = new schema.Array(
   (input, parent, key) => `${input.type}s`
 );
 
-const normalizedData = normalize(data, myArray);
+const normalizedData = normalize(myArray, data);
 ```
 
 #### Output
@@ -146,8 +231,8 @@ const normalizedData = normalize(data, myArray);
 ```js
 {
   entities: {
-    admins: { '1': { id: 1, type: 'admin' } },
-    users: { '2': { id: 2, type: 'user' } }
+    Admin: { '1': { id: 1, type: 'admin' } },
+    User: { '2': { id: 2, type: 'user' } }
   },
   result: [
     { id: 1, schema: 'admins' },
@@ -207,7 +292,7 @@ const tweet = new schema.Entity(
   }
 );
 
-const normalizedData = normalize(data, tweet);
+const normalizedData = normalize(tweet, data);
 ```
 
 #### Output
@@ -236,7 +321,7 @@ const patronsSchema = new schema.Entity('patrons', undefined, {
   idAttribute: (value) => (value.guest_id ? `${value.id}-${value.guest_id}` : value.id)
 });
 
-normalize(data, [patronsSchema]);
+normalize([patronsSchema], data);
 ```
 
 #### Output
@@ -275,7 +360,7 @@ const responseSchema = new schema.Object({ users: new schema.Array(user) });
 // or shorthand
 const responseSchema = { users: new schema.Array(user) };
 
-const normalizedData = normalize(data, responseSchema);
+const normalizedData = normalize(responseSchema, data);
 ```
 
 #### Output
@@ -321,7 +406,7 @@ const unionSchema = new schema.Union(
   'type'
 );
 
-const normalizedData = normalize(data, { owner: unionSchema });
+const normalizedData = normalize({ owner: unionSchema }, data);
 ```
 
 #### Output
@@ -358,7 +443,7 @@ const data = { firstThing: { id: 1 }, secondThing: { id: 2 } };
 const item = new schema.Entity('items');
 const valuesSchema = new schema.Values(item);
 
-const normalizedData = normalize(data, valuesSchema);
+const normalizedData = normalize(valuesSchema, data);
 ```
 
 #### Output
@@ -379,6 +464,8 @@ _Note: If your data returns an object that you did not provide a mapping for, th
 For example:
 
 ```js
+import { schema } from '@data-client/endpoint';
+
 const data = {
   '1': { id: 1, type: 'admin' },
   '2': { id: 2, type: 'user' }
@@ -394,7 +481,7 @@ const valuesSchema = new schema.Values(
   (input, parent, key) => `${input.type}s`
 );
 
-const normalizedData = normalize(data, valuesSchema);
+const normalizedData = normalize(valuesSchema, data);
 ```
 
 #### Output

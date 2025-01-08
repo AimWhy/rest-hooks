@@ -1,49 +1,48 @@
-import { GithubEntity, createGithubResource, GithubGqlEndpoint } from './Base';
+import { Temporal } from '@js-temporal/polyfill';
+
+import { GithubEntity, githubResource, GithubGqlEndpoint } from './Base';
 
 export class Repository extends GithubEntity {
-  readonly name: string = '';
-  readonly fullName: string = '';
-  readonly private: boolean = false;
-  readonly description: string = '';
-  readonly fork: boolean = false;
-  readonly homepage: string = '';
-  readonly language: string | null = null;
-  readonly forksCount: number = 0;
-  readonly stargazersCount: number = 0;
-  readonly watchersCount: number = 0;
-  readonly size: number = 0;
-  readonly defaultBranch: string = 'master';
-  readonly openIssuesCount: number = 0;
-  readonly isTemplate: boolean = false;
-  readonly topics: string[] = [];
-  readonly hasIssues: boolean = false;
-  readonly hasProjects: boolean = false;
-  readonly hasWiki: boolean = false;
-  readonly hasPages: boolean = false;
-  readonly hasDownloads: boolean = false;
-  readonly archived: boolean = false;
-  readonly disabled: boolean = false;
-  readonly visibility: 'public' | 'private' = 'public';
-  readonly pushedAt: Date = new Date(0);
-  readonly createdAt: Date = new Date(0);
-  readonly updatedAt: Date = new Date(0);
-  readonly templateRepository: null = null;
-  readonly owner: { login: string } = { login: '' };
+  name = '';
+  fullName = '';
+  private = false;
+  description = '';
+  fork = false;
+  homepage = '';
+  language: string | null = null;
+  forksCount = 0;
+  stargazersCount = 0;
+  watchersCount = 0;
+  size = 0;
+  defaultBranch = 'master';
+  openIssuesCount = 0;
+  isTemplate = false;
+  topics: string[] = [];
+  hasIssues = false;
+  hasProjects = false;
+  hasWiki = false;
+  hasPages = false;
+  hasDownloads = false;
+  archived = false;
+  disabled = false;
+  visibility: 'public' | 'private' = 'public';
+  pushedAt = Temporal.Instant.fromEpochSeconds(0);
+  createdAt = Temporal.Instant.fromEpochSeconds(0);
+  updatedAt = Temporal.Instant.fromEpochSeconds(0);
+  templateRepository: null = null;
+  owner = { login: '' };
 
   static schema = {
-    pushedAt: Date,
-    createdAt: Date,
-    updatedAt: Date,
+    pushedAt: Temporal.Instant.from,
+    createdAt: Temporal.Instant.from,
+    updatedAt: Temporal.Instant.from,
   };
 
   pk() {
     return [this.owner.login, this.name].join(',');
   }
 
-  // for the inheritance
-  static get key() {
-    return 'Repository';
-  }
+  static key = 'Repository';
 }
 
 export class GqlRepository extends Repository {
@@ -63,12 +62,10 @@ export class GqlRepository extends Repository {
   }
 }
 
-const base = createGithubResource({
+export const RepositoryResource = githubResource({
   path: '/repos/:owner/:repo',
   schema: Repository,
-});
-export const RepositoryResource = {
-  ...base,
+}).extend((base) => ({
   getByUser: base.getList.extend({
     path: '/users/:login/repos',
   }),
@@ -94,5 +91,6 @@ export const RepositoryResource = {
   }`,
     { user: { pinnedItems: { nodes: [GqlRepository] } } },
   ),
-};
+}));
+
 export default RepositoryResource;

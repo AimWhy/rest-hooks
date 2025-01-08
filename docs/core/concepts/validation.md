@@ -1,5 +1,5 @@
 ---
-title: Entity Validation
+title: Validating fetch responses in React
 sidebar_label: Validation
 ---
 
@@ -8,7 +8,9 @@ sidebar_label: Validation
 </head>
 
 import HooksPlayground from '@site/src/components/HooksPlayground';
-import {RestEndpoint} from '@rest-hooks/rest';
+import {RestEndpoint} from '@data-client/rest';
+
+# API Validation
 
 [Entity.validate()](/rest/api/Entity#validate) is called during normalization and denormalization.
 `undefined` indicates no error, and a string error message if there is an error.
@@ -41,14 +43,10 @@ delay: 150,
 },
 ]}>
 
-```typescript title="api/Article.ts"
+```typescript title="api/Article"
 export class Article extends Entity {
-  readonly id: string = '';
-  readonly title: string = '';
-
-  pk() {
-    return this.id;
-  }
+  id = '';
+  title = '';
 
   static validate(processedEntity) {
     if (!Object.hasOwn(processedEntity, 'title')) return 'missing title field';
@@ -62,7 +60,7 @@ export const getArticle = new RestEndpoint({
 });
 ```
 
-```tsx title="ArticlePage.tsx" collapsed
+```tsx title="ArticlePage" collapsed
 import { getArticle } from './api/Article';
 
 function ArticlePage({ id }: { id: string }) {
@@ -77,7 +75,7 @@ render(<ArticlePage id="2" />);
 
 ### All fields check
 
-Here's a recipe for checking that every defined field is present.
+[validateRequired()](/rest/api/validateRequired) can be used to check if all defined fields are present.
 
 <HooksPlayground fixtures={[
 {
@@ -100,22 +98,13 @@ delay: 150,
 },
 ]}>
 
-```tsx title="api/Article.ts"
+```tsx title="api/Article"
 export class Article extends Entity {
-  readonly id: string = '';
-  readonly title: string = '';
-
-  pk() {
-    return this.id;
-  }
+  id = '';
+  title = '';
 
   static validate(processedEntity) {
-    if (
-      !Object.keys(this.defaults).every(key =>
-        Object.hasOwn(processedEntity, key),
-      )
-    )
-      return 'a field is missing';
+    return validateRequired(processedEntity, this.defaults);
   }
 }
 
@@ -125,7 +114,7 @@ export const getArticle = new RestEndpoint({
 });
 ```
 
-```tsx title="ArticlePage.tsx" collapsed
+```tsx title="ArticlePage" collapsed
 import { getArticle } from './api/Article';
 
 function ArticlePage({ id }: { id: string }) {
@@ -140,7 +129,7 @@ render(<ArticlePage id="2" />);
 
 ## Partial results
 
-Another great use of validation is mixing endpoints that return incomplete objects. This is often
+Another great use of validation is mixing endpoints that return [incomplete objects](/rest/guides/partial-entities). This is often
 useful when some fields consume lots of bandwidth or are computationally expensive for the backend.
 
 Consider using [validateRequired](/rest/api/validateRequired) to reduce code.
@@ -179,17 +168,12 @@ delay: 150,
 },
 ]}>
 
-```typescript title="api/Article.ts"
+```typescript title="api/Article"
 export class ArticlePreview extends Entity {
-  readonly id: string = '';
-  readonly title: string = '';
+  id = '';
+  title = '';
 
-  pk() {
-    return this.id;
-  }
-  static get key() {
-    return 'Article';
-  }
+  static key = 'Article';
 }
 export const getArticleList = new RestEndpoint({
   path: '/article',
@@ -197,11 +181,11 @@ export const getArticleList = new RestEndpoint({
 });
 
 export class ArticleFull extends ArticlePreview {
-  readonly content: string = '';
-  readonly createdAt: Date = new Date(0);
+  content = '';
+  createdAt = Temporal.Instant.fromEpochSeconds(0);
 
   static schema = {
-    createdAt: Date,
+    createdAt: Temporal.Instant.from,
   };
 
   static validate(processedEntity) {
@@ -215,7 +199,7 @@ export const getArticle = new RestEndpoint({
 });
 ```
 
-```tsx title="ArticleDetail.tsx" collapsed
+```tsx title="ArticleDetail" collapsed
 import { getArticle, getArticleList } from './api/Article';
 
 function ArticleDetail({ id, onHome }: { id: string; onHome: () => void }) {
@@ -233,7 +217,7 @@ function ArticleDetail({ id, onHome }: { id: string; onHome: () => void }) {
         <div>
           Created:{' '}
           <time>
-            {Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
+            {DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
               article.createdAt,
             )}
           </time>

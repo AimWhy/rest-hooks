@@ -2,19 +2,23 @@ import {
   EndpointInterface,
   Schema,
   FetchFunction,
-} from '@rest-hooks/normalizr';
+  NI,
+} from '@data-client/core';
 
 import useController from './useController.js';
 import useFocusEffect from './useFocusEffect.native.js';
 
 /**
  * Keeps a resource fresh by subscribing to updates.
- * @see https://resthooks.io/docs/api/useSubscription
+ * @see https://dataclient.io/docs/api/useSubscription
  */
 export default function useSubscription<
-  E extends EndpointInterface<FetchFunction, Schema | undefined, undefined>,
-  Args extends readonly [...Parameters<E>] | readonly [null],
->(endpoint: E, ...args: Args) {
+  E extends EndpointInterface<
+    FetchFunction,
+    Schema | undefined,
+    undefined | false
+  >,
+>(endpoint: E, ...args: readonly [...Parameters<E>] | readonly [null]) {
   const controller = useController();
 
   const key = args[0] !== null ? endpoint.key(...args) : '';
@@ -23,14 +27,12 @@ export default function useSubscription<
     () => {
       if (!key) return;
       // typescript cannot infer truthy key means args is not null
-      const cleanedArgs = args as readonly [...Parameters<E>];
+      const cleanedArgs = args as Parameters<E>;
 
       controller.subscribe(endpoint, ...cleanedArgs);
       return () => {
         controller.unsubscribe(endpoint, ...cleanedArgs);
       };
-
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     [controller, key],
     true,

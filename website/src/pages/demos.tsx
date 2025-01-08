@@ -9,7 +9,7 @@ export default function DemoList() {
   return (
     <Layout
       title="React Suspense Demos"
-      description="Rest Hooks Suspense Demos"
+      description="Examples demonstrating high performance scalable applications using REST, GraphQL and Websockets"
     >
       <Tabs
         defaultValue="todo"
@@ -17,13 +17,14 @@ export default function DemoList() {
           { label: 'Todo', value: 'todo' },
           { label: 'GitHub', value: 'github' },
           { label: 'NextJS SSR', value: 'nextjs' },
+          { label: 'Live Coin Prices', value: 'coin-app' },
         ]}
         groupId="Demos"
       >
         <TabItem value="todo">
           {/*Todo
               <a
-                href="https://github.com/data-client/rest-hooks/tree/master/examples/todo-app"
+                href="https://github.com/reactive/data-client/tree/master/examples/todo-app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="header-github-link"
@@ -31,13 +32,15 @@ export default function DemoList() {
         ></a>*/}
           <iframe
             loading="lazy"
-            src={`https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/todo-app?${searchParams(
+            src={`https://stackblitz.com/github/reactive/data-client/tree/master/examples/todo-app?${searchParams(
               {
                 embed: '1',
-                file: ['src/pages/Home/TodoList.tsx'],
+                file: [
+                  'src/resources/TodoResource.ts,src/pages/Home/NewTodo.tsx,src/pages/Home/TodoListItem.tsx,src/pages/Home/TodoList.tsx',
+                ],
                 hideDevTools: '1',
                 hideNavigation: '1',
-                terminalHeight: '1',
+                terminalHeight: '0',
               },
             )}`}
             width="900"
@@ -47,7 +50,7 @@ export default function DemoList() {
         </TabItem>
         <TabItem value="github">
           {/*            <a
-              href="https://github.com/data-client/rest-hooks/tree/master/examples/github-app"
+              href="https://github.com/reactive/data-client/tree/master/examples/github-app"
               target="_blank"
               rel="noopener noreferrer"
               className="header-github-link"
@@ -55,13 +58,13 @@ export default function DemoList() {
             ></a>*/}
           <iframe
             loading="lazy"
-            src={`https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/github-app?${searchParams(
+            src={`https://stackblitz.com/github/reactive/data-client/tree/master/examples/github-app?${searchParams(
               {
                 embed: '1',
-                file: ['src/pages/IssueList.tsx'],
+                file: ['src/resources/Issue.tsx,src/pages/IssueList.tsx'],
                 hideDevTools: '1',
                 hideNavigation: '1',
-                terminalHeight: '1',
+                terminalHeight: '0',
               },
             )}`}
             width="900"
@@ -71,7 +74,7 @@ export default function DemoList() {
         </TabItem>
         <TabItem value="nextjs">
           {/*            <a
-              href="https://github.com/data-client/rest-hooks/tree/master/examples/github-app"
+              href="https://github.com/reactive/data-client/tree/master/examples/github-app"
               target="_blank"
               rel="noopener noreferrer"
               className="header-github-link"
@@ -79,13 +82,41 @@ export default function DemoList() {
             ></a>*/}
           <iframe
             loading="lazy"
-            src={`https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/nextjs?${searchParams(
+            src={`https://stackblitz.com/github/reactive/data-client/tree/master/examples/nextjs?${searchParams(
               {
                 embed: '1',
-                file: ['pages/AssetPrice.tsx'],
+                file: [
+                  'resources/TodoResource.ts,components/todo/TodoList.tsx',
+                ],
                 hideDevTools: '1',
                 hideNavigation: '1',
-                terminalHeight: '1',
+                terminalHeight: '0',
+              },
+            )}`}
+            width="900"
+            height="700"
+            style={{ width: '100%', height: 'calc(100vh - 170px)' }}
+          ></iframe>
+        </TabItem>
+        <TabItem value="coin-app">
+          {/*            <a
+              href="https://github.com/reactive/data-client/tree/master/examples/github-app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="header-github-link"
+              style={{ marginLeft: '1ex' }}
+            ></a>*/}
+          <iframe
+            loading="lazy"
+            src={`https://stackblitz.com/github/reactive/data-client/tree/master/examples/coin-app?${searchParams(
+              {
+                embed: '1',
+                file: [
+                  'src/resources/StreamManager.ts,src/resources/Ticker.ts,src/resources/fallbackQueries.ts,src/pages/Home/AssetPrice.tsx',
+                ],
+                hideDevTools: '1',
+                hideNavigation: '1',
+                terminalHeight: '0',
               },
             )}`}
             width="900"

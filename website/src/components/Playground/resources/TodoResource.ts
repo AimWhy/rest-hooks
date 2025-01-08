@@ -1,4 +1,4 @@
-import { RestEndpoint, RestGenerics } from '@rest-hooks/rest';
+import { RestEndpoint, RestGenerics } from '@data-client/rest';
 
 import {
   createPlaceholderResource,
@@ -11,7 +11,9 @@ export class Todo extends PlaceholderEntity {
   readonly completed: boolean = false;
   readonly updatedAt: number = 0;
 
-  static useIncoming(
+  static key = 'Todo';
+
+  static shouldUpdate(
     existingMeta: { date: number; fetchedAt: number },
     incomingMeta: { date: number; fetchedAt: number },
     existing: { updatedAt: number },
@@ -46,7 +48,7 @@ export const TodoResource = {
     getOptimisticResponse(snap, params, body) {
       return {
         id: params.id,
-        ...snap.getResponse(TodoResourceBase.get, { id: params.id }).data,
+        ...snap.get(Todo, { id: params.id }),
         ...body,
         updatedAt: snap.fetchedAt,
       };
@@ -56,7 +58,7 @@ export const TodoResource = {
     getOptimisticResponse(snap, body) {
       return { ...body, updatedAt: snap.fetchedAt };
     },
-    update: (newResourceId: string) => ({
+    update: newResourceId => ({
       [TodoResourceBase.getList.key()]: (resourceIds: string[] = []) => [
         ...resourceIds,
         newResourceId,

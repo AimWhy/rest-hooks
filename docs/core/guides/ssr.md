@@ -1,44 +1,134 @@
 ---
 id: ssr
-title: Server Side Rendering
+title: Server Side Rendering with NextJS, Express, and more
+sidebar_label: Server Side Rendering
 ---
 
-import PkgInstall from '@site/src/components/PkgInstall';
 import PkgTabs from '@site/src/components/PkgTabs';
+import StackBlitz from '@site/src/components/StackBlitz';
 
 <head>
-  <title>Server Side Rendering Integrations - NextJS, Express</title>
   <meta name="docsearch:pagerank" content="10"/>
 </head>
 
+# Server Side Rendering
 
-## NextJS
+Server Side Rendering (SSR) can improve the first-load performance of your application. Reactive Data
+Client takes this one step further by pre-populating the data store. Unlike other SSR methodologies,
+Reactive Data Client becomes interactive the moment the page is visible, making [data mutations](../getting-started/mutations.md) instantaneous. Additionally there is no need for additional data fetches that increase server
+load and slow client hydration, potentially causing application stutters.
 
-We've optimized integration into NextJS with a custom [Document](https://nextjs.org/docs/advanced-features/custom-document)
-and NextJS specific wrapper for [App](https://nextjs.org/docs/advanced-features/custom-app)
+## NextJS SSR {#nextjs}
 
-<PkgTabs pkgs="@rest-hooks/ssr @rest-hooks/redux redux" />
+### App Router
 
-```tsx title="pages/_document.tsx"
-import { RestHooksDocument } from '@rest-hooks/ssr/nextjs';
+NextJS 12 includes a new way of routing in the '/app' directory. This allows further
+performance improvements, as well as dynamic and nested routing.
 
-export default RestHooksDocument;
-```
+#### Root Layout
 
-```tsx  title="pages/_app.tsx"
-import { AppCacheProvider } from '@rest-hooks/ssr/nextjs';
-import type { AppProps } from 'next/app';
+Place [DataProvider](../api/DataProvider.md) in your [root layout](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts#root-layout-required)
 
-export default function App({ Component, pageProps }: AppProps) {
+```tsx title="app/layout.tsx"
+import { DataProvider } from '@data-client/react/nextjs';
+import { AsyncBoundary } from '@data-client/react';
+
+export default function RootLayout({ children }) {
   return (
-    <AppCacheProvider>
-      <Component {...pageProps} />
-    </AppCacheProvider>
+    <html>
+      <body>
+        // highlight-next-line
+        <DataProvider>
+          <header>Title</header>
+          <AsyncBoundary>{children}</AsyncBoundary>
+          <footer></footer>
+          // highlight-next-line
+        </DataProvider>
+      </body>
+    </html>
   );
 }
 ```
 
-:::caution
+#### Client Components
+
+To keep your data fresh and performant, you can use client components and [useSuspense()](../api/useSuspense.md)
+
+```tsx title="app/todos/[userId]/page.tsx"
+'use client';
+import { useSuspense } from '@data-client/react';
+import { TodoResource } from '@/resources/Todo';
+
+export default function InteractivePage({ params }: { params: { userId: number } }) {
+  const todos = useSuspense(TodoResource.getList, params);
+  return <TodoList todos={todos} />;
+}
+```
+
+Note that this is identical to how you would write components without SSR. This makes
+makes the components usable across platforms.
+
+#### Server Components
+
+However, if your data never changes, you can slightly decrease the javascript bundle sent, by
+using a server component. Simply `await` the endpoint:
+
+```tsx title="app/todos/[userId]/page.tsx"
+import { TodoResource } from '@/resources/Todo';
+
+export default async function StaticPage({ params }: { params: { userId: number } }) {
+  const todos = await TodoResource.getList(params);
+  return <TodoList todos={todos} />;
+}
+```
+
+#### Demo
+
+<StackBlitz app="nextjs" file="components/todo/TodoList.tsx,app/layout.tsx" view="both" />
+
+#### Class mangling and Entity.key
+
+NextJS will rename classes for production builds. Due to this, it's critical to
+define [Entity.key](/rest/api/Entity#key) as its default implementation is based on
+the class name.
+
+```ts
+class User extends Entity {
+  id = '';
+  username = '';
+
+  // highlight-next-line
+  static key = 'User';
+}
+```
+
+### Pages Router
+
+With NextJS &lt; 14, you might be using the pages router. For this we have [Document](https://nextjs.org/docs/advanced-features/custom-document)
+and NextJS specific wrapper for [App](https://nextjs.org/docs/advanced-features/custom-app)
+
+<PkgTabs pkgs="@data-client/ssr @data-client/redux redux" />
+
+```tsx title="pages/_document.tsx"
+import { DataClientDocument } from '@data-client/ssr/nextjs';
+
+export default DataClientDocument;
+```
+
+```tsx title="pages/_app.tsx"
+import { AppDataProvider } from '@data-client/ssr/nextjs';
+import type { AppProps } from 'next/app';
+
+export default function App({ Component, pageProps }: AppProps) {
+  return (
+    <AppDataProvider>
+      <Component {...pageProps} />
+    </AppDataProvider>
+  );
+}
+```
+
+:::warning
 
 When fetching from parameters from [useRouter()](https://nextjs.org/docs/api-reference/next/router#userouter), you will need to
 add getServerSideProps to avoid [NextJS setting router.query to nothing](https://nextjs.org/docs/advanced-features/automatic-static-optimization)
@@ -55,43 +145,34 @@ export const getServerSideProps = () => ({ props: {} });
 
 :::
 
-### Demo
-
-<iframe
-  loading="lazy"
-  src="https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/nextjs?embed=1&file=pages%2FAssetPrice.tsx&hidedevtools=1&view=both&terminalHeight=1&showSidebar=0&hideNavigation=1"
-  width="100%"
-  height="500"
-></iframe>
-
-### Further customizing Document
+#### Further customizing Document
 
 To further customize Document, simply extend from the provided document.
 
 Make sure you use `super.getInitialProps()` instead of `Document.getInitialProps()`
-or the Rest Hooks code won't run!
+or the Reactive Data Client code won't run!
 
 ```tsx title="pages/_document.tsx"
-import { Html, Head, Main, NextScript } from 'next/document'
-import { RestHooksDocument } from '@rest-hooks/ssr/nextjs';
+import { Html, Head, Main, NextScript } from 'next/document';
+import { DataClientDocument } from '@data-client/ssr/nextjs';
 
-export default class MyDocument extends RestHooksDocument {
+export default class MyDocument extends DataClientDocument {
   static async getInitialProps(ctx) {
-    const originalRenderPage = ctx.renderPage
+    const originalRenderPage = ctx.renderPage;
 
     // Run the React rendering logic synchronously
     ctx.renderPage = () =>
       originalRenderPage({
         // Useful for wrapping the whole react tree
-        enhanceApp: (App) => App,
+        enhanceApp: App => App,
         // Useful for wrapping in a per-page basis
-        enhanceComponent: (Component) => Component,
-      })
+        enhanceComponent: Component => Component,
+      });
 
     // Run the parent `getInitialProps`, it now includes the custom `renderPage`
-    const initialProps = await super.getInitialProps(ctx)
+    const initialProps = await super.getInitialProps(ctx);
 
-    return initialProps
+    return initialProps;
   }
 
   render() {
@@ -103,39 +184,36 @@ export default class MyDocument extends RestHooksDocument {
           <NextScript />
         </body>
       </Html>
-    )
+    );
   }
 }
 ```
 
+#### CSP Nonce
 
-### CSP Nonce
-
-Rest Hooks Document serializes the store state in a script tag. In case you have
+Reactive Data Client Document serializes the store state in a script tag. In case you have
 Content Security Policy restrictions that require use of a nonce, you can override
-`RestHooksDocument.getNonce`.
+`DataClientDocument.getNonce`.
 
 Since there is no standard way of handling [nonce](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/nonce)
 in NextJS, this allows you
-to retrieve any nonce you created in the DocumentContext to use with Rest Hooks.
-
+to retrieve any nonce you created in the DocumentContext to use with Reactive Data Client.
 
 ```tsx title="pages/_document.tsx"
-import { RestHooksDocument } from '@rest-hooks/ssr/nextjs';
+import { DataClientDocument } from '@data-client/ssr/nextjs';
+import type { DocumentContext } from 'next/document.js';
 
-export default class MyDocument extends RestHooksDocument {
-  static getNonce(ctx: DocumentContext) {
+export default class MyDocument extends DataClientDocument {
+  static getNonce(ctx: DocumentContext & { res: { nonce?: string } }) {
     // this assumes nonce has been added here - customize as you need
-    return ctx.res.nonce;
+    return ctx?.res?.nonce;
   }
 }
 ```
 
-## Express JS
+## Express JS SSR
 
 When implementing your own server using express.
-
-<PkgTabs pkgs="@rest-hooks/ssr @rest-hooks/redux redux" />
 
 ### Server side
 
@@ -145,15 +223,16 @@ import { renderToPipeableStream } from 'react-dom/server';
 import {
   createPersistedStore,
   createServerDataComponent,
-} from '@rest-hooks/ssr';
+} from '@data-client/react/ssr';
 
 const rootId = 'react-root';
 
 const app = express();
 app.get('/*', (req: any, res: any) => {
-  const [ServerCacheProvider, useReadyCacheState, controller] =
+  const [ServerDataProvider, useReadyCacheState, controller] =
     createPersistedStore();
-  const ServerDataComponent = createServerDataComponent(useReadyCacheState);
+  const ServerDataComponent =
+    createServerDataComponent(useReadyCacheState);
 
   controller.fetch(NeededForPage, { id: 5 });
 
@@ -163,7 +242,7 @@ app.get('/*', (req: any, res: any) => {
       scripts={[<ServerDataComponent key="server-data" />]}
       rootId={rootId}
     >
-      <ServerCacheProvider>{children}</ServerCacheProvider>
+      <ServerDataProvider>{children}</ServerDataProvider>
     </Document>,
 
     {
@@ -195,14 +274,14 @@ app.listen(3000, () => {
 
 ```tsx
 import { hydrateRoot } from 'react-dom';
-import { awaitInitialData } from '@rest-hooks/ssr';
+import { awaitInitialData } from '@data-client/react/ssr';
 
 const rootId = 'react-root';
 
 awaitInitialData().then(initialState => {
   hydrateRoot(
     document.getElementById(rootId),
-    <CacheProvider initialState={initialState}>{children}</CacheProvider>,
+    <DataProvider initialState={initialState}>{children}</DataProvider>,
   );
 });
 ```

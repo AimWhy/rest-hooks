@@ -1,27 +1,22 @@
 import {
-  denormalize as denormalizeCore,
+  MemoCache,
   Schema,
-  DenormalizeCache,
-  WeakListMap,
   Denormalize,
   DenormalizeNullable,
-} from '@rest-hooks/normalizr';
+} from '@data-client/normalizr';
 
-export const denormalizeSimple = <S extends Schema>(
-  input: any,
-  schema: S | undefined,
-  entities: any,
-  entityCache: DenormalizeCache['entities'] = {},
-  resultCache: WeakListMap<object, any> = new WeakListMap(),
-):
-  | [denormalized: Denormalize<S>, found: true, deleted: false]
-  | [denormalized: DenormalizeNullable<S>, found: boolean, deleted: true]
-  | [denormalized: DenormalizeNullable<S>, found: false, deleted: boolean] =>
-  denormalizeCore(input, schema, entities, entityCache, resultCache).slice(
-    0,
-    3,
-  ) as any;
+export class SimpleMemoCache {
+  private memo = new MemoCache();
 
-export default denormalizeSimple;
+  denormalize = <S extends Schema>(
+    schema: S | undefined,
+    input: any,
+    entities: any,
+    args: any[] = [],
+  ): Denormalize<S> | DenormalizeNullable<S> | symbol =>
+    this.memo.denormalize(schema, input, entities, args).data as any;
+}
 
-it('should', () => {});
+export default SimpleMemoCache;
+
+it('[helper file in test folder]', () => {});

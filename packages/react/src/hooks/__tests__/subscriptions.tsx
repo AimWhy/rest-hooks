@@ -1,7 +1,6 @@
-import { actionTypes, Controller } from '@rest-hooks/core';
-import { CacheProvider } from '@rest-hooks/react';
-import { CacheProvider as ExternalCacheProvider } from '@rest-hooks/redux';
-import { renderHook } from '@testing-library/react-hooks';
+import { actionTypes, Controller } from '@data-client/core';
+import { CacheProvider } from '@data-client/react';
+import { DataProvider as ExternalDataProvider } from '@data-client/react/redux';
 import {
   PollingArticleResource,
   ArticleResource,
@@ -9,7 +8,7 @@ import {
 } from '__tests__/new';
 import nock from 'nock';
 
-import { act, makeRenderRestHook } from '../../../../test';
+import { act, makeRenderDataClient, renderHook } from '../../../../test';
 import { ControllerContext } from '../../context';
 import useCache from '../useCache';
 import useSubscription from '../useSubscription';
@@ -23,7 +22,7 @@ function jsonNock() {
 
 describe.each([
   ['CacheProvider', CacheProvider],
-  ['ExternalCacheProvider', ExternalCacheProvider],
+  ['ExternalDataProvider', ExternalDataProvider],
 ] as const)(`%s with subscriptions`, (_, makeProvider) => {
   const articlePayload = {
     id: 5,
@@ -31,7 +30,7 @@ describe.each([
     content: 'whatever',
     tags: ['a', 'best', 'react'],
   };
-  let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+  let renderDataClient: ReturnType<typeof makeRenderDataClient>;
   async function validateSubscription(
     result: {
       readonly current: Article | undefined;
@@ -50,7 +49,7 @@ describe.each([
     expect(result.current).toBeUndefined();
     // should be defined after frequency milliseconds
     jest.advanceTimersByTime(frequency);
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
 
     await waitFor(() => expect(result.current).not.toBeUndefined());
     expect(result.current).toBeInstanceOf(Article);
@@ -63,7 +62,7 @@ describe.each([
     jest.advanceTimersByTime(frequency);
 
     await waitFor(() => expect(fiverNock.isDone()).toBeTruthy());
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
     await waitFor(() => expect((result.current as any).title).toBe('fiver'));
   }
 
@@ -98,20 +97,22 @@ describe.each([
       .reply(200, articlePayload)
       .get(`/article/${articlePayload.id}`)
       .reply(200, articlePayload);
-    renderRestHook = makeRenderRestHook(makeProvider);
+    renderDataClient = makeRenderDataClient(makeProvider);
   });
   afterEach(() => {
-    renderRestHook.cleanup();
+    renderDataClient.cleanup();
     nock.cleanAll();
     jest.useRealTimers();
   });
 
   it('useSubscription() + useCache()', async () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({
+      legacyFakeTimers: true,
+    });
     const frequency = PollingArticleResource.get.pollFrequency as number;
     expect(frequency).toBeDefined();
 
-    const { result, rerender, waitFor } = renderRestHook(
+    const { result, rerender, waitFor } = renderDataClient(
       ({ active }) => {
         useSubscription(
           PollingArticleResource.get,
@@ -146,7 +147,7 @@ describe.each([
       jest.runOnlyPendingTimers();
     });
     jest.useRealTimers();
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
 
     expect((result.current as any).title).toBe('fiver');
   });
@@ -155,32 +156,34 @@ describe.each([
     const oldError = console.error;
     const spy = (console.error = jest.fn());
 
-    const { result } = renderRestHook(() => {
+    const { result } = renderDataClient(() => {
       useSubscription(ArticleResource.get, { id: articlePayload.id });
     });
     expect(result.error).toBeUndefined();
     expect(spy.mock.calls[0]).toMatchSnapshot();
 
     console.error = oldError;
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
   });
 
   it('useSubscription() without active arg', async () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({
+      legacyFakeTimers: true,
+    });
     const frequency = PollingArticleResource.get.pollFrequency as number;
     expect(frequency).toBeDefined();
     expect(PollingArticleResource.anotherGet.pollFrequency).toBeDefined();
 
-    const { result, waitFor } = renderRestHook(() => {
+    const { result, waitFor } = renderDataClient(() => {
       useSubscription(PollingArticleResource.get, { id: articlePayload.id });
       return useCache(PollingArticleResource.get, { id: articlePayload.id });
     });
 
     await validateSubscription(result, frequency, articlePayload, waitFor);
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
   });
 
-  it('useSubscription() should dispatch rest-hooks/subscribe only once even with rerender', async () => {
+  it('useSubscription() should dispatch data-client/subscribe only once even with rerender', async () => {
     const fakeDispatch = jest.fn();
     const controller = new Controller({ dispatch: fakeDispatch });
 
@@ -203,7 +206,7 @@ describe.each([
       rerender();
     }
     expect(fakeDispatch.mock.calls.length).toBe(1);
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
   });
 
   it('useSubscription() should unsubscribe with null arguments', async () => {
@@ -230,38 +233,11 @@ describe.each([
       rerender({ id: null });
     }
     expect(fakeDispatch.mock.calls.length).toBe(2);
-    expect(fakeDispatch.mock.calls[0][0].type).toBe(actionTypes.SUBSCRIBE_TYPE);
-    expect(fakeDispatch.mock.calls[1][0].type).toBe(
-      actionTypes.UNSUBSCRIBE_TYPE,
-    );
+    expect(fakeDispatch.mock.calls[0][0].type).toBe(actionTypes.SUBSCRIBE);
+    expect(fakeDispatch.mock.calls[1][0].type).toBe(actionTypes.UNSUBSCRIBE);
     expect(fakeDispatch.mock.calls[1][0].key).toBe(
       fakeDispatch.mock.calls[0][0].key,
     );
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
   });
-});
-
-it('useSubscription() should include extra options in dispatched meta', () => {
-  const fakeDispatch = jest.fn();
-  const controller = new Controller({ dispatch: fakeDispatch });
-
-  renderHook(
-    () => {
-      useSubscription(PollingArticleResource.pusher, { id: 5 });
-    },
-    {
-      wrapper: function Wrapper({ children }: any) {
-        return (
-          <ControllerContext.Provider value={controller}>
-            {children}
-          </ControllerContext.Provider>
-        );
-      },
-    },
-  );
-
-  const spy = fakeDispatch.mock.calls[0][0];
-  expect(spy.meta.options.extra.eventType).toEqual(
-    'PollingArticleResource:fetch',
-  );
 });

@@ -1,12 +1,12 @@
-import type { Controller } from '@rest-hooks/core';
-import { useContext } from 'react';
+import type { Controller } from '@data-client/core';
 
+import use from './useUniversal.js';
 import { ControllerContext } from '../context.js';
 
 /**
- * Imperative control of Rest Hooks store
- * @see https://resthooks.io/docs/api/useController
+ * Imperative control of Reactive Data Client store
+ * @see https://dataclient.io/docs/api/useController
  */
 export default function useController(): Controller {
-  return useContext(ControllerContext);
+  return use(ControllerContext);
 }

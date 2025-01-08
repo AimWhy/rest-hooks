@@ -4,11 +4,13 @@ const options = {
   basePath: 'src',
   buildDir: 'dist/',
   htmlOptions: {
-    title: 'todo-app',
+    title: 'Github App',
     scriptLoading: 'defer',
     template: 'index.ejs',
   },
   globalStyleDir: 'style',
+  terserOptions: { keep_classnames: true },
+  sassOptions: false,
 };
 
 const generateConfig = makeConfig(options);

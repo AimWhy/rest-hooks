@@ -1,7 +1,9 @@
 ---
-title: Introducing the Relational Data Client
+title: Introducing the Reactive Data Client
 sidebar_label: Introduction
+description: Building delightful dynamic applications with NextJS, Expo, React Native and more.
 slug: /
+id: introduction
 ---
 
 import ThemedImage from '@theme/ThemedImage';
@@ -11,37 +13,30 @@ import TabItem from '@theme/TabItem';
 import LanguageTabs from '@site/src/components/LanguageTabs';
 import ProtocolTabs from '@site/src/components/ProtocolTabs';
 import HooksPlayground from '@site/src/components/HooksPlayground';
+import Link from '@docusaurus/Link';
 
 <head>
-  <title>Introducing The Relational Data Client for React: Rest Hooks ✨</title>
   <meta name="docsearch:pagerank" content="10"/>
 </head>
 
+# The Reactive Data Client
 
-Rest Hooks provides safe and performant [client access](./api/useSuspense.md) and [mutation](./api/Controller.md#fetch) over [remote data protocols](https://www.freecodecamp.org/news/what-is-an-api-in-english-please-b880a3214a82/).
-Both pull/fetch ([REST](/rest) and [GraphQL](/graphql)) and push/stream ([WebSockets or Server Sent Events](./api/Manager.md#middleware-data-stream)) can be used simultaneously.
+Reactive Data Client provides safe and performant [client access](./api/useSuspense.md) and [mutation](./api/Controller.md#fetch) over [remote data protocols](https://www.freecodecamp.org/news/what-is-an-api-in-english-please-b880a3214a82/).
+Both pull/fetch ([REST](/rest) and [GraphQL](/graphql)) and push/stream ([WebSockets or Server Sent Events](./concepts/managers.md#data-stream)) can be used simultaneously.
 
-We call Rest Hooks a Relational Data Client because it has similar goals
+It has similar goals
 to [Relational Databases](https://en.wikipedia.org/wiki/Relational_database)
 but for interactive application clients. Because of this, **if your backend uses a [RDBMS](https://en.wikipedia.org/wiki/Relational_database) like [Postgres](https://www.postgresql.org/)
-or [MySQL](https://www.mysql.com/) this is a good indication Rest Hooks might be for you**. Respectively,
+or [MySQL](https://www.mysql.com/) this is a good indication Reactive Data Client might be for you**. Respectively,
 just like one might choose [flat files](https://www.techopedia.com/definition/25956/flat-file) over database storage,
 sometimes a less powerful client library is sufficient.
 
-This is no small task. To achieve this, Rest Hooks' design is aimed at **treating remote data like it is
+This is no small task. To achieve this, Reactive Data Client' design is aimed at **treating remote data like it is
 local**. This means component logic should be no more complex than useState and setState.
-
-:::info Outcome
-
-- Write code faster: focus on your application, not complex state management
-- Stop worrying about data bugs or application jank
-- Deliver best application performance without extra work
-
-:::
 
 ## Define API {#endpoint}
 
-[Endpoints](./getting-started/endpoint.md) are the _methods_ of your data. At their core they
+[Endpoints](./getting-started/resource.md) are the _methods_ of your data. At their core they
 are simply asynchronous functions. However, they also define anything else relevant to the [API](https://www.freecodecamp.org/news/what-is-an-api-in-english-please-b880a3214a82/)
 like [expiry policy](./concepts/expiry-policy.md), [data model](./concepts/normalization.md), [validation](./concepts/validation.md), and [types](/rest/api/RestEndpoint#typing).
 
@@ -62,13 +57,13 @@ By _decoupling_ endpoint definitions from their usage, we are able to reuse them
 - Reuse across different **[platforms](./getting-started/installation.md)** like React Native, React web, or even beyond React in Angular, Svelte, Vue, or Node
 - Published as **packages** independent of their consumption
 
-Endpoints are extensible and composable, with protocol implementations ([REST](/rest), [GraphQL](/graphql), [Websockets+SSE](./api/Manager.md#middleware-data-stream), [Img/binary](./guides/img-media.md))
+Endpoints are extensible and composable, with protocol implementations ([REST](/rest), [GraphQL](/graphql), [Websockets+SSE](./concepts/managers.md#data-stream), [Img/binary](./guides/img-media.md))
 to get started quickly, extend, and share common patterns.
 
 <ProtocolTabs>
 
 ```ts
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint } from '@data-client/rest';
 
 const getTodo = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
@@ -77,7 +72,7 @@ const getTodo = new RestEndpoint({
 ```
 
 ```ts
-import { GQLEndpoint } from '@rest-hooks/graphql';
+import { GQLEndpoint } from '@data-client/graphql';
 
 const gql = new GQLEndpoint('/');
 export const getTodo = gql.query(`
@@ -99,21 +94,20 @@ Make your components reusable by binding the data [where you need it](./getting-
 [useSuspense()](./api/useSuspense.md) guarantees its data once it returns.
 
 ```tsx {4}
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 
 export default function TodoDetail({ id }: { id: number }) {
   const todo = useSuspense(getTodo, { id });
 
   return <div>{todo.title}</div>;
 }
-render(<TodoDetail id={1} />);
 ```
 
-No more prop drilling, or cumbersome external state management. Rest Hooks guarantees global referential equality,
+No more prop drilling, or cumbersome external state management. Reactive Data Client guarantees global referential equality,
 data safety and performance.
 
 Co-location also allows [Server Side Rendering](./guides/ssr.md) to incrementally stream HTML, greatly reducing [TTFB](https://web.dev/ttfb/).
-[Rest Hooks SSR](./guides/ssr.md) automatically hydrates its store, allowing immediate interactive mutations with **zero** client-side
+[Reactive Data Client SSR](./guides/ssr.md) automatically hydrates its store, allowing immediate interactive mutations with **zero** client-side
 fetches on first load.
 
 ## Handle loading/error
@@ -123,7 +117,7 @@ Avoid 100s of loading spinners by placing [AsyncBoundary](./api/AsyncBoundary.md
 Typically these are placed at or above navigational boundaries like pages, routes or modals.
 
 ```tsx {5,8}
-import { AsyncBoundary } from '@rest-hooks/react';
+import { AsyncBoundary } from '@data-client/react';
 
 function App() {
   return (
@@ -140,7 +134,7 @@ cases in React 16 and 17
 
 ## Mutations
 
-Mutations present another case of reuse - this time of our data. This case is even more critical
+[Mutations](./getting-started/mutations.md) present another case of reuse - this time of our data. This case is even more critical
 because it can not just lead to code bloat, but data ingrity, tearing, and general application jankiness.
 
 When we call our mutation method/endpoint, we need to ensure **all** uses of that data are updated.
@@ -157,26 +151,21 @@ prevents 'data tearing' jank and improves performance.
 <ProtocolTabs>
 
 ```ts
-import { Entity } from '@rest-hooks/rest';
+import { Entity } from '@data-client/rest';
 
 export class Todo extends Entity {
-  userId = 0;
   id = 0;
+  userId = 0;
   title = '';
   completed = false;
-
-  pk() {
-    return `${this.id}`;
-  }
 }
 ```
 
 ```ts
-import { GQLEntity } from '@rest-hooks/graphql';
+import { GQLEntity } from '@data-client/graphql';
 
 export class Todo extends GQLEntity {
   userId = 0;
-  id = 0;
   title = '';
   completed = false;
 }
@@ -186,36 +175,35 @@ export class Todo extends GQLEntity {
 
 The [pk()](/rest/api/Entity#pk) (primary key) method is used to build a lookup table. This is
 commonly known as data normalization. To avoid bugs, application jank and performance problems,
-it is critical to [choose the right (normalized) state structure](https://beta.reactjs.org/learn/choosing-the-state-structure).
+it is critical to [choose the right (normalized) state structure](https://react.dev/learn/choosing-the-state-structure).
 
 We can now bind our Entity to both our get endpoint and update endpoint, providing our runtime
 data integrity as well as TypeScript definitions.
 
 <ProtocolTabs>
 
-```ts {6,13}
-import { RestEndpoint } from '@rest-hooks/rest';
+```ts {6}
+import { RestEndpoint } from '@data-client/rest';
 
-export const getTodo = new RestEndpoint({
+const get = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
   path: '/todos/:id',
   schema: Todo,
 });
 
-export const updateTodo = new RestEndpoint({
-  urlPrefix: 'https://jsonplaceholder.typicode.com',
-  path: '/todos/:id',
+const update = getTodo.extend({
   method: 'PUT',
-  schema: Todo,
 });
+
+export const TodoResource = { get, update };
 ```
 
 ```ts {14,25}
-import { GQLEndpoint } from '@rest-hooks/graphql';
+import { GQLEndpoint } from '@data-client/graphql';
 
 const gql = new GQLEndpoint('/');
 
-export const getTodo = gql.query(
+const get = gql.query(
   `query GetTodo($id: ID!) {
     todo(id: $id) {
       id
@@ -227,7 +215,7 @@ export const getTodo = gql.query(
   { todo: Todo },
 );
 
-export const updateTodo = gql.mutation(
+const update = gql.mutation(
   `mutation UpdateTodo($todo: Todo!) {
     updateTodo(todo: $todo) {
       id
@@ -237,6 +225,8 @@ export const updateTodo = gql.mutation(
   }`,
   { updateTodo: Todo },
 );
+
+export const TodoResource = { get, update };
 ```
 
 </ProtocolTabs>
@@ -250,48 +240,47 @@ Just like `setState()`, we must make React aware of the any mutations so it can 
 
 We can [useController](./api/useController.md) to access it in React components.
 
+<ProtocolTabs>
+
 ```tsx
-import { useController } from '@rest-hooks/react';
+import { useController } from '@data-client/react';
 
 function ArticleEdit() {
   const ctrl = useController();
   // highlight-next-line
-  const handleSubmit = data => ctrl.fetch(todoUpdate, { id }, data);
+  const handleSubmit = data => ctrl.fetch(TodoResource.update, { id }, data);
   return <ArticleForm onSubmit={handleSubmit} />;
 }
 ```
 
-<details><summary><b>Tracking imperative loading/error state</b></summary>
+```tsx
+import { useController } from '@data-client/react';
+
+function ArticleEdit() {
+  const ctrl = useController();
+  // highlight-next-line
+  const handleSubmit = data => ctrl.fetch(TodoResource.update, { id, ...data });
+  return <ArticleForm onSubmit={handleSubmit} />;
+}
+```
+
+</ProtocolTabs>
+
+<details>
+<summary><b>Tracking imperative loading/error state</b></summary>
 
 [useLoading()](./api/useLoading.md) enhances async functions by tracking their loading and error states.
 
 ```tsx
-import { useController } from '@rest-hooks/react';
-import { useLoading } from '@rest-hooks/hooks';
+import { useController, useLoading } from '@data-client/react';
 
 function ArticleEdit() {
   const ctrl = useController();
   // highlight-next-line
   const [handleSubmit, loading, error] = useLoading(
-    data => ctrl.fetch(todoUpdate, { id }, data),
+    data => ctrl.fetch(TodoResource.update, { id }, data),
     [ctrl],
   );
-  return <ArticleForm onSubmit={handleSubmit} loading={loading} />;
-}
-```
-
-React 18 version with [useTransition](https://beta.reactjs.org/apis/react/useTransition)
-
-```tsx
-import { useTransition } from 'react';
-import { useController } from '@rest-hooks/react';
-import { useLoading } from '@rest-hooks/hooks';
-
-function ArticleEdit() {
-  const ctrl = useController();
-  const [loading, startTransition] = useTransition();
-  const handleSubmit = data =>
-    startTransition(() => ctrl.fetch(todoUpdate, { id }, data));
   return <ArticleForm onSubmit={handleSubmit} loading={loading} />;
 }
 ```
@@ -300,29 +289,35 @@ function ArticleEdit() {
 
 ### More data modeling
 
-What if our entity is not the top level item? Here we define the `todoList`
-endpoint with `[Todo]` as its schema. [Schemas](./concepts/normalization.md#schema) tell Rest Hooks _where_ to find
-the Entities. By placing inside a list, Rest Hooks knows to expect a response
+What if our entity is not the top level item? Here we define the `getList`
+endpoint with [new schema.Collection([Todo])](/rest/api/Collection) as its schema. [Schemas](./concepts/normalization.md#schema) tell Reactive Data Client _where_ to find
+the Entities. By placing inside a list, Reactive Data Client knows to expect a response
 where each item of the list is the entity specified.
 
 ```typescript {6}
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint, schema } from '@data-client/rest';
 
-export const getTodoList = new RestEndpoint({
+// get and update definitions omitted
+
+const getList = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
   path: '/todos',
-  schema: [Todo],
+  schema: new schema.Collection([Todo]),
+  searchParams: {} as { userId?: string | number } | undefined,
+  paginationField: 'page',
 });
+
+export default TodoResource = { getList, get, update };
 ```
 
 [Schemas](./concepts/normalization.md) also automatically infer and enforce the response type, ensuring
 the variable `todos` will be typed precisely.
 
 ```tsx {4}
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 
 export default function TodoList() {
-  const todos = useSuspense(getTodoList);
+  const todos = useSuspense(TodoResource.getList);
 
   return (
     <div>
@@ -334,41 +329,40 @@ export default function TodoList() {
 }
 ```
 
-Now we've used our data model in three cases - `getTodo`, `getTodoList` and `updateTodo`. Data consistency
+Now we've used our data model in three cases - `TodoResource.get`, `TodoResource.getList` and `TodoResource.update`. Data consistency
 (as well as referential equality) will be guaranteed between the endpoints, even after mutations occur.
 
 ### Organizing Endpoints
 
-At this point we've defined `todoDetail`, `todoList` and `todoUpdate`. You might have noticed
-that these endpoint definitions share some logic and information. For this reason Rest Hooks
+At this point we've defined `TodoResource.get`, `TodoResource.getList` and `TodoResource.update`. You might have noticed
+that these endpoint definitions share some logic and information. For this reason Reactive Data Client
 encourages extracting shared logic among endpoints.
 
-[Resources](/rest/api/createResource) are collections of endpoints that operate on the same data.
+[Resources](/rest/api/resource) are collections of endpoints that operate on the same data.
 
 ```typescript
-import { Entity, createResource } from '@rest-hooks/rest';
+import { Entity, resource } from '@data-client/rest';
 
 class Todo extends Entity {
   id = 0;
   userId = 0;
   title = '';
   completed = false;
-
-  pk() {
-    return `${this.id}`;
-  }
 }
 
-const TodoResource = createResource({
+const TodoResource = resource({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
   path: '/todos/:id',
   schema: Todo,
+  searchParams: {} as { userId?: string | number } | undefined,
+  paginationField: 'page',
 });
 ```
 
-[Introduction to Resource](/rest)
+[Introduction to Resource](./getting-started/resource.md)
 
-<details><summary><b>Resource Endpoints</b></summary>
+<details>
+<summary><b>Resource Endpoints</b></summary>
 
 ```typescript
 // read
@@ -378,21 +372,28 @@ const todo = useSuspense(TodoResource.get, { id: 5 });
 // GET https://jsonplaceholder.typicode.com/todos
 const todos = useSuspense(TodoResource.getList);
 
+// GET https://jsonplaceholder.typicode.com/todos?userId=1
+const todos = useSuspense(TodoResource.getList, { userId: 1 });
+
 // mutate
-// POST https://jsonplaceholder.typicode.com/todos
 const ctrl = useController();
-ctrl.fetch(TodoResource.create, { title: 'my todo' });
+
+// GET https://jsonplaceholder.typicode.com/todos?userId=1
+ctrl.fetch(TodoResource.getList.getPage, { userId: 1, page: 2 });
+
+// POST https://jsonplaceholder.typicode.com/todos
+ctrl.fetch(TodoResource.getList.push, { title: 'my todo' });
+
+// POST https://jsonplaceholder.typicode.com/todos?userId=1
+ctrl.fetch(TodoResource.getList.push, { userId: 1 }, { title: 'my todo' });
 
 // PUT https://jsonplaceholder.typicode.com/todos/5
-const ctrl = useController();
 ctrl.fetch(TodoResource.update, { id: 5 }, { title: 'my todo' });
 
 // PATCH https://jsonplaceholder.typicode.com/todos/5
-const ctrl = useController();
 ctrl.fetch(TodoResource.partialUpdate, { id: 5 }, { title: 'my todo' });
 
 // DELETE https://jsonplaceholder.typicode.com/todos/5
-const ctrl = useController();
 ctrl.fetch(TodoResource.delete, { id: 5 });
 ```
 
@@ -401,20 +402,20 @@ ctrl.fetch(TodoResource.delete, { id: 5 });
 ### Zero delay mutations {#optimistic-updates}
 
 [Controller.fetch](./api/Controller.md#fetch) call the mutation endpoint, and update React based on the response.
-While [useTransition](https://beta.reactjs.org/apis/react/useTransition) improves the experience,
+While [useTransition](https://react.dev/reference/react/useTransition) improves the experience,
 the UI still ultimately waits on the fetch completion to update.
 
 For many cases like toggling todo.completed, incrementing an upvote, or dragging and drop
 a frame this can be too slow!
 
-We can optionally tell Rest Hooks to perform the React renders immediately. To do this
+We can optionally tell Reactive Data Client to perform the React renders immediately. To do this
 we'll need to specify _how_.
 
-[getOptimisticResponse](/rest/guides/optimistic-updates) is just like [setState with an updater function](https://beta.reactjs.org/apis/react/useState#updating-state-based-on-the-previous-state). Using [snap](./api/Snapshot.md) for access to the store to get the previous
+[getOptimisticResponse](/rest/guides/optimistic-updates) is just like [setState with an updater function](https://react.dev/reference/react/useState#updating-state-based-on-the-previous-state). Using [snap](./api/Snapshot.md) for access to the store to get the previous
 value, as well as the fetch arguments, we return the _expected_ fetch response.
 
 ```typescript
-export const updateTodo = new RestEndpoint({
+const update = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
   path: '/todos/:id',
   method: 'PUT',
@@ -430,7 +431,7 @@ export const updateTodo = new RestEndpoint({
 });
 ```
 
-Rest Hooks ensures [data integrity against any possible networking failure or race condition](/rest/guides/optimistic-updates#optimistic-transforms), so don't
+Reactive Data Client ensures [data integrity against any possible networking failure or race condition](/rest/guides/optimistic-updates#optimistic-transforms), so don't
 worry about network failures, multiple mutation calls editing the same data, or other common
 problems in asynchronous programming.
 
@@ -440,48 +441,45 @@ Sometimes data change is initiated remotely - either due to other users on the s
 [expiry policy](./concepts/expiry-policy.md) controls allow tight control over updates due to fetching.
 
 However, for data that changes frequently (like exchange price tickers, or live conversations) sometimes push-based
-protocols are used like Websockets or Server Sent Events. Rest Hooks has a [powerful middleware layer called Managers](./api/Manager.md),
-which can be used to [initiate data updates](./api/Manager.md#data-stream) when receiving new data pushed from the server.
+protocols are used like Websockets or Server Sent Events. Reactive Data Client has a [powerful middleware layer called Managers](./api/Manager.md),
+which can be used to [initiate data updates](./concepts/managers.md#data-stream) when receiving new data pushed from the server.
 
-<details><summary><b>StreamManager</b></summary>
+<details>
+<summary><b>StreamManager</b></summary>
 
 ```typescript
-import type { Manager, Middleware } from '@rest-hooks/core';
-import type { EndpointInterface } from '@rest-hooks/endpoint';
+import type { Manager, Middleware, ActionTypes } from '@data-client/react';
+import { Controller, actionTypes } from '@data-client/react';
+import type { EntityInterface } from '@data-client/rest';
 
 export default class StreamManager implements Manager {
-  protected declare middleware: Middleware;
   protected declare evtSource: WebSocket | EventSource;
-  protected declare endpoints: Record<string, EndpointInterface>;
+  protected declare entities: Record<string, typeof EntityInterface>;
 
   constructor(
     evtSource: WebSocket | EventSource,
-    endpoints: Record<string, EndpointInterface>,
+    entities: Record<string, EntityInterface>,
   ) {
     this.evtSource = evtSource;
-    this.endpoints = endpoints;
-
-    this.middleware = controller => {
-      this.evtSource.onmessage = event => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type in this.endpoints)
-            controller.setResponse(this.endpoints[msg.type], ...msg.args, msg.data);
-        } catch (e) {
-          console.error('Failed to handle message');
-          console.error(e);
-        }
-      };
-      return next => async action => next(action);
-    };
+    this.entities = entities;
   }
+
+  middleware: Middleware = controller => {
+    this.evtSource.onmessage = event => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type in this.endpoints)
+          controller.set(this.entities[msg.type], ...msg.args, msg.data);
+      } catch (e) {
+        console.error('Failed to handle message');
+        console.error(e);
+      }
+    };
+    return next => async action => next(action);
+  };
 
   cleanup() {
     this.evtSource.close();
-  }
-
-  getMiddleware() {
-    return this.middleware;
   }
 }
 ```
@@ -494,7 +492,7 @@ to ensure we only listen to the data we care about.
 Endpoints with [pollFrequency](/rest/api/RestEndpoint#pollfrequency) allow reusing the existing HTTP endpoints, eliminating
 the need for additional websocket or SSE backends.
 Polling is globally orchestrated by the [SubscriptionManager](./api/SubscriptionManager.md), so even with many
-components subscribed Rest Hooks will never overfetch.
+components subscribed Reactive Data Client will never overfetch.
 
 [//]: # 'TODO: ## Relational joins and nesting'
 
@@ -507,12 +505,12 @@ Add the Redux DevTools for
 or
 [firefox extension](https://addons.mozilla.org/en-US/firefox/addon/reduxdevtools/)
 
-Click the icon to open the [inspector](./guides/debugging.md), which allows you to observe dispatched actions,
+Click the icon to open the [inspector](./getting-started/debugging.md), which allows you to observe dispatched actions,
 their effect on the cache state as well as current cache state.
 
 ## Mock data
 
-Writing `Fixture`s is a standard format that can be used across all `@rest-hooks/test` helpers as well as your own uses.
+Writing [Fixtures](./api/Fixtures.md) is a standard format that can be used across all `@data-client/test` helpers as well as your own uses.
 
 <Tabs
 defaultValue="detail"
@@ -520,19 +518,21 @@ values={[
 { label: 'Detail', value: 'detail' },
 { label: 'Update', value: 'update' },
 { label: '404 error', value: 'detail404' },
+{ label: 'Interceptor', value: 'interceptor' },
+{ label: 'Interceptor (stateful)', value: 'interceptor-stateful' },
 ]}>
 <TabItem value="detail">
 
 ```typescript
-import type { Fixture } from '@rest-hooks/test';
-import { todoDetail } from './todo';
+import type { Fixture } from '@data-client/test';
+import { getTodo } from './todo';
 
 const todoDetailFixture: Fixture = {
-  endpoint: todoDetail,
+  endpoint: getTodo,
   args: [{ id: 5 }] as const,
   response: {
     id: 5,
-    title: 'Star Rest Hooks on Github',
+    title: 'Star Reactive Data Client on Github',
     userId: 11,
     completed: false,
   },
@@ -543,15 +543,15 @@ const todoDetailFixture: Fixture = {
 <TabItem value="update">
 
 ```typescript
-import type { Fixture } from '@rest-hooks/test';
-import { todoUpdate } from './todo';
+import type { Fixture } from '@data-client/test';
+import { updateTodo } from './todo';
 
 const todoUpdateFixture: Fixture = {
-  endpoint: todoUpdate,
+  endpoint: updateTodo,
   args: [{ id: 5 }, { completed: true }] as const,
   response: {
     id: 5,
-    title: 'Star Rest Hooks on Github',
+    title: 'Star Reactive Data Client on Github',
     userId: 11,
     completed: true,
   },
@@ -562,11 +562,11 @@ const todoUpdateFixture: Fixture = {
 <TabItem value="detail404">
 
 ```typescript
-import type { Fixture } from '@rest-hooks/test';
-import { todoDetail } from './todo';
+import type { Fixture } from '@data-client/test';
+import { getTodo } from './todo';
 
 const todoDetail404Fixture: Fixture = {
-  endpoint: todoDetail,
+  endpoint: getTodo,
   args: [{ id: 9001 }] as const,
   response: { status: 404, response: 'Not found' },
   error: true,
@@ -574,54 +574,99 @@ const todoDetail404Fixture: Fixture = {
 ```
 
 </TabItem>
+<TabItem value="interceptor">
+
+```typescript
+import type { Interceptor } from '@data-client/test';
+
+const currentTimeInterceptor: Interceptor = {
+  endpoint: new RestEndpoint({
+    path: '/api/currentTime/:id',
+  }),
+  response({ id }) {
+    return {
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+  },
+  delay: () => 150,
+};
+```
+
+</TabItem>
+<TabItem value="interceptor-stateful">
+
+```typescript
+import type { Interceptor } from '@data-client/test';
+
+const incrementInterceptor: Interceptor = {
+  endpoint: new RestEndpoint({
+    path: '/api/count/increment',
+    method: 'POST',
+    body: undefined,
+  }),
+  response() {
+    return {
+      count: (this.count = this.count + 1),
+    };
+  },
+  delay: () => 150,
+};
+```
+
+</TabItem>
 </Tabs>
 
 - [Mock data for storybook](./guides/storybook.md) with [MockResolver](./api/MockResolver.md)
-- [Test hooks](./guides/unit-testing-hooks.md) with [makeRenderRestHook()](./api/makeRenderRestHook.md)
+- [Test hooks](./guides/unit-testing-hooks.md) with [renderDataHook()](./api/renderDataHook.md)
 - [Test components](./guides/unit-testing-components.md) with [MockResolver](./api/MockResolver.md) and [mockInitialState()](./api/mockInitialState.md)
 
 ## Demo
 
 <Tabs
-  defaultValue="todo"
-  values={[
-    { label: 'Todo', value: 'todo' },
-    { label: 'GitHub', value: 'github' },
-    { label: 'NextJS SSR', value: 'nextjs' },
-  ]}
-  groupId="Demos"
->
-  <TabItem value="todo">
+defaultValue="todo"
+values={[
+{ label: 'Todo', value: 'todo' },
+{ label: 'GitHub', value: 'github' },
+{ label: 'NextJS SSR', value: 'nextjs' },
+]}
+groupId="Demos"
+
+>   <TabItem value="todo">
 
 <iframe
   loading="lazy"
-  src="https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/todo-app?embed=1&file=src%2Fpages%2FHome%2FTodoList.tsx&hidedevtools=1&view=both&terminalHeight=0&hideNavigation=1"
+  src="https://stackblitz.com/github/reactive/data-client/tree/master/examples/todo-app?embed=1&file=src%2Fpages%2FHome%2FTodoList.tsx&hidedevtools=1&view=both&terminalHeight=0&hideNavigation=1"
   width="100%"
   height="500"
 ></iframe>
 
-[Explore on github](https://github.com/data-client/rest-hooks/tree/master/examples/todo-app)
+[![Explore on GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/reactive/data-client/tree/master/examples/todo-app)
 </TabItem>
 
   <TabItem value="github">
 <iframe
   loading="lazy"
-  src="https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/github-app?embed=1&file=src%2Fpages%2FIssueList.tsx&hidedevtools=1&view=preview&terminalHeight=0&hideNavigation=1"
+  src="https://stackblitz.com/github/reactive/data-client/tree/master/examples/github-app?embed=1&file=src%2Fpages%2FIssueList.tsx&hidedevtools=1&view=preview&terminalHeight=0&hideNavigation=1"
   width="100%"
   height="500"
 ></iframe>
 
-[Explore on github](https://github.com/data-client/rest-hooks/tree/master/examples/github-app)
+[![Explore on GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/reactive/data-client/tree/master/examples/github-app)
 </TabItem>
-  <TabItem value="nextjs">
+<TabItem value="nextjs">
 
 <iframe
   loading="lazy"
-  src="https://stackblitz.com/github/data-client/rest-hooks/tree/master/examples/nextjs?embed=1&file=pages%2FAssetPrice.tsx&hidedevtools=1&view=both&terminalHeight=0&showSidebar=0&hideNavigation=1"
+  src="https://stackblitz.com/github/reactive/data-client/tree/master/examples/nextjs?embed=1&file=components%2Ftodo%2FTodoList.tsx&hidedevtools=1&view=both&terminalHeight=0&showSidebar=0&hideNavigation=1"
   width="100%"
   height="500"
 ></iframe>
 
-[Explore on github](https://github.com/data-client/rest-hooks/tree/master/examples/nextjs)
+[![Explore on GitHub](https://badgen.net/badge/icon/github?icon=github&label)](https://github.com/reactive/data-client/tree/master/examples/nextjs)
 </TabItem>
 </Tabs>
+
+<p style={{textAlign: 'center'}}>
+<Link className="button button--secondary" to="/demos">More Demos</Link>
+</p>

@@ -1,19 +1,15 @@
-import * as graphql from '@rest-hooks/graphql';
-import * as hooks from '@rest-hooks/hooks';
-import * as rhReact from '@rest-hooks/react';
-import * as rest from '@rest-hooks/rest';
-import type { Fixture, Interceptor } from '@rest-hooks/test';
+import * as graphql from '@data-client/graphql';
+import * as rhReact from '@data-client/react';
+import * as rhReactNext from '@data-client/react/next';
+import * as rest from '@data-client/rest';
+import type { Fixture, Interceptor } from '@data-client/test';
+import { Temporal, Intl as PolyIntl } from '@js-temporal/polyfill';
 import BigNumber from 'bignumber.js';
-import React from 'react';
 import { LiveProvider } from 'react-live';
+import { v4 as uuid } from 'uuid';
 
 import * as designSystem from './DesignSystem';
 import PreviewWithHeader from './PreviewWithHeader';
-import {
-  TodoResource as BaseTodoResource,
-  Todo,
-  TodoEndpoint,
-} from './resources/TodoResource';
 import transformCode from './transformCode';
 import ResetableErrorBoundary from '../ResettableErrorBoundary';
 
@@ -33,81 +29,46 @@ const mockFetch = (getResponse, name, delay = 150) => {
   return fetch;
 };
 
-const mockLastUpdated = ({ id }) => {
-  return new Promise(resolve => {
-    setTimeout(
-      () =>
-        resolve({
-          id,
-          updatedAt: new Date().toISOString(),
-        }),
-      150,
-    );
-  });
-};
-class TimedEntity extends rest.Entity {
-  id = '';
-  pk() {
-    return this.id;
-  }
-
-  static schema = {
-    updatedAt: Date,
-  };
-}
-
-const lastUpdated = new rest.Endpoint(mockLastUpdated, {
-  schema: TimedEntity,
-});
-
-const TodoResource = {
-  ...BaseTodoResource,
-  getList: BaseTodoResource.getList.extend({
-    process(todos) {
-      return todos.slice(0, 7);
-    },
-  }),
+const Intl = {
+  ...globalThis.Intl,
+  ...PolyIntl,
 };
 
 const scope = {
   ...rhReact,
+  ...rhReactNext,
   ...rest,
   ...graphql,
-  ...hooks,
+  uuid,
   randomFloatInRange,
   mockFetch,
   BigNumber,
   ResetableErrorBoundary,
+  Temporal,
+  Intl,
+  DateTimeFormat: PolyIntl.DateTimeFormat,
   ...designSystem,
 };
-const scopeWithEndpoint = {
-  ...scope,
-  lastUpdated,
-  TimedEntity,
-  Todo,
-  TodoResource,
-  TodoEndpoint,
-};
 
-export default function PreviewWithScope({
+export default function PreviewWithScope<T>({
   code,
-  includeEndpoints,
   ...props
 }: {
   code: string;
-  includeEndpoints: boolean;
   groupId: string;
   defaultOpen: 'y' | 'n';
   row: boolean;
-  fixtures: (Fixture | Interceptor)[];
+  fixtures: (Fixture | Interceptor<T>)[];
+  getInitialInterceptorData?: () => T;
 }) {
   return (
     <LiveProvider
       key="preview"
       code={code}
       transformCode={transformCode}
+      enableTypeScript={true}
       noInline
-      scope={includeEndpoints ? scopeWithEndpoint : scope}
+      scope={scope}
     >
       <PreviewWithHeader key="preview" {...props} />
     </LiveProvider>

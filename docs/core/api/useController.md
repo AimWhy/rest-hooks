@@ -1,22 +1,25 @@
 ---
-title: useController()
+title: useController() - Type safe store manipulation in React
+sidebar_label: useController()
+description: Controller provides type-safe methods to access and dispatch actions to the store.
 ---
 
 <head>
-  <title>useController() - Imperative Controls for Rest Hooks</title>
   <meta name="docsearch:pagerank" content="10"/>
 </head>
 
-```typescript
-function useController(): Controller;
-```
+import TypeScriptEditor from '@site/src/components/TypeScriptEditor';
+import StackBlitz from '@site/src/components/StackBlitz';
 
-Provides access to [Controller](./Controller.md) which can be used for imperative control
-over the cache. For instance [fetch](./Controller.md#fetch), [invalidate](./Controller.md#invalidate),
+# useController()
+
+[Controller](./Controller.md) provides type-safe methods to access and dispatch actions to the store.
+
+For instance [fetch](./Controller.md#fetch), [invalidate](./Controller.md#invalidate),
 and [setResponse](./Controller.md#setResponse)
 
 ```tsx
-import { useController } from '@rest-hooks/react';
+import { useController } from '@data-client/react';
 
 function MyComponent({ id }) {
   const ctrl = useController();
@@ -43,3 +46,23 @@ function MyComponent({ id }) {
   );
 }
 ```
+
+## Examples
+
+### Using the resolution
+
+`controller.fetch()` matches the return type [useSuspense()](./useSuspense.md) - utilizing the [Endpoint.schema](/rest/api/RestEndpoint#schema)
+when possible. This allows us to use any class members.
+
+```ts
+import { useController } from '@data-client/react';
+
+const post = await controller.fetch(PostResource.getList.push, createPayload);
+post.title;
+post.computedField
+post.pk();
+```
+
+### Todo App
+
+<StackBlitz app="todo-app" file="src/resources/TodoResource.ts,src/pages/Home/TodoListItem.tsx" view="both" />

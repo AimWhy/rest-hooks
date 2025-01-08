@@ -1,6 +1,5 @@
 import { SnapshotInterface } from './SnapshotInterface.js';
 import type { FetchFunction } from './types.js';
-import { InferReturn } from './utility.js';
 import { ResolveType } from './utility.js';
 import { Schema } from '../interface.js';
 import { Normalize } from '../types.js';
@@ -9,9 +8,9 @@ import { Normalize } from '../types.js';
 export interface EndpointInterface<
   F extends FetchFunction = FetchFunction,
   S extends Schema | undefined = Schema | undefined,
-  M extends true | undefined = true | undefined,
+  M extends boolean | undefined = boolean | undefined,
 > extends EndpointExtraOptions<F> {
-  (...args: Parameters<F>): InferReturn<F, S>;
+  (...args: Parameters<F>): ReturnType<F>;
   key(...args: Parameters<F>): string;
   readonly sideEffect?: M;
   readonly schema?: S;
@@ -26,10 +25,6 @@ export interface EndpointExtraOptions<F extends FetchFunction = FetchFunction> {
   readonly pollFrequency?: number;
   /** Marks cached resources as invalid if they are stale */
   readonly invalidIfStale?: boolean;
-  /** Enables optimistic updates for this request - uses return value as assumed network response
-   * @deprecated use https://resthooks.io/docs/api/Endpoint#getoptimisticresponse instead
-   */
-  optimisticUpdate?(...args: Parameters<F>): ResolveType<F>;
   /** Enables optimistic updates for this request - uses return value as assumed network response */
   getOptimisticResponse?(
     snap: SnapshotInterface,
@@ -70,4 +65,4 @@ export interface MutateEndpoint<
 export type ReadEndpoint<
   F extends FetchFunction = FetchFunction,
   S extends Schema | undefined = Schema | undefined,
-> = EndpointInterface<F, S, undefined>;
+> = EndpointInterface<F, S, undefined | false>;

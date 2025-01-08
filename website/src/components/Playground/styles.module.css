@@ -31,11 +31,8 @@
   border-bottom-left-radius: var(--ifm-global-radius);
   border-bottom-right-radius: var(--ifm-global-radius);
 }
-@media only screen and (min-width: 768px) {
-  .playgroundContainer.row {
-    flex-direction: row;
-  }
-}
+
+
 .playgroundContainer.row .hidden {
   display: none;
 }
@@ -44,7 +41,10 @@
   flex: 1 1 auto;
 }
 .playgroundContainer > div:first-child {
-  flex: 0 0 70%;
+  flex: 0 0 65%;
+}
+.playgroundContainer.endpointPlayground > div:first-child {
+  flex: 0 1 50%;
 }
 .row.playgroundContainer > div:first-child {
   background-color: var(--monoco-code-background);
@@ -95,12 +95,12 @@ body {
   --ifm-color-playground-tab-selected: var(--ifm-color-emphasis-300);
 }
 
-div:first-of-type > .playgroundHeader {
+div.playgroundTextEdit > .playgroundHeader {
   background: var(--ifm-color-emphasis-600);
   color: var(--ifm-color-content-inverse);
 }
 .playgroundContainer:not(.row)
-  > div:first-of-type
+  > div.playgroundTextEdit
   > .playgroundHeader:first-child {
   border-top-right-radius: var(--ifm-global-radius);
   border-top-left-radius: var(--ifm-global-radius);
@@ -113,7 +113,7 @@ div > .playgroundHeader.subtabs {
 .playgroundEditor {
   /*rtl:ignore*/
   direction: ltr;
-  height: 100%;
+  /* height: 100%; */
   padding-top: 8px;
 }
 .playgroundContainer.standaloneEditor .playgroundEditor {
@@ -121,8 +121,9 @@ div > .playgroundHeader.subtabs {
   padding-left: 2.8px;
 }
 .playgroundEditor :global(.prism-code) {
-  border-radius: 0;
+  --ifm-pre-background: var(--monoco-code-background);
   background: transparent;
+  border-radius: 0;
   padding-top: 0 !important;
 }
 .playgroundEditor,
@@ -164,7 +165,7 @@ div > .playgroundHeader.subtabs {
 :global(.col) .playgroundPreview {
   padding: 1rem;
   background-color: var(--ifm-pre-background);
-  flex: 1 4 20%;
+  flex: 1 4 30%;
   overflow: auto;
 }
 :global(.col) .playgroundError {
@@ -174,6 +175,11 @@ div > .playgroundHeader.subtabs {
   white-space: pre-wrap;
 }
 
+.previewWrapper {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .playgroundResult {
   display: flex;
   height: 100%;
@@ -219,6 +225,7 @@ div > .playgroundHeader.subtabs {
 
 .tabs {
   display: flex;
+  overflow: auto;
 }
 
 .tab {
@@ -253,10 +260,86 @@ div > .playgroundHeader.subtabs {
   background-color: var(--ifm-color-emphasis-400);
 }
 
+:root .playgroundPreview {
+  --ifm-heading-margin-bottom: 0.3ex;
+  --ifm-heading-font-weight: 500;
+  --ifm-heading-line-height: 1.2;
+  overflow: auto;
+}
+/** DEMO STYLES
+* Place any styles needed for demos here
+*/
 .playgroundPreview button {
   margin-bottom: 8px;
   margin-right: 8px;
   padding: 2px 6px;
+}
+.playgroundPreview form input[type="text"] {
+  width: 100%;
+}
+.playgroundPreview form textarea {
+  width: 100%;
+}
+.playgroundPreview section {
+  margin-bottom: 2ex;
+}
+.playgroundPreview h4 + small {
+  display: block;
+}
+.playgroundPreview :global(.listItem) {
+  display: flex;
+  gap: 1em;
+}
+.playgroundPreview :global(.listItem.nogap) {
+  gap: 0;
+}
+.playgroundPreview :global(.listItem) > label {
+  flex: 1 1 100%;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.playgroundPreview :global(.listItem) > label input[type="text"] {
+  width: calc(100% - 21px);
+}
+.playgroundPreview :global(.listItem.spaced) {
+  display: flex;
+  gap: 1em;
+  margin-bottom: 10px;
+}
+.playgroundPreview :global(.author) {
+  text-align: center;
+}
+.playgroundPreview :global(.author) small {
+  display: block;
+  line-height: 1;
+}
+.playgroundPreview :global(.voteBlock) {
+  display: flex;
+  float: left;
+  gap: 0.5em;
+  margin-right: 0.5em;
+}
+.playgroundPreview :global(.vote) {
+  flex: 0 0 32px;
+  text-align: center;
+}
+.playgroundPreview :global(.vote .up):hover {
+  color: var(--ifm-color-primary);
+  background: url('../../../static/img/up-arrow-outline-hover.svg') no-repeat
+    center;
+}
+.playgroundPreview :global(.vote .up) {
+  border: none;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  margin-bottom: -8px;
+  margin-right: 0;
+  background: url('../../../static/img/up-arrow-outline.svg') no-repeat center;
+  display: inline-block;
+}
+.playgroundPreview p {
+  line-height: var(--ifm-heading-line-height);
 }
 
 .fixtureBlock {
@@ -275,11 +358,11 @@ div > .playgroundHeader.subtabs {
   color: rgb(195, 232, 141);
   font: var(--ifm-code-font-size) / var(--ifm-pre-line-height)
     var(--ifm-font-family-monospace);
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 div.fixtureJson {
   margin-bottom: 0;
-  flex: 1 1 auto;
+  flex: 1 4 auto;
   min-width: 200px;
 }
 .fixtureJson code {
@@ -325,4 +408,46 @@ div.fixtureJson {
 }
 .playgroundEditor > section {
   position: auto !important;
+}
+
+
+@media only screen and (min-width: 768px) and (max-width: 996px) {
+  .playgroundContainer.row {
+    flex-direction: row;
+  }
+}
+@media only screen and (max-width: 768px) {
+  .playgroundContainer.row > :last-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: var(--ifm-global-radius);
+    border-bottom-left-radius: var(--ifm-global-radius);
+  }
+  .row.playgroundContainer > div:first-child {
+    border-bottom-left-radius: 0;
+    border-top-right-radius: var(--ifm-global-radius);
+
+  }
+  .playgroundContainer .playgroundHeader.tabControls:first-of-type {
+    border-top-right-radius: var(--ifm-global-radius);
+  }
+}
+@media only screen and (min-width: 997px) and (max-width: 1268px) {
+  .playgroundContainer.row > :last-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: var(--ifm-global-radius);
+    border-bottom-left-radius: var(--ifm-global-radius);
+  }
+  .row.playgroundContainer > div:first-child {
+    border-bottom-left-radius: 0;
+    border-top-right-radius: var(--ifm-global-radius);
+
+  }
+  .playgroundContainer .playgroundHeader.tabControls:first-of-type {
+    border-top-right-radius: var(--ifm-global-radius);
+  }
+}
+@media only screen and (min-width: 1268px) {
+  .playgroundContainer.row {
+    flex-direction: row;
+  }
 }

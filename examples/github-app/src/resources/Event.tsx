@@ -4,60 +4,54 @@ import {
   ExclamationCircleOutlined,
   EyeOutlined,
   PullRequestOutlined,
+  ForkOutlined,
 } from '@ant-design/icons';
-import { schema } from '@rest-hooks/endpoint';
+import { schema } from '@data-client/rest';
+import { Temporal } from '@js-temporal/polyfill';
+import type { JSX } from 'react';
 
-import { createGithubResource, GithubEntity } from './Base';
+import { githubResource, GithubEntity } from './Base';
 import { Issue } from './Issue';
 import PreviewEndpoint from './PreviewEndpoint';
-import { PullRequest } from './PullRequest';
+import { Pull } from './Pull';
 import { Push } from './Push';
 import { Review } from './Review';
 
 export class Event extends GithubEntity {
-  readonly type:
-    | 'WatchEvent'
-    | 'PushEvent'
-    | 'IssuesEvent'
-    | 'IssueCommentEvent'
-    | 'CreateEvent'
-    | 'PullRequestReviewCommentEvent'
-    | 'PullRequestReviewEvent'
-    | 'PullRequestEvent' = 'WatchEvent';
-
-  readonly actor: Record<string, any> = {};
-  readonly repo: { id: number; name: string; url: string } = {} as any;
-  readonly payload: Record<string, any> = {};
-  readonly public: boolean = true;
-  readonly createdAt: Date = new Date(0);
+  type: EventType = 'WatchEvent';
+  actor: Record<string, any> = {};
+  repo: { id: number; name: string; url: string } = {} as any;
+  payload: Record<string, unknown> = {};
+  public = true;
+  createdAt = Temporal.Instant.fromEpochSeconds(0);
 
   get icon() {
     return typeToIcon[this.type];
   }
 
   static schema = {
-    createdAt: Date,
+    createdAt: Temporal.Instant.from,
   };
 }
 export class PullRequestEvent extends Event {
   readonly type = 'PullRequestEvent';
 
-  declare readonly payload: {
+  declare payload: {
     action: 'closed' | 'opened';
     number: number;
-    pullRequest: PullRequest;
+    pullRequest: Pull;
   };
 
   static schema = {
     ...super.schema,
-    payload: { action: 'opened', number: 0, pullRequest: PullRequest },
+    payload: { action: 'opened', number: 0, pullRequest: Pull },
   };
 }
 export class PullRequestReviewEvent extends Event {
   readonly type = 'PullRequestReviewEvent';
-  declare readonly payload: {
+  declare payload: {
     action: 'created';
-    pullRequest: PullRequest;
+    pullRequest: Pull;
     review: Review;
   };
 
@@ -66,7 +60,7 @@ export class PullRequestReviewEvent extends Event {
     payload: {
       action: 'opened',
       number: 0,
-      pullRequest: PullRequest,
+      pullRequest: Pull,
       review: Review,
     },
   };
@@ -88,13 +82,14 @@ export class IssuesEvent extends Event {
   };
 }
 
-const base = createGithubResource({
+export const EventResource = githubResource({
   path: '/users/:login/events/public/:id',
   schema: new schema.Union(
     {
       PullRequestEvent,
       IssuesEvent,
       PushEvent,
+      ForkEvent: Event,
       PullRequestReviewEvent,
       IssueCommentEvent: Event,
       PullRequestReviewCommentEvent: Event,
@@ -106,19 +101,27 @@ const base = createGithubResource({
     'type',
   ),
   Endpoint: PreviewEndpoint,
+}).extend({
+  getList: { path: '/users/:login/events/public\\?per_page=50' },
 });
-export const EventResource = {
-  ...base,
-  getList: base.getList.extend({
-    path: '/users/:login/events/public\\?per_page=50',
-  }),
-};
 
 export const typeToIcon: Record<Event['type'], JSX.Element> = {
   PullRequestEvent: <PullRequestOutlined />,
   PushEvent: <CloudUploadOutlined />,
+  ForkEvent: <ForkOutlined />,
   WatchEvent: <EyeOutlined />,
   IssueCommentEvent: <CommentOutlined />,
   PullRequestReviewEvent: <EyeOutlined />,
   IssuesEvent: <ExclamationCircleOutlined />,
-};
+} as any;
+
+type EventType =
+  | 'WatchEvent'
+  | 'PushEvent'
+  | 'ForkEvent'
+  | 'IssuesEvent'
+  | 'IssueCommentEvent'
+  | 'CreateEvent'
+  | 'PullRequestReviewCommentEvent'
+  | 'PullRequestReviewEvent'
+  | 'PullRequestEvent';

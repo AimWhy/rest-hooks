@@ -1,20 +1,25 @@
+'use client';
 import {
   EndpointInterface,
   Schema,
   FetchFunction,
-} from '@rest-hooks/normalizr';
+  NI,
+} from '@data-client/core';
 import { useEffect } from 'react';
 
 import useController from './useController.js';
 
 /**
  * Keeps a resource fresh by subscribing to updates.
- * @see https://resthooks.io/docs/api/useSubscription
+ * @see https://dataclient.io/docs/api/useSubscription
  */
 export default function useSubscription<
-  E extends EndpointInterface<FetchFunction, Schema | undefined, undefined>,
-  Args extends readonly [...Parameters<E>] | readonly [null],
->(endpoint: E, ...args: Args) {
+  E extends EndpointInterface<
+    FetchFunction,
+    Schema | undefined,
+    undefined | false
+  >,
+>(endpoint: E, ...args: readonly [...Parameters<E>] | readonly [null]) {
   const controller = useController();
 
   const key = args[0] !== null ? endpoint.key(...args) : '';

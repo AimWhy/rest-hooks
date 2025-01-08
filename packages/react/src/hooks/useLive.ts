@@ -1,13 +1,14 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { DenormalizeNullable, ResolveType } from '@rest-hooks/normalizr';
+'use client';
+
 import {
   EndpointInterface,
   Denormalize,
   Schema,
   FetchFunction,
-} from '@rest-hooks/normalizr';
+  ResolveType,
+  DenormalizeNullable,
+} from '@data-client/core';
 
-import { SuspenseReturn } from './types.js';
 import useSubscription from './useSubscription.js';
 import useSuspense from './useSuspense.js';
 
@@ -15,14 +16,41 @@ import useSuspense from './useSuspense.js';
  * Ensure an endpoint is available. Keeps it fresh once it is.
  *
  * useSuspense() + useSubscription()
- * @see https://resthooks.io/docs/api/useLive
+ * @see https://dataclient.io/docs/api/useLive
  * @throws {Promise} If data is not yet available.
  * @throws {NetworkError} If fetch fails.
  */
 export default function useLive<
-  E extends EndpointInterface<FetchFunction, Schema | undefined, undefined>,
-  Args extends readonly [...Parameters<E>] | readonly [null],
->(endpoint: E, ...args: Args): SuspenseReturn<E, Args> {
+  E extends EndpointInterface<
+    FetchFunction,
+    Schema | undefined,
+    undefined | false
+  >,
+>(
+  endpoint: E,
+  ...args: readonly [...Parameters<E>]
+): E['schema'] extends undefined | null ? ResolveType<E>
+: Denormalize<E['schema']>;
+
+export default function useLive<
+  E extends EndpointInterface<
+    FetchFunction,
+    Schema | undefined,
+    undefined | false
+  >,
+>(
+  endpoint: E,
+  ...args: readonly [...Parameters<E>] | readonly [null]
+): E['schema'] extends undefined | null ? ResolveType<E> | undefined
+: DenormalizeNullable<E['schema']>;
+
+export default function useLive<
+  E extends EndpointInterface<
+    FetchFunction,
+    Schema | undefined,
+    undefined | false
+  >,
+>(endpoint: E, ...args: readonly [...Parameters<E>] | readonly [null]): any {
   useSubscription(endpoint, ...args);
   return useSuspense(endpoint, ...args);
 }

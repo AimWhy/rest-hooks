@@ -1,8 +1,9 @@
 import PolymorphicSchema from './Polymorphic.js';
+import { GetIndex, GetEntity, Visit } from '../interface.js';
 
 /**
  * Represents polymorphic values.
- * @see https://resthooks.io/rest/api/Union
+ * @see https://dataclient.io/rest/api/Union
  */
 export default class UnionSchema extends PolymorphicSchema {
   constructor(definition: any, schemaAttribute: any) {
@@ -18,35 +19,42 @@ export default class UnionSchema extends PolymorphicSchema {
     input: any,
     parent: any,
     key: any,
-    visit: any,
+    args: any[],
+    visit: Visit,
     addEntity: any,
-    visitedEntities: any,
+    getEntity: any,
+    checkLoop: any,
   ) {
-    return this.normalizeValue(
-      input,
-      parent,
-      key,
-      visit,
-      addEntity,
-      visitedEntities,
-    );
+    return this.normalizeValue(input, parent, key, args, visit);
   }
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  denormalize(input: {}, unvisit: any) {
+  denormalize(
+    input: {},
+    args: readonly any[],
+    unvisit: (schema: any, input: any) => any,
+  ) {
     return this.denormalizeValue(input, unvisit);
   }
 
-  infer(args: any, indexes: any, recurse: any, entities: any) {
-    if (!args[0]) return undefined;
-    const attr = this.getSchemaAttribute(args[0], undefined, '');
-    const discriminatedSchema = this.schema[attr];
+  queryKey(
+    args: any,
+    queryKey: (
+      schema: any,
+      args: any,
+      getEntity: GetEntity,
+      getIndex: GetIndex,
+    ) => any,
+    getEntity: GetEntity,
+    getIndex: GetIndex,
+  ) {
+    if (!args[0]) return;
+    const schema = this.getSchemaAttribute(args[0], undefined, '');
+    const discriminatedSchema = this.schema[schema];
 
     // Was unable to infer the entity's schema from params
-    if (discriminatedSchema === undefined) return undefined;
-    return {
-      id: recurse(discriminatedSchema, args, indexes, entities),
-      schema: attr,
-    };
+    if (discriminatedSchema === undefined) return;
+    const id = queryKey(discriminatedSchema, args, getEntity, getIndex);
+    if (id === undefined) return;
+    return { id, schema };
   }
 }

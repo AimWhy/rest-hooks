@@ -1,9 +1,9 @@
+import { useSuspense } from '@data-client/react';
 import { styled } from '@linaria/react';
-import { useSuspense } from '@rest-hooks/react';
 import { UserResource } from 'resources/UserResource';
 
 export default function UserSelection({ userId, setUserId }: Props) {
-  const users = useSuspense(UserResource.getList);
+  const users = useSuspense(UserResource.getList).slice(0, 7);
   return (
     <UserWrap>
       {users.map((user) => (

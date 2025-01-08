@@ -1,7 +1,8 @@
 import { isImmutable } from './ImmutableUtils.js';
+import { Visit } from '../interface.js';
 
 export default class PolymorphicSchema {
-  private declare _schemaAttribute: any;
+  declare private _schemaAttribute: any;
   protected schema: any;
 
   constructor(
@@ -10,9 +11,9 @@ export default class PolymorphicSchema {
   ) {
     if (schemaAttribute) {
       this._schemaAttribute =
-        typeof schemaAttribute === 'string'
-          ? (input: any) => input[schemaAttribute]
-          : schemaAttribute;
+        typeof schemaAttribute === 'string' ?
+          (input: any) => input[schemaAttribute]
+        : schemaAttribute;
     }
     this.define(definition);
   }
@@ -22,7 +23,13 @@ export default class PolymorphicSchema {
   }
 
   define(definition: any) {
-    this.schema = definition;
+    // sending Union into another Polymorphic gets hoisted
+    if ('_schemaAttribute' in definition && !this._schemaAttribute) {
+      this.schema = definition.schema;
+      this._schemaAttribute = definition._schemaAttribute;
+    } else {
+      this.schema = definition;
+    }
   }
 
   getSchemaAttribute(input: any, parent: any, key: any) {
@@ -38,14 +45,15 @@ export default class PolymorphicSchema {
     return this.schema[attr];
   }
 
-  normalizeValue(
-    value: any,
-    parent: any,
-    key: any,
-    visit: any,
-    addEntity: any,
-    visitedEntities: any,
-  ) {
+  schemaKey(): string {
+    if (this.isSingleSchema) {
+      return this.schema.key;
+    }
+    return Object.values(this.schema).join(';');
+  }
+
+  normalizeValue(value: any, parent: any, key: any, args: any[], visit: Visit) {
+    if (!value) return value;
     const schema = this.inferSchema(value, parent, key);
     if (!schema) {
       /* istanbul ignore else */
@@ -66,18 +74,13 @@ Value: ${JSON.stringify(value, undefined, 2)}`,
       }
       return value;
     }
-    const normalizedValue = visit(
-      value,
-      parent,
-      key,
-      schema,
-      addEntity,
-      visitedEntities,
-    );
-    return this.isSingleSchema ||
-      normalizedValue === undefined ||
-      normalizedValue === null
-      ? normalizedValue
+    const normalizedValue = visit(schema, value, parent, key, args);
+    return (
+        this.isSingleSchema ||
+          normalizedValue === undefined ||
+          normalizedValue === null
+      ) ?
+        normalizedValue
       : {
           id: normalizedValue,
           schema: this.getSchemaAttribute(value, parent, key),
@@ -88,23 +91,29 @@ Value: ${JSON.stringify(value, undefined, 2)}`,
   denormalizeValue(value: any, unvisit: any) {
     const schemaKey =
       !this.isSingleSchema &&
+      value &&
       (isImmutable(value) ? value.get('schema') : value.schema);
     if (!this.isSingleSchema && !schemaKey) {
+      // denormalize should also handle 'passthrough' values (not normalized) and still
+      // construct the correct Entity instance
+      if (typeof value === 'object' && value !== null) {
+        const schema = this.inferSchema(value, undefined, undefined);
+        if (schema) return unvisit(schema, value);
+      }
       /* istanbul ignore else */
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'production' && value) {
         console.warn(
           `TypeError: Unable to infer schema for ${this.constructor.name}
 Value: ${JSON.stringify(value, undefined, 2)}.`,
         );
       }
-      return [value, true, false];
+      return value;
     }
-    const id = this.isSingleSchema
-      ? undefined
-      : isImmutable(value)
-      ? value.get('id')
+    const id =
+      this.isSingleSchema ? undefined
+      : isImmutable(value) ? value.get('id')
       : value.id;
     const schema = this.isSingleSchema ? this.schema : this.schema[schemaKey];
-    return unvisit(id || value, schema);
+    return unvisit(schema, id || value);
   }
 }

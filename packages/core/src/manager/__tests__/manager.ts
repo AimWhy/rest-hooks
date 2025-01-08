@@ -1,17 +1,14 @@
 import Controller from '../../controller/Controller';
-import { Middleware } from '../../middlewareTypes';
-import { CombinedActionTypes } from '../../types';
+import { ActionTypes } from '../../types';
 import NetworkManager from '../NetworkManager';
 
-const middleware: Middleware = new NetworkManager().getMiddleware();
-it('middlewares should compose with non-rest-hooks middlewares', () => {
+const netMgr = new NetworkManager();
+it('middlewares should compose with non-data-client middlewares', () => {
   type AnotherAction = {
     type: 'BOB';
     payload: any;
   };
-  const dispatch = jest.fn(
-    async (action: CombinedActionTypes | AnotherAction) => {},
-  );
+  const dispatch = jest.fn(async (action: ActionTypes | AnotherAction) => {});
   const ctrl = new Controller({ dispatch });
   const API: typeof ctrl & { controller: typeof ctrl } = Object.create(ctrl, {
     controller: { value: ctrl },
@@ -32,7 +29,7 @@ it('middlewares should compose with non-rest-hooks middlewares', () => {
       counter++;
     };
 
-  const [a, b] = [middleware(API), nonRHMiddleware(API)];
+  const [a, b] = [netMgr.middleware(API), nonRHMiddleware(API)];
   const dispA = a(b(dispatch));
   const dispB = b(a(dispatch));
   expect(dispatch.mock.calls.length).toBe(0);

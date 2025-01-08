@@ -1,25 +1,24 @@
 ---
-title: Images and other Media
+title: React 18 Suspense with Images and other Media
+sidebar_label: Images and other Media
 ---
-
-<head>
-  <title>Using React Suspense with Images and other Media | Rest Hooks</title>
-</head>
 
 import PkgTabs from '@site/src/components/PkgTabs';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-After setting up Rest Hooks for structured data fetching, you might want to incorporate
-some media fetches as well to take advantage of suspense and [concurrent mode support](https://resthooks.io/docs/guides/render-as-you-fetch).
+# Images and other Media
+
+After setting up Reactive Data Client for structured data fetching, you might want to incorporate
+some media fetches as well to take advantage of suspense and [concurrent mode support](/docs/guides/render-as-you-fetch).
 
 ## Storing ArrayBuffer
 
-[Resource](/rest/api/createResource) and [Entity](/rest/api/Entity) should not be used in this case, since they both represent
+[Resource](/rest/api/resource) and [Entity](/rest/api/Entity) should not be used in this case, since they both represent
 string -> value map structures. Instead, we'll define our own simple [Endpoint](/rest/api/Endpoint).
 
 ```typescript
-import { Endpoint } from '@rest-hooks/react';
+import { Endpoint } from '@data-client/react';
 
 export const getPhoto = new Endpoint(async ({ userId }: { userId: string }) => {
   const response = await fetch(`/users/${userId}/photo`);
@@ -66,20 +65,20 @@ const photo = await getPhoto({ userId });
 ## Just Images
 
 In many cases, it would be useful to suspend loading of expensive items like
-images using suspense. This becomes especially powerful [with the fetch as you render](https://resthooks.io/docs/guides/render-as-you-fetch) pattern in concurrent mode.
+images using suspense. This becomes especially powerful [with the fetch as you render](/docs/guides/render-as-you-fetch) pattern in concurrent mode.
 
-[@rest-hooks/img](https://www.npmjs.com/package/@rest-hooks/img) provides use with `<Img />` component that suspends, as well as `getImage` endpoint to prefetch.
+[@data-client/img](https://www.npmjs.com/package/@data-client/img) provides use with `<Img />` component that suspends, as well as `getImage` endpoint to prefetch.
 
 ## Installation
 
-<PkgTabs pkgs="@rest-hooks/img" />
+<PkgTabs pkgs="@data-client/img" />
 
 ## Usage
 
 ```tsx title="Profile.tsx"
 import React, { ImgHTMLAttributes } from 'react';
-import { useSuspense } from '@rest-hooks/react';
-import { Img } from '@rest-hooks/img';
+import { useSuspense } from '@data-client/react';
+import { Img } from '@data-client/img';
 
 export default function Profile({ username }: { username: string }) {
   const user = useSuspense(UserResource.get, { username });
@@ -103,8 +102,8 @@ the image request can start. If the image url is deterministic based on the same
 
 ```tsx title="Profile.tsx"
 import React, { ImgHTMLAttributes } from 'react';
-import { useSuspense, useFetch } from '@rest-hooks/react';
-import { Img, getImage } from '@rest-hooks/img';
+import { useSuspense, useFetch } from '@data-client/react';
+import { Img, getImage } from '@data-client/img';
 
 export default function Profile({ username }: { username: string }) {
   const imageSrc = `/profile_images/${username}}`;

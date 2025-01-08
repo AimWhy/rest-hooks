@@ -1,7 +1,7 @@
-import { createResource, Entity } from '@rest-hooks/rest';
+import { resource, Entity } from '@data-client/rest';
 
 import { useSuspense, useCache, CacheProvider } from '../';
-import { Fixture, FixtureEndpoint, makeRenderRestHook } from '../../../test';
+import { Fixture, FixtureEndpoint, makeRenderDataClient } from '../../../test';
 
 class Nested extends Entity {
   id = '';
@@ -23,7 +23,7 @@ export class Some extends Entity {
     things: [Nested],
   };
 }
-const SomeResource = createResource({ path: '/some/:id', schema: Some });
+const SomeResource = resource({ path: '/some/:id', schema: Some });
 
 const fixture: FixtureEndpoint = {
   endpoint: SomeResource.getList,
@@ -61,14 +61,14 @@ const fixture: FixtureEndpoint = {
 };
 
 describe(`optional members`, () => {
-  let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+  let renderDataClient: ReturnType<typeof makeRenderDataClient>;
 
   beforeEach(() => {
-    renderRestHook = makeRenderRestHook(CacheProvider);
+    renderDataClient = makeRenderDataClient(CacheProvider);
   });
 
   it('should return all members of list without suspending', () => {
-    const { result } = renderRestHook(
+    const { result } = renderDataClient(
       () => {
         return useSuspense(SomeResource.getList);
       },
@@ -78,7 +78,7 @@ describe(`optional members`, () => {
   });
 
   it('should infer a detail based on list results', () => {
-    const { result } = renderRestHook(
+    const { result } = renderDataClient(
       () => {
         return useCache(SomeResource.get, { id: '1' });
       },
@@ -88,7 +88,7 @@ describe(`optional members`, () => {
   });
 
   it('should not infer a missing entity', () => {
-    const { result } = renderRestHook(
+    const { result } = renderDataClient(
       () => {
         return useCache(SomeResource.get, { id: '4' });
       },
@@ -104,8 +104,7 @@ describe(`optional members`, () => {
         b: Nested,
       },
     });
-    console.log(endpoint.path);
-    const { result } = renderRestHook(
+    const { result } = renderDataClient(
       () => {
         return useCache(endpoint, { id: '3' });
       },
@@ -122,7 +121,7 @@ describe(`optional members`, () => {
         b: Nested,
       },
     });
-    const { result } = renderRestHook(
+    const { result } = renderDataClient(
       () => {
         return useSuspense(endpoint, { id: '3' });
       },
@@ -139,7 +138,7 @@ describe(`optional members`, () => {
         b: Nested,
       },
     });
-    const { result } = renderRestHook(
+    const { result } = renderDataClient(
       () => {
         return useCache(endpoint, { id: '2' });
       },

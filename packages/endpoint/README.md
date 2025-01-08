@@ -1,45 +1,85 @@
 # TypeScript Standard Endpoints
-[![CircleCI](https://circleci.com/gh/data-client/rest-hooks/tree/master.svg?style=shield)](https://circleci.com/gh/data-client/rest-hooks)
-[![Coverage Status](https://img.shields.io/codecov/c/gh/data-client/rest-hooks/master.svg?style=flat-square)](https://app.codecov.io/gh/data-client/rest-hooks?branch=master)
-[![npm downloads](https://img.shields.io/npm/dm/@rest-hooks/endpoint.svg?style=flat-square)](https://www.npmjs.com/package/@rest-hooks/endpoint)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/@rest-hooks/endpoint?style=flat-square)](https://bundlephobia.com/result?p=@rest-hooks/endpoint)
-[![npm version](https://img.shields.io/npm/v/@rest-hooks/endpoint.svg?style=flat-square)](https://www.npmjs.com/package/@rest-hooks/endpoint)
+[![CircleCI](https://circleci.com/gh/reactive/data-client/tree/master.svg?style=shield)](https://circleci.com/gh/reactive/data-client)
+[![Coverage Status](https://img.shields.io/codecov/c/gh/reactive/data-client/master.svg?style=flat-square)](https://app.codecov.io/gh/reactive/data-client?branch=master)
+[![npm downloads](https://img.shields.io/npm/dm/@data-client/endpoint.svg?style=flat-square)](https://www.npmjs.com/package/@data-client/endpoint)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@data-client/endpoint?style=flat-square)](https://bundlephobia.com/result?p=@data-client/endpoint)
+[![npm version](https://img.shields.io/npm/v/@data-client/endpoint.svg?style=flat-square)](https://www.npmjs.com/package/@data-client/endpoint)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 Declarative, strongly typed, reusable network definitions for networking libraries.
 
 <div align="center">
 
-**[📖Read The Docs](https://resthooks.io/docs/guides/custom-protocol)**
+**[📖Read The Docs](https://dataclient.io/docs/guides/custom-protocol)**
 
 </div>
 
-### 1) Define the function
+## Usage
+
+### 1) Take any class and async functions
 
 ```typescript
-import { Endpoint } from '@rest-hooks/endpoint';
+export class Todo {
+  id = 0;
+  userId = 0;
+  title = '';
+  completed = false;
+}
 
-const fetchUser = ({ id }) ⇒ fetch(`/users/${id}`).then(res => res.json());
-const UserDetail = new Endpoint(fetchUser);
+export const getTodo = (id: string) =>
+  fetch(`https://jsonplaceholder.typicode.com/todos/${id}`).then(res => res.json());
+
+export const getTodoList = () =>
+  fetch('https://jsonplaceholder.typicode.com/todos').then(res => res.json());
+
+export const updateTodo = (id: string, body: Partial<Todo>) =>
+  fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  }).then(res => res.json());
 ```
 
-### 2) Reuse with different hooks
+### 2) Turn them into Resources
+
+```typescript
+import { EntityMixin, Endpoint } from '@data-client/endpoint';
+import { Todo, getTodoList, updateTodo } from './existing';
+
+export const TodoEntity = EntityMixin(Todo, { key: 'Todo' });
+
+export const TodoResource = {
+  get: new Endpoint(getTodo, {
+    schema: TodoEntity,
+  }),
+  getList: new Endpoint(getTodoList, {
+    schema: [TodoEntity],
+  }),
+  update: new Endpoint(updateTodo, {
+    schema: TodoEntity,
+    sideEffect: true,
+  }),
+};
+```
+
+### 3) Reuse with different hooks
 
 ```tsx
-function UserProfile() {
-  const user = useSuspense(UserDetail, { id });
-  const ctrl = useController();
-  const updateUser = (data) => ctrl.fetch(UserDetail, { id }, data);
+import { useSuspense, useController } from '@data-client/react';
 
-  return <UserForm user={user} onSubmit={updateUser} />
+function TodoEdit() {
+  const todo = useSuspense(TodoResource.get, '5');
+  const ctrl = useController();
+  const updateTodo = (data) => ctrl.fetch(TodoResource.update, id, data);
+
+  return <TodoForm todo={todo} onSubmit={updateTodo} />
 }
 ```
 
-### 3) Or call directly
+### 4) Or call directly in node
 
 ```typescript
-const user = await UserDetail({ id: '5' });
-console.log(user);
+const todo = await TodoResource.get('5')
+console.log(todo);
 ```
 
 ## Why
@@ -72,7 +112,7 @@ TypeScript the definition of a networking API.
 
 ## API
 
-`@rest-hooks/endpoint` defines a standard `interface`
+`@data-client/endpoint` defines a standard `interface`
 
 ```typescript
 interface EndpointInterface {
@@ -108,7 +148,7 @@ export interface EndpointOptions extends EndpointExtraOptions {
 }
 ```
 
-### [EndpointOptions](https://resthooks.io/rest/api/Endpoint#endpointextraoptions)
+### [EndpointOptions](https://dataclient.io/rest/api/Endpoint#endpointextraoptions)
 
 #### key: (params) => string
 
@@ -134,23 +174,21 @@ Declarative definition of where `Entities` appear in the fetch response.
 Not providing this option means no entities will be extracted.
 
 ```tsx
-import { Entity } from '@rest-hooks/normalizr';
-import { Endpoint } from '@rest-hooks/endpoint';
+import { Entity } from '@data-client/normalizr';
+import { Endpoint } from '@data-client/endpoint';
 
 class User extends Entity {
-  readonly id: string = '';
-  readonly username: string = '';
-
-  pk() { return this.id;}
+  id = '';
+  username = '';
 }
 
-const UserDetail = new Endpoint(
+const getUser = new Endpoint(
     ({ id }) ⇒ fetch(`/users/${id}`),
     { schema: User }
 );
 ```
 
-### [Endpoint](https://resthooks.io/rest/api/Endpoint)
+### [Endpoint](https://dataclient.io/rest/api/Endpoint)
 
 #### extend(EndpointOptions): Endpoint
 
@@ -163,31 +201,85 @@ const UserDetail = new Endpoint(({ id }) ⇒ fetch(`/users/${id}`));
 const UserDetailNormalized = UserDetail.extend({ schema: User });
 ```
 
-### Index
+## API
 
-```typescript
-export interface IndexInterface<S extends typeof Entity> {
-  key(parmas?: Readonly<IndexParams<S>>): string;
-  readonly schema: S;
-}
-```
+Networking definition: [Endpoints](https://dataclient.io/rest/api/Endpoint)
 
-```typescript
-import { Entity } from '@rest-hooks/normalizr';
-import { Index } from '@rest-hooks/endpoint';
-
-class User extends Entity {
-  readonly id: string = '';
-  readonly username: string = '';
-
-  pk() { return this.id;}
-  static indexes = ['username'] as const;
-}
-
-const UserIndex = new Index(User)
-
-const bob = useCache(UserIndex, { username: 'bob' });
-
-// @ts-expect-error Indexes don't fetch, they just retrieve already existing data
-const bob = useSuspense(UserIndex, { username: 'bob' });
-```
+<table>
+<caption>
+<a href="https://dataclient.io/docs/concepts/normalization">Data model</a>
+</caption>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Mutable</th>
+<th>Schema</th>
+<th>Description</th>
+<th><a href="https://dataclient.io/rest/api/schema#queryable">Queryable</a></th>
+</tr>
+</thead>
+<tbody><tr>
+<td rowSpan="4"><a href="https://en.wikipedia.org/wiki/Object_(computer_science)">Object</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Entity">Entity</a>, <a href="https://dataclient.io/rest/api/EntityMixin">EntityMixin</a></td>
+<td>single <em>unique</em> object</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Union">Union(Entity)</a></td>
+<td>polymorphic objects (<code>A | B</code>)</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Object">Object</a></td>
+<td>statically known keys</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td><a href="https://dataclient.io/rest/api/Invalidate">Invalidate(Entity)</a></td>
+<td><a href="https://dataclient.io/docs/concepts/expiry-policy#invalidate-entity">delete an entity</a></td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td rowSpan="3"><a href="https://en.wikipedia.org/wiki/List_(abstract_data_type)">List</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Collection">Collection(Array)</a></td>
+<td>growable lists</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Array">Array</a></td>
+<td>immutable lists</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/All">All</a></td>
+<td>list of all entities of a kind</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td rowSpan="2"><a href="https://en.wikipedia.org/wiki/Associative_array">Map</a></td>
+<td align="center">✅</td>
+<td><a href="https://dataclient.io/rest/api/Collection">Collection(Values)</a></td>
+<td>growable maps</td>
+<td align="center">✅</td>
+</tr>
+<tr>
+<td align="center">🛑</td>
+<td><a href="https://dataclient.io/rest/api/Values">Values</a></td>
+<td>immutable maps</td>
+<td align="center">🛑</td>
+</tr>
+<tr>
+<td>any</td>
+<td align="center"></td>
+<td><a href="https://dataclient.io/rest/api/Query">Query(Queryable)</a></td>
+<td>memoized custom transforms</td>
+<td align="center">✅</td>
+</tr>
+</tbody></table>

@@ -1,18 +1,18 @@
-import { INVALIDATE_TYPE } from '../../actionTypes.js';
+import { INVALIDATE } from '../../actionTypes.js';
 import type {
+  State,
   InvalidateAllAction,
   InvalidateAction,
-} from '../../previousActions.js';
-import type { State } from '../../types.js';
+} from '../../types.js';
 
 export function invalidateReducer(
   state: State<unknown>,
   action: InvalidateAction | InvalidateAllAction,
 ) {
-  const results = { ...state.results };
+  const endpoints = { ...state.endpoints };
   const meta = { ...state.meta };
   const invalidateKey = (key: string) => {
-    delete results[key];
+    delete endpoints[key];
     const itemMeta = {
       ...meta[key],
       expiresAt: 0,
@@ -21,10 +21,10 @@ export function invalidateReducer(
     delete itemMeta.error;
     meta[key] = itemMeta;
   };
-  if (action.type === INVALIDATE_TYPE) {
-    invalidateKey(action.meta.key);
+  if (action.type === INVALIDATE) {
+    invalidateKey(action.key);
   } else {
-    Object.keys(results).forEach(key => {
+    Object.keys(endpoints).forEach(key => {
       if (action.testKey(key)) {
         invalidateKey(key);
       }
@@ -33,7 +33,7 @@ export function invalidateReducer(
 
   return {
     ...state,
-    results,
+    endpoints,
     meta,
   };
 }

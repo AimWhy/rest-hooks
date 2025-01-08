@@ -1,51 +1,35 @@
 import { HeartOutlined } from '@ant-design/icons';
+import { Temporal } from '@js-temporal/polyfill';
 
-import { createGithubResource, GithubEntity } from './Base';
+import { githubResource, GithubEntity } from './Base';
 import PreviewEndpoint from './PreviewEndpoint';
 import { User } from './User';
 
 export class Reaction extends GithubEntity {
-  readonly user: User = User.fromJS({});
-  readonly content: ReactionType = '+1';
-  readonly createdAt: Date = new Date(0);
+  user = User.fromJS();
+  content: ReactionType = '+1';
+  createdAt = Temporal.Instant.fromEpochSeconds(0);
 
   get contentIcon() {
     return contentToIcon[this.content];
   }
 
-  pk() {
-    return this.id?.toString();
-  }
-
   static schema = {
     user: User,
-    createdAt: Date,
+    createdAt: Temporal.Instant.from,
   };
 }
 
-const base = createGithubResource({
+export const ReactionResource = githubResource({
   path: '/repos/:owner/:repo/issues/:number/reactions/:id',
   schema: Reaction,
   Endpoint: PreviewEndpoint,
-});
-export const ReactionResource = {
-  ...base,
+  optimistic: true,
+}).extend((base) => ({
   getByComment: base.getList.extend({
     path: 'repos/:owner/:repo/issues/comments/:comment/reactions',
   }),
-  create: base.create.extend({
-    update: (newId: string, params: any) => ({
-      [base.getList.key(params)]: ({ results = [], ...rest } = {}) => ({
-        results: [...new Set([newId, ...results])],
-        ...rest,
-      }),
-    }),
-    getOptimisticResponse: (snap, params, body) => body as any,
-  }),
-  delete: base.delete.extend({
-    getOptimisticResponse: (snap, params) => params,
-  }),
-};
+}));
 
 export default ReactionResource;
 

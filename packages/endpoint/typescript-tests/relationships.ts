@@ -1,4 +1,4 @@
-import { normalize } from '@rest-hooks/normalizr';
+import { normalize } from '@data-client/normalizr';
 
 import { schema, Entity, AbstractInstanceType } from '../src';
 
@@ -12,7 +12,7 @@ export class IDEntity extends Entity {
    * @param [parent] When normalizing, the object which included the entity
    * @param [key] When normalizing, the key where this entity was found
    */
-  pk(parent?: any, key?: string): string | undefined {
+  pk(parent?: any, key?: string): string | number | undefined {
     return `${this.id}`;
   }
 }
@@ -77,5 +77,5 @@ class Post extends IDEntity {
 const data = {
   /* ...*/
 };
-const normalizedData = normalize(data, Post);
+const normalizedData = normalize(Post, data);
 console.log(normalizedData);

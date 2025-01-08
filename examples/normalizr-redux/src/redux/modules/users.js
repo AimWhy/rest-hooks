@@ -1,4 +1,4 @@
-import { denormalize } from '@rest-hooks/normalizr';
+import { denormalize } from '@data-client/normalizr';
 
 import { User } from '../../api/schema';
 import { ADD_ENTITIES } from '../actions';
@@ -27,4 +27,4 @@ export default function reducer(state = {}, action) {
   }
 }
 
-export const selectHydrated = (state, id) => denormalize(id, User, state);
+export const selectHydrated = (state, id) => denormalize(User, id, state);

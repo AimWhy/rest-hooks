@@ -4,12 +4,64 @@ title: GQLEndpoint
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
+import mutationDemo from '@site/src/components/Demo/code/profile-edit';
+import CodeEditor from '@site/src/components/Demo/CodeEditor';
+
+`GQLEndpoints` are for [GraphQL](https://graphql.org/) based protocols.
 
 :::info extends
 
-`GQLEndpoint` extends [Endpoint](./Endpoint.md)
+`GQLEndpoint` extends [Endpoint](/rest/api/Endpoint)
 
 :::
+
+## Usage
+
+<CodeEditor codes={[mutationDemo[1]]} defaultValue="graphql" />
+
+## query(gql, schema) {#query}
+
+```ts
+import { GQLEndpoint } from '@data-client/graphql';
+import User from 'schema/User';
+
+const gql = new GQLEndpoint('/');
+
+export const getUser = gql.query(
+  (v: { name: string }) => `query getUser($name: String!) {
+    user(name: $name) {
+      id
+      name
+      email
+    }
+  }`,
+  { user: User },
+);
+
+getUser({ name: 'bob' });
+```
+
+## mutate(gql, schema) {#mutate}
+
+```ts
+import { GQLEndpoint } from '@data-client/graphql';
+import User from 'schema/User';
+
+const gql = new GQLEndpoint('/');
+
+export const updateUser = gql.mutate(
+  (v: Partial<User>) => `query updateUser($user: User!) {
+    user(name: $user) {
+      id
+      name
+      email
+    }
+  }`,
+  { user: User },
+);
+
+updateUser({ id: '5', name: 'bob', email: 'bob@bob.com' });
+```
 
 ## Fetch Lifecycle
 
@@ -27,9 +79,10 @@ GQLEndpoint adds to Endpoint by providing customizations for a provided fetch me
 
 ```ts title="fetch implementation for GQLEndpoint"
 async function fetch(variables) {
-  return this.fetchResponse(this.url, this.getRequestInit(variables)).then(
-    res => this.process(res, variables),
-  );
+  return this.fetchResponse(
+    this.url,
+    this.getRequestInit(variables),
+  ).then(res => this.process(res, variables));
 }
 ```
 
@@ -41,7 +94,6 @@ have defaults.
 ### url: string {#path}
 
 GraphQL uses one url for all operations.
-
 
 ### getRequestInit(body): RequestInit {#getRequestInit}
 
@@ -58,7 +110,7 @@ Called by [getRequestInit](#getRequestInit) to determine [HTTP Headers](https://
 
 This is often useful for [authentication](../auth)
 
-:::caution
+:::warning
 
 Don't use hooks here.
 
@@ -82,15 +134,15 @@ Perform any transforms with the parsed result. Defaults to identity function.
 
 ### schema: Schema {#schema}
 
-Declarative definition of how to [process responses](./schema)
+Declarative definition of how to [process responses](/docs/concepts/normalization)
 
-- [where](./schema) to expect [Entities](./Entity.md)
-- Classes to deserialize fields
+- [where](/docs/concepts/normalization) to expect [Entities](./GQLEntity.md)
+- Functions to deserialize fields
 
 Not providing this option means no entities will be extracted.
 
 ```tsx
-import { GQLEntity, GQLEndpoint } from '@rest-hooks/graphql';
+import { GQLEntity, GQLEndpoint } from '@data-client/graphql';
 const gql = new GQLEndpoint('https://nosy-baritone.glitch.me');
 
 class User extends GQLEntity {
@@ -124,7 +176,7 @@ Custom data error lifetime for the fetched resource. Will override the value set
 'soft' will use stale data (if exists) in case of error; undefined or not providing option will result
 in error.
 
-[Learn more about errorPolicy](/docs/concepts/expiry-policy#error-policy)
+[Learn more about errorPolicy](/docs/concepts/error-policy)
 
 ```ts
 errorPolicy(error) {
@@ -147,18 +199,6 @@ Frequency in millisecond to poll at. Requires using [useSubscription()](/docs/ap
 When provided, any fetches with this endpoint will behave as though the `fakePayload` return value
 from this function was a succesful network response. When the actual fetch completes (regardless
 of failure or success), the optimistic update will be replaced with the actual network response.
-
-### update(normalizedResponseOfThis, ...args) => ({ [endpointKey]: (normalizedResponseOfEndpointToUpdate) => updatedNormalizedResponse) }) {#update}
-
-```ts title="UpdateType.ts"
-type UpdateFunction<
-  Source extends EndpointInterface,
-  Updaters extends Record<string, any> = Record<string, any>,
-> = (
-  source: ResultEntry<Source>,
-  ...args: Parameters<Source>
-) => { [K in keyof Updaters]: (result: Updaters[K]) => Updaters[K] };
-```
 
 ## extend(options): Endpoint {#extend}
 

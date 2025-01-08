@@ -1,4 +1,4 @@
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 import { TodoResource } from 'resources/TodoResource';
 
 import NewTodo from './NewTodo';
@@ -12,7 +12,7 @@ export default function TodoList({ userId }: { userId?: number }) {
       {todos.map((todo) => (
         <TodoListItem key={todo.pk()} todo={todo} />
       ))}
-      <NewTodo lastId={todos.length + 1000} userId={userId} />
+      <NewTodo userId={userId} />
     </div>
   );
 }

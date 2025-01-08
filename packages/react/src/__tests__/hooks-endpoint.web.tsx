@@ -1,20 +1,23 @@
-import { State, ActionTypes, Controller, actionTypes } from '@rest-hooks/core';
-import { CacheProvider } from '@rest-hooks/react';
-import { CacheProvider as ExternalCacheProvider } from '@rest-hooks/redux';
+import { State, ActionTypes, Controller, actionTypes } from '@data-client/core';
+import { CacheProvider } from '@data-client/react';
+import { DataProvider as ExternalDataProvider } from '@data-client/react/redux';
 import { render, act } from '@testing-library/react';
-import { renderHook } from '@testing-library/react-hooks';
 import { CoolerArticleResource, PaginatedArticleResource } from '__tests__/new';
 import nock from 'nock';
 import React, { Suspense, useContext, useEffect } from 'react';
 
 // relative imports to avoid circular dependency in tsconfig references
 
-import { makeRenderRestHook, mockInitialState } from '../../../test';
-import { ControllerContext, DispatchContext, StateContext } from '../context';
+import {
+  makeRenderDataClient,
+  mockInitialState,
+  renderHook,
+} from '../../../test';
+import { ControllerContext, StateContext } from '../context';
 import { useController, useSuspense } from '../hooks';
 import { articlesPages, createPayload, payload } from '../test-fixtures';
 
-const { INVALIDATE_TYPE, RESET_TYPE } = actionTypes;
+const { INVALIDATE, RESET } = actionTypes;
 
 async function testDispatchFetch(
   Component: React.FunctionComponent<any>,
@@ -24,28 +27,26 @@ async function testDispatchFetch(
   const controller = new Controller({ dispatch });
   const tree = (
     <ControllerContext.Provider value={controller}>
-      <DispatchContext.Provider value={dispatch}>
-        <Suspense fallback={null}>
-          <Component />
-        </Suspense>
-      </DispatchContext.Provider>
+      <Suspense fallback={null}>
+        <Component />
+      </Suspense>
     </ControllerContext.Provider>
   );
   render(tree);
   expect(dispatch).toHaveBeenCalledTimes(payloads.length);
   let i = 0;
   for (const call of dispatch.mock.calls) {
-    delete call[0]?.meta?.createdAt;
+    delete call[0]?.meta?.fetchedAt;
     delete call[0]?.meta?.promise;
     expect(call[0]).toMatchSnapshot();
     const action = call[0];
-    const res = await action.payload();
+    const res = await action.endpoint(...action.args);
     expect(res).toEqual(payloads[i]);
     i++;
   }
 }
 
-function testRestHook(
+function testDataClient(
   callback: () => void,
   state: State<unknown>,
   dispatch = (v: ActionTypes) => Promise.resolve(),
@@ -55,11 +56,9 @@ function testRestHook(
     wrapper: function Wrapper({ children }: { children: React.ReactNode }) {
       return (
         <ControllerContext.Provider value={controller}>
-          <DispatchContext.Provider value={dispatch}>
-            <StateContext.Provider value={state}>
-              {children}
-            </StateContext.Provider>
-          </DispatchContext.Provider>
+          <StateContext.Provider value={state}>
+            {children}
+          </StateContext.Provider>
         </ControllerContext.Provider>
       );
     },
@@ -97,9 +96,8 @@ describe('useController.fetch', () => {
       const { fetch } = useController();
       fetch(CoolerArticleResource.create, { content: 'hi' }).then(v => {
         v.author;
-        /*
         // @ts-expect-error
-        v.doesnotexist;*/
+        v.doesnotexist;
       });
       return null;
     }
@@ -117,9 +115,8 @@ describe('useController.fetch', () => {
       const { fetch } = useController();
       fetch(endpoint).then(v => {
         v[0].author;
-        /*
         // @ts-expect-error
-        v.doesnotexist;*/
+        v.doesnotexist;
       });
       return null;
     }
@@ -133,9 +130,8 @@ describe('useController.fetch', () => {
       const params = { content: 'hi' };
       fetch(CoolerArticleResource.create, params).then(v => {
         v.title;
-        /*
         // @ts-expect-error
-        v.doesnotexist;*/
+        v.doesnotexist;
       });
       return null;
     }
@@ -151,9 +147,8 @@ describe('useController.fetch', () => {
       () => fetch(CoolerArticleResource.detail(), {}, { content: 'hi' });
       fetch(CoolerArticleResource.get, { id: payload.id }).then(v => {
         v.title;
-        /*
         // @ts-expect-error
-        v.doesnotexist;*/
+        v.doesnotexist;
       });
       return null;
     }
@@ -170,8 +165,8 @@ describe('useController.fetch', () => {
     });
     expect(spy.mock.calls[0]).toMatchInlineSnapshot(`
       [
-        "It appears you are trying to use Rest Hooks without a provider.
-      Follow instructions: https://resthooks.io/docs/getting-started/installation#add-provider-at-top-level-component",
+        "It appears you are trying to use Reactive Data Client without a provider.
+      Follow instructions: https://dataclient.io/docs/getting-started/installation#add-provider-at-top-level-component",
       ]
     `);
     console.error = oldError;
@@ -219,7 +214,7 @@ describe('useController().invalidate', () => {
     ]);
     const dispatch = jest.fn();
     let invalidate: any;
-    testRestHook(
+    testDataClient(
       () => {
         invalidate = useController().invalidate;
       },
@@ -239,7 +234,7 @@ describe('useController().invalidate', () => {
     ]);
     const dispatch = jest.fn();
     let invalidate: any;
-    testRestHook(
+    testDataClient(
       () => {
         invalidate = useController().invalidate;
       },
@@ -248,10 +243,8 @@ describe('useController().invalidate', () => {
     );
     invalidate(PaginatedArticleResource.getList);
     expect(dispatch).toHaveBeenCalledWith({
-      type: INVALIDATE_TYPE,
-      meta: {
-        key: PaginatedArticleResource.getList.key(),
-      },
+      type: INVALIDATE,
+      key: PaginatedArticleResource.getList.key(),
     });
   });
   it('should return the same === function each time', () => {
@@ -284,7 +277,7 @@ describe('useController().reset', () => {
     ]);
     const dispatch = jest.fn();
     let reset: () => Promise<void> = () => Promise.resolve();
-    testRestHook(
+    testDataClient(
       () => {
         reset = useController().resetEntireStore;
       },
@@ -293,7 +286,7 @@ describe('useController().reset', () => {
     );
     await act(reset);
     expect(dispatch).toHaveBeenCalledWith({
-      type: RESET_TYPE,
+      type: RESET,
       date: Date.now(),
     });
   });
@@ -315,9 +308,9 @@ describe('useController().reset', () => {
 describe('useController().getState', () => {
   describe.each([
     ['CacheProvider', CacheProvider],
-    ['ExternalCacheProvider', ExternalCacheProvider],
+    ['ExternalDataProvider', ExternalDataProvider],
   ] as const)(`%s`, (_, makeProvider) => {
-    let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+    let renderDataClient: ReturnType<typeof makeRenderDataClient>;
     let mynock: nock.Scope;
 
     beforeEach(() => {
@@ -344,18 +337,18 @@ describe('useController().getState', () => {
       nock.cleanAll();
     });
     beforeEach(() => {
-      renderRestHook = makeRenderRestHook(makeProvider);
+      renderDataClient = makeRenderDataClient(makeProvider);
     });
 
     it('should have initial values before any state updates', () => {
-      const { result } = renderRestHook(() => {
+      const { result } = renderDataClient(() => {
         return [useController(), useContext(StateContext)] as const;
       });
       expect(result.current[0].getState()).toEqual(result.current[1]);
     });
 
     it('should eventually update', async () => {
-      const { result, waitForNextUpdate } = renderRestHook(() => {
+      const { result, waitForNextUpdate } = renderDataClient(() => {
         return [
           useSuspense(CoolerArticleResource.get, { id: payload.id }),
           useController(),
@@ -367,7 +360,7 @@ describe('useController().getState', () => {
       // @ts-expect-error
       expect(result.current[0].lafsjlfd).toBeUndefined();
       expect(
-        Object.keys(result.current[1].getState().results).length,
+        Object.keys(result.current[1].getState().endpoints).length,
       ).toBeGreaterThanOrEqual(1);
       // === guarantee
       expect(
@@ -377,9 +370,12 @@ describe('useController().getState', () => {
           result.current[1].getState(),
         ).data,
       ).toBe(result.current[0]);
-      await act(() =>
-        result.current[1].fetch(CoolerArticleResource.create, createPayload),
-      );
+      await act(async () => {
+        await result.current[1].fetch(
+          CoolerArticleResource.create,
+          createPayload,
+        );
+      });
       expect(
         result.current[1].getResponse(
           CoolerArticleResource.create,

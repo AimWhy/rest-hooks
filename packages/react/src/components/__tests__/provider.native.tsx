@@ -2,11 +2,11 @@
 import {
   NetworkManager,
   actionTypes,
-  SubscriptionManager,
   Controller,
-} from '@rest-hooks/core';
+  SetResponseAction,
+} from '@data-client/core';
 import { act, render, screen } from '@testing-library/react-native';
-import { CoolerArticle, CoolerArticleResource } from '__tests__/new';
+import { CoolerArticleResource } from '__tests__/new';
 import nock from 'nock';
 import React, { useContext, Suspense } from 'react';
 import { Text } from 'react-native';
@@ -14,14 +14,14 @@ import { Text } from 'react-native';
 import { ControllerContext, StateContext } from '../../context';
 import { useController, useSuspense } from '../../hooks';
 import { payload } from '../../test-fixtures';
-import CacheProvider from '../CacheProvider';
+import DataProvider from '../DataProvider';
 
-const { RECEIVE_TYPE } = actionTypes;
+const { SET_RESPONSE } = actionTypes;
 
-describe('<CacheProvider />', () => {
+describe('<DataProvider />', () => {
   let warnspy: jest.SpyInstance;
   beforeEach(() => {
-    warnspy = jest.spyOn(global.console, 'warn');
+    warnspy = jest.spyOn(global.console, 'warn').mockImplementation(() => {});
   });
   afterEach(() => {
     warnspy.mockRestore();
@@ -55,11 +55,11 @@ describe('<CacheProvider />', () => {
       return <Text testID="article">{article.title}</Text>;
     };
     const tree = (
-      <CacheProvider>
+      <DataProvider>
         <Component />
-      </CacheProvider>
+      </DataProvider>
     );
-    const { getByText, unmount } = render(tree);
+    const { getByText } = render(tree);
     const msg = getByText('Uncaught Suspense.');
     expect(msg).toBeDefined();
     expect(warnspy).toHaveBeenCalled();
@@ -72,11 +72,11 @@ describe('<CacheProvider />', () => {
       return <Text testID="article">{article.title}</Text>;
     };
     const tree = (
-      <CacheProvider>
+      <DataProvider>
         <Suspense fallback={<Text>loading</Text>}>
           <Component />
         </Suspense>
-      </CacheProvider>
+      </DataProvider>
     );
     const { getByText, unmount } = render(tree);
     const msg = getByText('loading');
@@ -96,21 +96,21 @@ describe('<CacheProvider />', () => {
       return null;
     }
     const chil = <DispatchTester />;
-    const tree = <CacheProvider>{chil}</CacheProvider>;
+    const tree = <DataProvider>{chil}</DataProvider>;
     const { rerender } = render(tree);
     expect(dispatch).toBeDefined();
     let curDisp = dispatch;
     rerender(tree);
     expect(curDisp).toBe(dispatch);
     expect(count).toBe(1);
-    rerender(<CacheProvider>{chil}</CacheProvider>);
+    rerender(<DataProvider>{chil}</DataProvider>);
     expect(curDisp).toBe(dispatch);
     expect(count).toBe(1);
     const managers: any[] = [new NetworkManager()];
-    rerender(<CacheProvider managers={managers}>{chil}</CacheProvider>);
+    rerender(<DataProvider managers={managers}>{chil}</DataProvider>);
     expect(count).toBe(1);
     curDisp = dispatch;
-    rerender(<CacheProvider managers={managers}>{chil}</CacheProvider>);
+    rerender(<DataProvider managers={managers}>{chil}</DataProvider>);
     expect(curDisp).toBe(dispatch);
     expect(count).toBe(1);
     rerender(
@@ -133,17 +133,18 @@ describe('<CacheProvider />', () => {
       return null;
     }
     const chil = <ContextTester />;
-    const tree = <CacheProvider>{chil}</CacheProvider>;
+    const tree = <DataProvider>{chil}</DataProvider>;
     render(tree);
     expect(dispatch).toBeDefined();
     expect(state).toBeDefined();
-    const action = {
-      type: RECEIVE_TYPE,
-      payload: { id: 5, title: 'hi', content: 'more things here' },
+    const action: SetResponseAction = {
+      type: SET_RESPONSE,
+      response: { id: 5, title: 'hi', content: 'more things here' },
+      endpoint: CoolerArticleResource.get,
+      args: [{ id: 5 }],
+      key: CoolerArticleResource.get.key({ id: 5 }),
       meta: {
-        schema: CoolerArticle,
-        key: CoolerArticleResource.get.key({ id: 5 }),
-        mutate: false,
+        fetchedAt: 50,
         date: 50,
         expiresAt: 55,
       },
@@ -153,12 +154,5 @@ describe('<CacheProvider />', () => {
     });
     expect(count).toBe(2);
     expect(state).toMatchSnapshot();
-  });
-
-  it('should have SubscriptionManager in default managers', () => {
-    const subManagers = CacheProvider.defaultProps.managers.filter(
-      manager => manager instanceof SubscriptionManager,
-    );
-    expect(subManagers.length).toBe(1);
   });
 });

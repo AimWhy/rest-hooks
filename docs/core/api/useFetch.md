@@ -1,41 +1,45 @@
 ---
-title: useFetch()
+title: useFetch() - Declarative fetch triggers for React
+sidebar_label: useFetch()
+description: Fetch without the data rendering. Prevent fetch waterfalls by prefetching without duplicate requests.
 ---
 
 import GenericsTabs from '@site/src/components/GenericsTabs';
 import ConditionalDependencies from '../shared/\_conditional_dependencies.mdx';
+import StackBlitz from '@site/src/components/StackBlitz';
 
 <head>
-  <title>useFetch() - Declarative fetch triggers</title>
   <meta name="docsearch:pagerank" content="10"/>
 </head>
 
-<GenericsTabs>
+# useFetch()
 
-```typescript
-function useFetch(
-  endpoint: ReadEndpoint,
-  ...args: Parameters<typeof endpoint> | [null]
-): Promise<any> | undefined;
-```
-
-```typescript
-function useFetch<
-  E extends EndpointInterface<FetchFunction, Schema | undefined, undefined>,
-  Args extends readonly [...Parameters<E>] | readonly [null],
->(endpoint: E, ...args: Args): ReturnType<E>;
-```
-
-</GenericsTabs>
-
-Great for retrieving resources optimistically before they are needed.
+Fetch without the data rendering.
 
 This can be useful for ensuring resources early in a render tree before they are needed.
 
+:::tip
+
+Use in combination with a data-binding hook ([useCache()](./useCache.md), [useSuspense()](./useSuspense.md), [useDLE()](./useDLE.md), [useLive()](./useLive.md))
+in another component.
+
+:::
+
+## Usage
+
+```tsx
+function MasterPost({ id }: { id: number }) {
+  useFetch(PostResource.get, { id });
+  // ...
+}
+```
+
+## Behavior
+
 | Expiry Status | Fetch           | Returns     | Conditions                                                                                            |
 | ------------- | --------------- | ----------- | ----------------------------------------------------------------------------------------------------- |
-| Invalid       | yes<sup>1</sup> | Promise     | not in store, [deletion](/rest/api/createResource#delete), [invalidation](./Controller.md#invalidate) |
-| Stale         | yes<sup>1</sup> | Promise     | (first-render, arg change) & [expiry &lt; now](../concepts/expiry-policy.md)                   |
+| Invalid       | yes<sup>1</sup> | Promise     | not in store, [deletion](/rest/api/resource#delete), [invalidation](./Controller.md#invalidate) |
+| Stale         | yes<sup>1</sup> | Promise     | (first-render, arg change) & [expiry &lt; now](../concepts/expiry-policy.md)                          |
 | Valid         | no              | `undefined` | fetch completion                                                                                      |
 |               | no              | `undefined` | `null` used as second argument                                                                        |
 
@@ -52,40 +56,36 @@ stale.
 
 :::
 
-:::tip
-
-Use in combination with a data-binding hook ([useCache()](./useCache.md), [useSuspense()](./useSuspense.md), [useDLE()](./useDLE.md), [useLive()](./useLive.md))
-in another component.
-
-:::
-
 <ConditionalDependencies hook="useFetch" />
 
-## Example
+## Types
 
-### Simple
+<GenericsTabs>
 
-```tsx
-function MasterPost({ id }: { id: number }) {
-  useFetch(PostResource.get, { id });
-  // ...
-}
+```typescript
+function useFetch(
+  endpoint: ReadEndpoint,
+  ...args: Parameters<typeof endpoint> | [null]
+): Promise<any> | undefined;
 ```
 
-### Conditional
-
-```tsx
-function MasterPost({ id, doNotFetch }: { id: number; doNotFetch: boolean }) {
-  useFetch(PostResource.get, doNotFetch ? null : { id });
-  // ...
-}
+```typescript
+function useFetch<
+  E extends EndpointInterface<
+    FetchFunction,
+    Schema | undefined,
+    undefined
+  >,
+  Args extends readonly [...Parameters<E>] | readonly [null],
+>(endpoint: E, ...args: Args): ReturnType<E>;
 ```
 
-## Useful `Endpoint`s to send
+</GenericsTabs>
 
-[Resource](/rest/api/createResource#members) provides these built-in:
+## Examples
 
-- [get](/rest/api/createResource#get)
-- [getList](/rest/api/createResource#getlist)
+### NextJS Preload
 
-Feel free to add your own [RestEndpoint](/rest/api/RestEndpoint) as well.
+To prevent fetch waterfalls in NextJS, sometimes you might need to add [preloads](https://nextjs.org/docs/app/building-your-application/data-fetching/patterns#preloading-data) to top level routes.
+
+<StackBlitz repo="coin-app" file="src/app/[id]/page.tsx" initialpath="/BTC" view="editor" height="700" />

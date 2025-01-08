@@ -1,110 +1,44 @@
 ---
 id: installation
-title: Installation
+title: Getting Started with Reactive Data Client
+sidebar_label: Installation
+hide_title: true
 ---
-
-<head>
-  <title>Getting Started with Rest Hooks</title>
-</head>
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import PkgTabs from '@site/src/components/PkgTabs';
-import PkgInstall from '@site/src/components/PkgInstall';
+import Installation from '../shared/\_installation.mdx';
+import StackBlitz from '@site/src/components/StackBlitz';
+import Link from '@docusaurus/Link';
 
-<PkgTabs pkgs="@rest-hooks/react @rest-hooks/test @rest-hooks/hooks @rest-hooks/rest" />
-
-TypeScript is optional, but requires at least version [3.7](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#more-recursive-type-aliases) and [strictNullChecks](https://www.typescriptlang.org/tsconfig#strictNullChecks) for full type enforcement.
+<PkgTabs pkgs="@data-client/react @data-client/test @data-client/rest" />
 
 ## Add provider at top-level component
 
-<Tabs
-defaultValue="18-web"
-groupId="platform"
-values={[
-{ label: 'React Web 16+', value: 'web' },
-{ label: 'React Web 18+', value: '18-web' },
-{ label: 'React Native', value: 'native' },
-{ label: 'NextJS', value: 'nextjs' },
-]}>
-<TabItem value="web">
+<Installation />
 
-```tsx title="/index.tsx"
-import { CacheProvider } from '@rest-hooks/react';
-import ReactDOM from 'react-dom';
+<center>
 
-ReactDOM.render(
-  <CacheProvider>
-    <App />
-  </CacheProvider>,
-  document.body,
-);
-```
+<Link className="button button--secondary" to="./resource">Next: Define Data »</Link>
 
-</TabItem>
+</center>
 
-<TabItem value="18-web">
+## Example
 
-```tsx title="/index.tsx"
-import { CacheProvider } from '@rest-hooks/react';
-import ReactDOM from 'react-dom';
+<StackBlitz app="todo-app" file="src/index.tsx,src/RootProvider.tsx" view="both" ctl="1" />
 
-ReactDOM.createRoot(document.body).render(
-  <CacheProvider>
-    <App />
-  </CacheProvider>,
-);
-```
+## Supported Tools
 
-</TabItem>
+<details>
+<summary><b>TypeScript 3.7+</b></summary>
 
-<TabItem value="native">
+TypeScript is optional, but requires at least version [3.7](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#more-recursive-type-aliases) and [strictNullChecks](https://www.typescriptlang.org/tsconfig#strictNullChecks) for full type enforcement.
 
-```tsx title="/index.tsx"
-import { CacheProvider } from '@rest-hooks/react';
-import { AppRegistry } from 'react-native';
+</details>
 
-const Root = () => (
-  <CacheProvider>
-    <App />
-  </CacheProvider>
-);
-AppRegistry.registerComponent('MyApp', () => Root);
-```
-
-</TabItem>
-
-<TabItem value="nextjs">
-
-<PkgInstall pkgs="@rest-hooks/ssr @rest-hooks/redux redux" />
-
-```tsx title="pages/_document.tsx"
-import { RestHooksDocument } from '@rest-hooks/ssr/nextjs';
-
-export default RestHooksDocument;
-```
-
-```tsx title="pages/_app.tsx"
-import { AppCacheProvider } from '@rest-hooks/ssr/nextjs';
-import type { AppProps } from 'next/app';
-
-export default function App({ Component, pageProps }: AppProps) {
-  return (
-    <AppCacheProvider>
-      <Component {...pageProps} />
-    </AppCacheProvider>
-  );
-}
-```
-
-[Full NextJS Guide](../guides/ssr.md#nextjs)
-
-</TabItem>
-</Tabs>
-
-Alternatively [integrate state with redux](../guides/redux.md)
-
-<details><summary><b>Older browser support</b></summary>
+<details>
+<summary><b>Older browser support</b></summary>
 
 If your application targets older browsers (a few years or more), be sure to load polyfills.
 Typically this is done with [@babel/preset-env useBuiltIns: 'entry'](https://babeljs.io/docs/en/babel-preset-env#usebuiltins),
@@ -115,9 +49,22 @@ This ensures only the needed polyfills for your browser support targets are incl
 For instance `TypeError: Object.hasOwn is not a function`
 
 </details>
-<details><summary><b>Internet Explorer support</b></summary>
+<details>
+<summary><b>Internet Explorer support</b></summary>
 
 If you see `Uncaught TypeError: Class constructor Resource cannot be invoked without 'new'`,
 follow the instructions to [add legacy browser support to packages](../guides/legacy-browser)
+
+</details>
+
+<details>
+<summary><b>ReactJS 16-19 and React Native</b></summary>
+
+ReactJS 16.2 and above is supported (the one with hooks!). React 18 provides improved [Suspense](../api/useSuspense.md)
+support and features. Both React Native, [React Navigation](https://reactnavigation.org/) and [Expo](https://docs.expo.dev) are supported.
+
+If you have a working project using other
+React libraries, [feel free to share with others](https://github.com/reactive/data-client/discussions/2422) in our
+discussions.
 
 </details>

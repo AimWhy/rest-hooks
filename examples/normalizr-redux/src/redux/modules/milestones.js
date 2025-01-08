@@ -1,4 +1,4 @@
-import { denormalize, normalize } from '@rest-hooks/normalizr';
+import { denormalize, normalize } from '@data-client/normalizr';
 
 import * as Repo from './repos';
 import { Milestone } from '../../api/schema';
@@ -31,7 +31,7 @@ export const getMilestones =
         repo,
       })
       .then(response => {
-        const data = normalize(response.data, [schema.Milestone]);
+        const data = normalize([schema.Milestone], response.data);
         dispatch(addEntities(data.entities));
         return response;
       })
@@ -40,4 +40,4 @@ export const getMilestones =
       });
   };
 
-export const selectHydrated = (state, id) => denormalize(id, Milestone, state);
+export const selectHydrated = (state, id) => denormalize(Milestone, id, state);

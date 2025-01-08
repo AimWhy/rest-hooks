@@ -1,6 +1,7 @@
-import type { Fixture, Interceptor } from '@rest-hooks/test';
+import type { Fixture, Interceptor } from '@data-client/test';
+import BrowserOnly from '@docusaurus/BrowserOnly';
 import CodeBlock from '@theme/CodeBlock';
-import React, { memo, type ReactElement } from 'react';
+import { memo, type ReactElement } from 'react';
 
 import styles from './styles.module.css';
 
@@ -20,14 +21,26 @@ function FixtureResponse({
 }: {
   fixture: Fixture | Interceptor;
 }): ReactElement {
-  return typeof fixture.response === 'function' ? (
-    <CodeBlock language="javascript" className={styles.fixtureJson}>
-      {`${fixture.response}`}
-    </CodeBlock>
-  ) : (
-    <CodeBlock language="json" className={styles.fixtureJson}>
-      {JSON.stringify(fixture.response)}
-    </CodeBlock>
+  return (
+    'fetchResponse' in fixture ?
+      <BrowserOnly>
+        {() => (
+          <CodeBlock language="javascript" className={styles.fixtureJson}>
+            {`${fixture.fetchResponse}`}
+          </CodeBlock>
+        )}
+      </BrowserOnly>
+    : typeof fixture.response === 'function' ?
+      <BrowserOnly>
+        {() => (
+          <CodeBlock language="javascript" className={styles.fixtureJson}>
+            {`${fixture.response}`}
+          </CodeBlock>
+        )}
+      </BrowserOnly>
+    : <CodeBlock language="json" className={styles.fixtureJson}>
+        {JSON.stringify(fixture.response)}
+      </CodeBlock>
   );
 }
 

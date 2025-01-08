@@ -1,12 +1,4 @@
-# Contributing to Rest Hooks
-
-## Code of Conduct
-
-All interactions with this project follow our [Code of Conduct][code-of-conduct].
-By participating, you are expected to honor this code. Violators can be banned
-from further participation in this project, or potentially all Coinbase projects.
-
-[code-of-conduct]: https://github.com/coinbase/code-of-conduct
+# Contributing to Reactive Data Client
 
 ## Bug Reports
 
@@ -15,6 +7,8 @@ from further participation in this project, or potentially all Coinbase projects
 * Include the behavior you observed along with the behavior you expected, and
   why you expected it.
 * Include any relevant stack traces or debugging output.
+* Ensure you captured relevant [network inspector](https://developer.chrome.com/docs/devtools/network/) screenshots
+* Ensure [Browser Devtools](https://dataclient.io/docs/getting-started/debugging) screenshots or state and action dumps
 
 ## Feature Requests
 
@@ -24,6 +18,8 @@ clear and concise explanation of what need you are trying to solve. If you have
 thoughts on _how_ it can be solved, include those too!
 
 The best way to see a feature added, however, is to submit a pull request.
+
+If your idea requires design considerations, it's best to [start a discussion][4].
 
 ## Pull Requests
 
@@ -42,12 +38,9 @@ The best way to see a feature added, however, is to submit a pull request.
 
 ## Support Requests
 
-For security reasons, any communication referencing support tickets for Coinbase
-products will be ignored. The request will have its content redacted and will
-be locked to prevent further discussion.
+Support is available in our [discord channel][3]
 
-All support requests must be made via [our support team][3].
-
-[1]: https://github.com/data-client/rest-hooks/issues
+[1]: https://github.com/reactive/data-client/issues
 [2]: https://medium.com/brigade-engineering/the-secrets-to-great-commit-messages-106fc0a92a25
-[3]: https://support.coinbase.com/customer/en/portal/articles/2288496-how-can-i-contact-coinbase-support-
+[3]: https://discord.gg/9aTc42GXWR
+[4]: https://github.com/reactive/data-client/discussions/new?category=ideas

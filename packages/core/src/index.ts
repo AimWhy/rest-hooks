@@ -12,46 +12,41 @@ export type {
   Schema,
   EndpointInterface,
   EntityInterface,
+  SchemaClass,
   ResolveType,
-  DenormalizeCache,
   DenormalizeNullable,
   Denormalize,
   Normalize,
   NormalizeNullable,
   FetchFunction,
   EndpointExtraOptions,
-} from '@rest-hooks/normalizr';
-export { ExpiryStatus } from '@rest-hooks/normalizr';
+  Queryable,
+  SchemaArgs,
+  NI,
+} from '@data-client/normalizr';
+export { ExpiryStatus } from '@data-client/normalizr';
 export {
   default as NetworkManager,
   ResetError,
 } from './manager/NetworkManager.js';
+export * from './state/GCPolicy.js';
 export {
   default as createReducer,
   initialState,
 } from './state/reducer/createReducer.js';
-export { default as reducer } from './state/reducerInstance.js';
 export { default as applyManager } from './manager/applyManager.js';
+export { default as initManager } from './manager/initManager.js';
 
 export { default as Controller } from './controller/Controller.js';
-export { default as createFetch } from './controller/createFetch.js';
-export { default as createReceive } from './controller/createReceive.js';
+export type {
+  DataClientDispatch,
+  GenericDispatch,
+} from './controller/Controller.js';
+export * as actions from './controller/actions/index.js';
 
 export * from './controller/types.js';
-export * as legacyActions from './state/legacy-actions/index.js';
+/** @see https://dataclient.io/docs/api/Actions */
 export * as actionTypes from './actionTypes.js';
 /* istanbul ignore next */
 export * from './types.js';
-export type {
-  FetchShape,
-  ReadShape,
-  MutateShape,
-  DeleteShape,
-} from './endpoint/shapes.js';
-export type {
-  SetShapeParams,
-  ParamsFromShape,
-  BodyFromShape,
-  ReturnFromShape,
-} from './endpoint/types.js';
 export * from './manager/index.js';

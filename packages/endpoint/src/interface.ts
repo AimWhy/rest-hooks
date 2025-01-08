@@ -1,4 +1,3 @@
-import { AbstractInstanceType, Denormalize, EntityMap } from './normal.js';
 import type { EndpointExtraOptions, FetchFunction } from './types.js';
 
 export * from './SnapshotInterface.js';
@@ -11,62 +10,88 @@ export type Schema =
   | SchemaSimple
   | Serializable;
 
+export interface Queryable<Args extends readonly any[] = readonly any[]> {
+  queryKey(
+    args: Args,
+    queryKey: (...args: any) => any,
+    getEntity: GetEntity,
+    getIndex: GetIndex,
+    // Must be non-void
+  ): {};
+}
+
 export type Serializable<
   T extends { toJSON(): string } = { toJSON(): string },
-> = {
-  prototype: T;
-};
+> = (value: any) => T;
 
-export interface SchemaSimple<T = any> {
+export interface SchemaSimple<T = any, Args extends readonly any[] = any> {
   normalize(
     input: any,
     parent: any,
     key: any,
+    args: any[],
     visit: (...args: any) => any,
     addEntity: (...args: any) => any,
-    visitedEntities: Record<string, any>,
+    getEntity: (...args: any) => any,
+    checkLoop: (...args: any) => any,
   ): any;
   denormalize(
-    // eslint-disable-next-line @typescript-eslint/ban-types
     input: {},
-    unvisit: UnvisitFunction,
-  ): [denormalized: T, found: boolean, suspend: boolean];
-  infer(
     args: readonly any[],
-    indexes: NormalizedIndex,
-    recurse: (...args: any) => any,
-    entities: EntityTable,
+    unvisit: (schema: any, input: any) => any,
+  ): T;
+  queryKey(
+    args: Args,
+    queryKey: (...args: any) => any,
+    getEntity: GetEntity,
+    getIndex: GetIndex,
   ): any;
 }
 
-export interface SchemaClass<T = any, N = T | undefined>
-  extends SchemaSimple<T> {
+export interface SchemaClass<T = any, Args extends readonly any[] = any>
+  extends SchemaSimple<T, Args> {
   // this is not an actual member, but is needed for the recursive NormalizeNullable<> type algo
   _normalizeNullable(): any;
   // this is not an actual member, but is needed for the recursive DenormalizeNullable<> type algo
-  _denormalizeNullable(): [N, boolean, boolean];
+  _denormalizeNullable(): any;
 }
 
 export interface EntityInterface<T = any> extends SchemaSimple {
-  pk(params: any, parent?: any, key?: string): string | undefined;
+  createIfValid(props: any): any;
+  pk(
+    params: any,
+    parent?: any,
+    key?: string,
+    args?: any[],
+  ): string | number | undefined;
   readonly key: string;
   merge(existing: any, incoming: any): any;
-  expiresAt?(meta: any, input: any): number;
-  useIncoming?(
+  mergeWithStore(
     existingMeta: any,
     incomingMeta: any,
     existing: any,
     incoming: any,
-  ): boolean;
+  ): any;
+  mergeMetaWithStore(
+    existingMeta: any,
+    incomingMeta: any,
+    existing: any,
+    incoming: any,
+  ): any;
   indexes?: any;
   schema: Record<string, Schema>;
   prototype: T;
 }
 
-export interface UnvisitFunction {
-  (input: any, schema: any): [any, boolean, boolean];
-  og?: UnvisitFunction;
-  setLocal?: (entity: any) => void;
+/** Represents Array or Values */
+export interface PolymorphicInterface<T = any, Args extends any[] = any[]>
+  extends SchemaSimple<T, Args> {
+  readonly schema: any;
+  schemaKey(): string;
+  // this is not an actual member, but is needed for the recursive NormalizeNullable<> type algo
+  _normalizeNullable(): any;
+  // this is not an actual member, but is needed for the recursive DenormalizeNullable<> type algo
+  _denormalizeNullable(): any;
 }
 
 export interface NormalizedIndex {
@@ -83,11 +108,37 @@ export interface EntityTable {
     | undefined;
 }
 
+/** Visits next data + schema while recurisvely normalizing */
+export interface Visit {
+  (schema: any, value: any, parent: any, key: any, args: readonly any[]): any;
+  creating?: boolean;
+}
+
+/** Returns true if a circular reference is found */
+export interface CheckLoop {
+  (entityKey: string, pk: string, input: object): boolean;
+}
+
+/** Get Array of entities with map function applied */
+export interface GetEntity {
+  (entityKey: string | symbol): { readonly [pk: string]: any } | undefined;
+  (entityKey: string | symbol, pk: string | number): any;
+}
+/** Get PK using an Entity Index */
+export interface GetIndex {
+  /** getIndex('User', 'username', 'ntucker') */
+  (
+    entityKey: string,
+    field: string,
+    value: string,
+  ): { readonly [indexKey: string]: string | undefined };
+}
+
 /** Defines a networking endpoint */
 export interface EndpointInterface<
   F extends FetchFunction = FetchFunction,
   S extends Schema | undefined = Schema | undefined,
-  M extends true | undefined = true | undefined,
+  M extends boolean | undefined = boolean | undefined,
 > extends EndpointExtraOptions<F> {
   (...args: Parameters<F>): ReturnType<F>;
   key(...args: Parameters<F>): string;

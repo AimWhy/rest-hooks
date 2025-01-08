@@ -1,13 +1,72 @@
 ---
-title: useSubscription()
+title: useSubscription() - Updating frequent data changes in React
+sidebar_label: useSubscription()
+description: Keeps data fresh, but only when component is active. Supports polling, websockets, and SSE.
 ---
-
-<head>
-  <title>useSubscription() - Fresh data for Rest Hooks</title>
-</head>
 
 import GenericsTabs from '@site/src/components/GenericsTabs';
 import ConditionalDependencies from '../shared/\_conditional_dependencies.mdx';
+import StackBlitz from '@site/src/components/StackBlitz';
+
+# useSubscription()
+
+Great for keeping resources up-to-date with frequent changes.
+
+When using the default [polling subscriptions](./PollingSubscription), frequency must be set in
+[Endpoint](/rest/api/Endpoint), otherwise will have no effect.
+
+:::tip
+
+[useLive()](./useLive.md) is a terser way to use in combination with [useSuspense()](./useSuspense.md),
+
+:::
+
+## Usage
+
+```typescript title="api/Price"
+import { Resource, Entity } from '@data-client/rest';
+
+export class Price extends Entity {
+  symbol = '';
+  price = '0.0';
+  // ...
+
+  pk() {
+    return this.symbol;
+  }
+}
+
+export const getPrice = new RestEndpont({
+  urlPrefix: 'http://test.com',
+  path: '/price/:symbol',
+  schema: Price,
+  pollFrequency: 5000,
+});
+```
+
+```tsx title="MasterPrice"
+import { useSuspense, useSubscription } from '@data-client/react';
+import { getPrice } from 'api/Price';
+
+function MasterPrice({ symbol }: { symbol: string }) {
+  const price = useSuspense(getPrice, { symbol });
+  useSubscription(getPrice, { symbol });
+  // ...
+}
+```
+
+
+## Behavior
+
+<ConditionalDependencies hook="useSubscription" />
+
+:::info React Native
+
+When using React Navigation, useSubscription() will sub/unsub with focus/unfocus respectively.
+
+:::
+
+## Types
 
 <GenericsTabs>
 
@@ -27,72 +86,19 @@ function useSubscription<
 
 </GenericsTabs>
 
-Great for keeping resources up-to-date with frequent changes.
+## Examples
 
-When using the default [polling subscriptions](./PollingSubscription), frequency must be set in
-[Endpoint](/rest/api/Endpoint), otherwise will have no effect.
-
-<ConditionalDependencies hook="useSubscription" />
-
-:::info React Native
-
-When using React Navigation, useSubscription() will sub/unsub with focus/unfocus respectively.
-
-:::
-
-## Example
-
-```typescript title="api/Price.ts"
-import { Resource, Entity } from '@rest-hooks/rest';
-
-export class Price extends Entity {
-  readonly symbol: string | undefined = undefined;
-  readonly price: string = '0.0';
-  // ...
-
-  pk() {
-    return this.symbol;
-  }
-}
-
-export const getPrice = new RestEndpont({
-  urlPrefix: 'http://test.com',
-  path: '/price/:symbol',
-  schema: Price,
-  pollFrequency: 5000,
-});
-```
+### Only subscribe while element is visible
 
 ```tsx title="MasterPrice.tsx"
-import { useSuspense, useSubscription } from '@rest-hooks/react';
+import { useSuspense, useSubscription } from '@data-client/react';
 import { getPrice } from 'api/Price';
 
 function MasterPrice({ symbol }: { symbol: string }) {
   const price = useSuspense(getPrice, { symbol });
-  useSubscription(getPrice, { symbol });
-  // ...
-}
-```
-
-:::tip
-
-[useLive()](./useLive.md) is a terser way to use in combination with [useSuspense()](./useSuspense.md),
-
-:::
-
-## Only subscribe while element is visible
-
-```tsx title="MasterPrice.tsx"
-import { useRef } from 'react';
-import { useSuspense, useSubscription } from '@rest-hooks/react';
-import { getPrice } from 'api/Price';
-
-function MasterPrice({ symbol }: { symbol: string }) {
-  const price = useSuspense(getPrice, { symbol });
-  const ref = useRef();
-  const onScreen = useOnScreen(ref);
+  const [ref, entry] = useIntersectionObserver();
   // null params means don't subscribe
-  useSubscription(getPrice, onScreen ? null : { symbol });
+  useSubscription(getPrice, entry?.isIntersecting ? null : { symbol });
 
   return (
     <div ref={ref}>{price.value.toLocaleString('en', { currency: 'USD' })}</div>
@@ -100,16 +106,15 @@ function MasterPrice({ symbol }: { symbol: string }) {
 }
 ```
 
-Using the last argument `active` we control whether the subscription is active or not
-based on whether the element rendered is [visible on screen](https://usehooks.com/useOnScreen/).
+When `null` is send as the second argument, the subscription is deactivated. Of course,
+if other components are still subscribed the data updates will still be active.
 
-[useOnScreen()](https://usehooks.com/useOnScreen/) uses [IntersectionObserver](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API), which is very performant.
+[useIntersectionObserver()](https://usehooks.com/useintersectionobserver) uses [IntersectionObserver](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API), which is very performant. [ref](https://react.dev/reference/react/useRef) allows
+us to access the [DOM](https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model).
 
-## Useful `Endpoint`s to send
+### Crypto prices (websockets)
 
-[Resource](/rest/api/createResource#members) provides these built-in:
+We implemented our own `StreamManager` to handle our custom websocket protocol. Here we listen to the [subcribe/unsubcribe
+actions](./Actions.md#subscribe) sent by `useSubscription` to ensure we only listen to updates for components that are rendered.
 
-- get
-- getList
-
-Feel free to add your own [RestEndpoint](/rest/api/RestEndpoint) as well.
+<StackBlitz app="coin-app" file="src/resources/StreamManager.ts,src/resources/Ticker.ts,src/pages/Home/AssetPrice.tsx" height="600" />

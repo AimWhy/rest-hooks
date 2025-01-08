@@ -1,28 +1,31 @@
-import { ControllerContext, useController } from '@rest-hooks/react';
-import { useCallback, useMemo } from 'react';
+'use client';
+import { ControllerContext, useController } from '@data-client/react';
+import { useMemo } from 'react';
 import React from 'react';
 
 import { createControllerInterceptor } from './createControllerInterceptor.js';
 import { createFixtureMap } from './createFixtureMap.js';
 import type { Fixture, Interceptor } from './fixtureTypes.js';
 
-type Props = {
+type Props<T> = {
   children: React.ReactNode;
-  readonly fixtures: (Fixture | Interceptor)[];
-  silenceMissing: boolean;
+  readonly fixtures: (Fixture | Interceptor<T>)[];
+  silenceMissing?: boolean;
+  getInitialInterceptorData?: () => T;
 };
 
 /** Can be used to mock responses based on fixtures provided.
  *
  * <MockResolver fixtures={postFixtures[state]}><MyComponent /></MockResolver>
  *
- * Place below <CacheProvider /> and above any components you want to mock.
+ * Place below <DataProvider /> and above any components you want to mock.
  */
-export default function MockResolver({
+export default function MockResolver<T = any>({
   children,
   fixtures,
-  silenceMissing,
-}: Props) {
+  getInitialInterceptorData = () => ({}) as any,
+  silenceMissing = false,
+}: Props<T>) {
   const controller = useController();
 
   const [fixtureMap, interceptors] = useMemo(
@@ -36,9 +39,16 @@ export default function MockResolver({
         controller,
         fixtureMap,
         interceptors,
+        getInitialInterceptorData,
         silenceMissing,
       ),
-    [interceptors, controller, fixtureMap, silenceMissing],
+    [
+      interceptors,
+      controller,
+      fixtureMap,
+      silenceMissing,
+      getInitialInterceptorData,
+    ],
   );
 
   return (
@@ -47,7 +57,3 @@ export default function MockResolver({
     </ControllerContext.Provider>
   );
 }
-
-MockResolver.defaultProps = {
-  silenceMissing: false,
-};

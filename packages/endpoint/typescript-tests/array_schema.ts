@@ -1,4 +1,4 @@
-import { normalize, denormalize } from '@rest-hooks/normalizr';
+import { normalize, denormalize } from '@data-client/normalizr';
 import { IDEntity } from '__tests__/new';
 
 import { schema } from '../src';
@@ -22,14 +22,15 @@ const myArray = new schema.Array(
   (input: User | Admin, parent, key) => `${input.type}s`,
 );
 
-const normalizedData = normalize(data, myArray);
+const normalizedData = normalize(myArray, data);
 
-const [denormalizedData, found, deleted] = denormalize(
-  normalizedData.result,
+const denormalizedData = denormalize(
   myArray,
+  normalizedData.result,
   normalizedData.entities,
 );
-if (denormalizedData !== undefined) {
+
+if (denormalizedData !== undefined && typeof denormalizedData !== 'symbol') {
   denormalizedData.forEach(value => {
     value.type;
     value.pk();

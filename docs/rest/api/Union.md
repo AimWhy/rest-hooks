@@ -1,13 +1,14 @@
 ---
-title: schema.Union
+titlke: schema.Union - Declarative polymorphic data for React
+sidebar_label: schema.Union
 ---
-<head>
-  <title>schema.Union - Representing a Union of possible types | Rest Hooks</title>
-</head>
 
 import LanguageTabs from '@site/src/components/LanguageTabs';
 import HooksPlayground from '@site/src/components/HooksPlayground';
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint } from '@data-client/rest';
+import StackBlitz from '@site/src/components/StackBlitz';
+
+# schema.Union
 
 Describe a schema which is a union of multiple schemas. This is useful if you need the polymorphic behavior provided by [schema.Array](./Array.md) or [schema.Values](./Values.md) but for non-collection fields.
 
@@ -48,22 +49,19 @@ delay: 150,
 },
 ]}>
 
-```typescript title="api/Feed.ts"
+```typescript title="api/Feed"
 abstract class FeedItem extends Entity {
-  readonly id: number = 0;
-  declare readonly type: 'link' | 'post';
-  pk() {
-    return `${this.id}`;
-  }
+  id = 0;
+  declare type: 'link' | 'post';
 }
 class Link extends FeedItem {
-  readonly type = 'link' as const;
-  readonly url: string = '';
-  readonly title: string = '';
+  type = 'link' as const;
+  url = '';
+  title = '';
 }
 class Post extends FeedItem {
-  readonly type = 'post' as const;
-  readonly content: string = '';
+  type = 'post' as const;
+  content = '';
 }
 
 const feed = new RestEndpoint({
@@ -80,7 +78,7 @@ const feed = new RestEndpoint({
 });
 ```
 
-```tsx title="FeedList.tsx" collapsed
+```tsx title="FeedList" collapsed
 function FeedList() {
   const feedItems = useSuspense(feed);
   return (
@@ -105,3 +103,10 @@ render(<FeedList />);
 ```
 
 </HooksPlayground>
+
+### Github Events
+
+Contribution activity comes from grouping github events by their type. Each type of Event has its
+own distinct schema, which is why we use `schema.Union`
+
+<StackBlitz app="github-app" file="src/pages/ProfileDetail/UserEvents.tsx,src/resources/Event.tsx" view="preview" initialpath="/users/ntucker" height="700" />

@@ -1,6 +1,6 @@
-import { CacheProvider } from '@rest-hooks/react';
-import { getByTestId, render, waitFor } from '@testing-library/react';
-import React, { Suspense } from 'react';
+import { DataProvider } from '@data-client/react';
+import { render, waitFor } from '@testing-library/react';
+import { Suspense } from 'react';
 
 import { Img } from '..';
 
@@ -19,24 +19,21 @@ describe('<Img />', () => {
     MockImg.prototype = Image;
     jest.spyOn(globalThis, 'Image').mockImplementation(MockImg);
   });
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
 
   it('suspends then resolves', async () => {
     const tree = (
-      <CacheProvider>
+      <DataProvider>
         <Suspense fallback="loading">
           <Img src="http://test.com/myimage.png" alt="myimage" />
         </Suspense>
-      </CacheProvider>
+      </DataProvider>
     );
     const { queryByText, getByAltText } = render(tree);
-    expect(queryByText('loading')).toBeDefined();
+    expect(queryByText('loading')).not.toBeNull();
 
     imgs.forEach(img => img.onload?.(new Event('img load')));
 
-    await waitFor(() => expect(getByAltText('myimage')).toBeDefined());
+    await waitFor(() => expect(getByAltText('myimage')).not.toBeNull());
   });
 
   it('suspends then resolves with custom component', async () => {
@@ -69,7 +66,7 @@ describe('<Img />', () => {
       <Img component={MyComponent} size="large" />;
     };
     const tree = (
-      <CacheProvider>
+      <DataProvider>
         <Suspense fallback="loading">
           <Img
             component={MyComponent}
@@ -77,42 +74,42 @@ describe('<Img />', () => {
             size="large"
           />
         </Suspense>
-      </CacheProvider>
+      </DataProvider>
     );
     const { queryByText, getByTestId } = render(tree);
-    expect(queryByText('loading')).toBeDefined();
+    expect(queryByText('loading')).not.toBeNull();
 
     imgs.forEach(img => img.onload?.(new Event('img load')));
 
-    await waitFor(() => expect(getByTestId('mycomponent')).toBeDefined());
+    await waitFor(() => expect(getByTestId('mycomponent')).not.toBeNull());
   });
 
   it('still resolves even when network request fails', async () => {
     const tree = (
-      <CacheProvider>
+      <DataProvider>
         <Suspense fallback="loading">
           <Img src="http://test.com/myimage.png" alt="myimage" />
         </Suspense>
-      </CacheProvider>
+      </DataProvider>
     );
     const { queryByText, getByAltText } = render(tree);
-    expect(queryByText('loading')).toBeDefined();
+    expect(queryByText('loading')).not.toBeNull();
 
     imgs.forEach(img => img.onerror?.(new Event('img load')));
 
-    await waitFor(() => expect(getByAltText('myimage')).toBeDefined());
+    await waitFor(() => expect(getByAltText('myimage')).not.toBeNull());
   });
 
   it('no suspense and no fetch with no src', async () => {
     const tree = (
-      <CacheProvider>
+      <DataProvider>
         <Suspense fallback="loading">
           <Img alt="myimage" />
         </Suspense>
-      </CacheProvider>
+      </DataProvider>
     );
     const { getByAltText } = render(tree);
 
-    await waitFor(() => expect(getByAltText('myimage')).toBeDefined());
+    await waitFor(() => expect(getByAltText('myimage')).not.toBeNull());
   });
 });

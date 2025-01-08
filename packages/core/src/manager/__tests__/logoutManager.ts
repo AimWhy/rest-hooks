@@ -1,8 +1,8 @@
 import { CoolerArticleResource } from '__tests__/new';
 
 import { Controller, initialState } from '../..';
-import { FETCH_TYPE, RESET_TYPE } from '../../actionTypes';
-import createReceive from '../../controller/createReceive';
+import { FETCH, RESET } from '../../actionTypes';
+import { createSetResponse } from '../../controller/actions';
 import LogoutManager from '../LogoutManager.js';
 
 function onError(e: any) {
@@ -21,11 +21,10 @@ describe('LogoutManager', () => {
   const manager = new LogoutManager();
   const getState = () => initialState;
 
-  describe('getMiddleware()', () => {
+  describe('middleware', () => {
     it('should return the same value every call', () => {
-      const a = manager.getMiddleware();
-      expect(a).toBe(manager.getMiddleware());
-      expect(a).toBe(manager.getMiddleware());
+      const a = manager.middleware;
+      expect(a).toBe(manager.middleware);
     });
   });
 
@@ -33,7 +32,6 @@ describe('LogoutManager', () => {
     afterEach(() => {
       jest.useRealTimers();
     });
-    const middleware = manager.getMiddleware();
     const next = jest.fn();
     const dispatch = jest.fn(action => Promise.resolve());
     const controller = new Controller({ dispatch, getState });
@@ -43,40 +41,39 @@ describe('LogoutManager', () => {
         controller: { value: controller },
       },
     );
-    it('should ignore non-error receive', async () => {
-      const action = createReceive(CoolerArticleResource.get, {
+    it('should ignore non-error set', async () => {
+      const action = createSetResponse(CoolerArticleResource.get, {
         args: [{ id: 5 }],
         response: { id: 5, title: 'hi' },
       });
-      await middleware(API)(next)(action);
+      await manager.middleware(API)(next)(action);
 
       expect(dispatch.mock.calls.length).toBe(0);
     });
-    it('should ignore non-401 receive', async () => {
+    it('should ignore non-401 set', async () => {
       const error: any = new Error('network failed');
       error.status = 404;
-      const action = createReceive(CoolerArticleResource.get, {
+      const action = createSetResponse(CoolerArticleResource.get, {
         args: [{ id: 5 }],
         response: error,
         error: true,
       });
-      await middleware(API)(next)(action);
+      await manager.middleware(API)(next)(action);
 
       expect(dispatch.mock.calls.length).toBe(0);
     });
     it('should dispatch reset on 401', async () => {
-      jest.setSystemTime(0);
       const error: any = new Error('network failed');
       error.status = 401;
-      const action = createReceive(CoolerArticleResource.get, {
+      const action = createSetResponse(CoolerArticleResource.get, {
         args: [{ id: 5 }],
         response: error,
         error: true,
       });
-      await middleware(API)(next)(action);
+      await manager.middleware(API)(next)(action);
 
       expect(dispatch.mock.calls.length).toBe(1);
-      expect(dispatch.mock.calls[0][0]?.type).toBe(RESET_TYPE);
+      expect(dispatch.mock.calls[0][0]?.type).toBe(RESET);
     });
 
     it('should call custom handleLogout', async () => {
@@ -86,11 +83,10 @@ describe('LogoutManager', () => {
           return error.status === 403;
         },
         handleLogout,
-      }).getMiddleware();
-      jest.setSystemTime(0);
+      }).middleware;
       const error: any = new Error('network failed');
       error.status = 403;
-      const action = createReceive(CoolerArticleResource.get, {
+      const action = createSetResponse(CoolerArticleResource.get, {
         args: [{ id: 5 }],
         response: error,
         error: true,
@@ -101,10 +97,10 @@ describe('LogoutManager', () => {
     });
 
     it('should let other actions pass through', async () => {
-      const action = { type: FETCH_TYPE };
+      const action = { type: FETCH };
       next.mockReset();
 
-      await middleware(API)(next)(action as any);
+      await manager.middleware(API)(next)(action as any);
 
       expect(next.mock.calls.length).toBe(1);
     });

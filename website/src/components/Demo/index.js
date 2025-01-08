@@ -1,197 +1,40 @@
-import { GQLEndpoint } from '@rest-hooks/graphql';
 import clsx from 'clsx';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-import simpleFetchDemo from './code/simple';
+import liveDemo from './code/live-app';
+import mutationDemo from './code/profile-edit';
 import appDemo from './code/todo-app';
 import CodeEditor from './CodeEditor';
 import styles from './styles.module.css';
-import { TODOS } from '../../mocks/handlers';
-
-const mutationDemo = [
-  {
-    label: 'REST',
-    value: 'rest',
-    code: [
-      {
-        path: 'api',
-        code: `export class Todo extends Entity {
-  id = 0;
-  userId = 0;
-  title = '';
-  completed = false;
-  pk() { return \`\${this.id}\` }
-}
-const BaseTodoResource = createResource({
-  urlPrefix: 'https://jsonplaceholder.typicode.com',
-  path: '/todos/:id',
-  schema: Todo,
-});
-export const TodoResource = {
-  ...BaseTodoResource,
-  partialUpdate: BaseTodoResource.partialUpdate.extend({
-    getOptimisticResponse(snap, { id }, body) {
-      return {
-        id,
-        ...body,
-      };
-    },
-  }),
-};`,
-      },
-      {
-        path: 'react',
-        open: true,
-        code: `import { TodoResource } from './api';
-
-function TodoDetail({ id }: { id: number }) {
-  const todo = useSuspense(TodoResource.get, { id });
-  const controller = useController();
-  const updateWith = title => () =>
-    controller.fetch(
-      TodoResource.partialUpdate,
-      { id },
-      { title }
-    );
-  return (
-    <div>
-      <div>{todo.title}</div>
-      <button onClick={updateWith('🥑')}>🥑</button>
-      <button onClick={updateWith('💖')}>💖</button>
-    </div>
-  );
-}
-render(<TodoDetail id={1} />);
-`,
-      },
-    ],
-  },
-  {
-    label: 'GraphQL',
-    value: 'graphql',
-    fixtures: [
-      {
-        endpoint: new GQLEndpoint('/').query(`
-  query GetTodo($id: ID!) {
-    todo(id: $id) {
-      id
-      title
-      completed
-    }
-  }
-`),
-        args: [{ id: 1 }],
-        response: { todo: TODOS.find(todo => todo.id === 1) },
-        delay: 150,
-      },
-    ],
-    code: [
-      {
-        path: 'api',
-        code: `import { GQLEndpoint, GQLEntity } from '@rest-hooks/graphql';
-
-const gql = new GQLEndpoint('/');
-
-export class Todo extends GQLEntity {
-  readonly title: string = '';
-  readonly completed: boolean = false;
-}
-
-export const TodoResource = {
-  get: gql.query(\`
-    query GetTodo($id: ID!) {
-      todo(id: $id) {
-        id
-        title
-        completed
-      }
-    }
-  \`, { todo: Todo }),
-  update: gql.mutation(
-    \`mutation UpdateTodo($todo: Todo!) {
-      updateTodo(todo: $todo) {
-        id
-        title
-        completed
-      }
-    }\`,
-    { updateTodo: Todo },
-  ),
-}`,
-      },
-      {
-        path: 'react',
-        open: true,
-        code: `import { TodoResource } from './api';
-
-function TodoDetail({ id }: { id: number }) {
-  const { todo } = useSuspense(TodoResource.get, { id });
-  const controller = useController();
-  const updateWith = title => () =>
-    controller.fetch(
-      TodoResource.update,
-      { todo: { id, title } }
-    );
-  return (
-    <div>
-      <div>{todo.title}</div>
-      <button onClick={updateWith('🥑')}>🥑</button>
-      <button onClick={updateWith('💖')}>💖</button>
-    </div>
-  );
-}
-render(<TodoDetail id={1} />);
-  `,
-      },
-    ],
-  },
-];
 
 const Demo = props => (
   <div className="container">
     <div className={clsx('row', styles.demoList)}>
       <div className="col col--3">
-        <h2>A simple data fetch</h2>
+        <h2>Reactive Mutations</h2>
         <div>
           <p>
-            Add a single <Link to="/docs/api/useSuspense">useSuspense()</Link>{' '}
-            call{' '}
-            <Link to="/docs/getting-started/data-dependency">
-              where you need its data
-            </Link>
+            Render data with{' '}
+            <Link to="/docs/api/useSuspense">useSuspense()</Link>. Then mutate
+            with <Link to="/docs/api/Controller#fetch">Controller.fetch()</Link>
             .
-          </p>
-          <p>
-            Rest Hooks automatically optimizes performance by caching the
-            results, deduplicating fetches, efficient component render bindings
-            and more.
-          </p>
-          {/*<p>
-            Decoupling <em>how</em> to get data from <em>where</em> you use it
-            enables reusable components.
-          </p>*/}
-        </div>
-      </div>
-      <div className="col col--9">
-        <CodeEditor codes={simpleFetchDemo} defaultValue="rest" />
-      </div>
-    </div>
-    <div className={clsx('row', styles.demoList)}>
-      <div className="col col--3">
-        <h2>Stateful mutations</h2>
-        <div>
-          <p>
-            Use <Link to="/docs/api/Controller#fetch">Controller.fetch()</Link>{' '}
-            to update the store.
           </p>
           <p>
             This updates <strong>all</strong> usages{' '}
             <Link to="/docs/concepts/atomic-mutations">
               <em>atomically</em> and <em>immediately</em>
             </Link>{' '}
-            with zero additional fetches. Rest Hooks automatically ensures data
-            consistency and integrity globally.
+            with zero additional fetches. Reactive Data Client automatically
+            ensures{' '}
+            <Link to="/docs/concepts/normalization">
+              data consistency and integrity globally
+            </Link>{' '}
+            including even the most challenging{' '}
+            <Link to="/docs/getting-started/mutations#optimistic-updates">
+              <strike>race conditions</strike>
+            </Link>
+            .
           </p>
         </div>
       </div>
@@ -201,32 +44,54 @@ const Demo = props => (
     </div>
     <div className={clsx('row', styles.demoList)}>
       <div className="col col--3">
-        <h2>An application</h2>
+        <h2>Structured data</h2>
         <div>
           <p>
-            Data can be consumed and controlled in many contexts, speeding up
-            development.
+            Data consistency, performance, and typesafety scale even as your
+            data becomes more complex.
           </p>
           <p>
-            Rest Hooks uses{' '}
-            <Link to="/docs/concepts/normalization">data normalization</Link> to
-            maintain consistency no matter how and where the data is consumed.
+            <Link to="/docs/getting-started/mutations">
+              Creates and deletes
+            </Link>{' '}
+            reactively update the{' '}
+            <Link to="/rest/api/Collection#nonfilterargumentkeys">
+              correct lists
+            </Link>
+            , even when those lists are{' '}
+            <Link to="/rest/api/Collection">nested inside other objects</Link>.
           </p>
           <p>
-            Every piece of data maintains referential stability unless it
-            changes. This ensures the most optimized render performance, as well
-            as predictable equality checks.
-          </p>
-          <p>
-            Rest easy with the help of{' '}
-            <Link to="/docs/guides/debugging">debugging</Link>,{' '}
-            <Link to="/docs/guides/unit-testing-hooks">unit testing</Link>, and{' '}
-            <Link to="/docs/guides/storybook">storybook integration</Link>.
+            Model even the most complex data with{' '}
+            <Link to="/rest/api/Union">polymorphic</Link> and{' '}
+            <Link to="/rest/api/Values">unbounded object/maps</Link> support.
           </p>
         </div>
       </div>
       <div className="col col--9">
         <CodeEditor codes={appDemo} defaultValue="rest" />
+      </div>
+    </div>
+    <div className={clsx('row', styles.demoList)}>
+      <div className="col col--3">
+        <h2>Live updates</h2>
+        <div>
+          <p>
+            Keep remote changes in sync with{' '}
+            <Link to="/docs/api/useLive">useLive()</Link>.
+          </p>
+          <p>
+            <Link to="/docs/api/PollingSubscription">Polling</Link>,{' '}
+            <Link to="/docs/concepts/managers#data-stream">
+              SSE and Websocket
+            </Link>{' '}
+            or support a custom protocol with{' '}
+            <Link to="/docs/concepts/managers">middlewares</Link>
+          </p>
+        </div>
+      </div>
+      <div className="col col--9">
+        <CodeEditor codes={liveDemo} defaultValue="polling" />
       </div>
     </div>
   </div>

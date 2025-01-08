@@ -1,7 +1,37 @@
 {
-  "name": "@rest-hooks/test",
-  "version": "10.1.1",
-  "description": "Testing utilities for Rest Hooks",
+  "name": "@data-client/test",
+  "version": "0.14.17",
+  "description": "Testing utilities for Data Client",
+  "homepage": "https://dataclient.io/docs/guides/storybook",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com:reactive/data-client.git",
+    "directory": "packages/test"
+  },
+  "bugs": {
+    "url": "https://github.com/reactive/data-client/issues"
+  },
+  "keywords": [
+    "testing",
+    "storybook",
+    "hooks",
+    "react",
+    "data",
+    "cache",
+    "flux",
+    "suspense",
+    "fetch",
+    "hook",
+    "networking",
+    "concurrent mode",
+    "typescript",
+    "redux",
+    "data fetching",
+    "data cache",
+    "normalized cache",
+    "async",
+    "swr"
+  ],
   "sideEffects": false,
   "main": "dist/index.js",
   "react-native": "legacy/browser.js",
@@ -63,70 +93,51 @@
     "README.md"
   ],
   "scripts": {
-    "build:lib": "NODE_ENV=production BROWSERSLIST_ENV=2020 BROWSERSLIST_ENV='modern' babel --root-mode upward src --out-dir lib --source-maps inline --extensions '.ts,.tsx,.cts,.js' --ignore '**/__tests__/**' --ignore '**/*.d.ts' && mv ./lib/makeRenderRestHook/renderHook.js ./lib/makeRenderRestHook/renderHook.cjs",
-    "build:legacy:lib": "NODE_ENV=production BROWSERSLIST_ENV=2018 babel --root-mode upward src --out-dir legacy --source-maps inline --extensions '.ts,.tsx,.cts,.js' --ignore '**/__tests__/**' --ignore '**/*.d.ts'",
-    "build:bundle": "BROWSERSLIST_ENV=node12 rollup -c && COMPILE_TARGET=native BROWSERSLIST_ENV=node12 rollup -c && echo '{\"type\":\"commonjs\"}' > dist/package.json",
-    "build:clean": "rimraf lib dist ts3.4 legacy *.tsbuildinfo",
-    "build:legacy-types": "yarn run downlevel-dts lib ts3.4",
-    "build": "yarn run build:lib && yarn run build:legacy:lib && yarn run build:bundle",
-    "dev": "yarn run build:lib -w",
-    "prepare": "yarn run build:lib",
-    "prepack": "yarn prepare",
-    "prepublishOnly": "yarn run build:bundle && yarn run build:legacy:lib"
+    "build:lib": "run build:lib:esm && run build:lib:cjs",
+    "build:lib:esm": "NODE_ENV=production BROWSERSLIST_ENV=2020 yarn g:babel-lite --out-dir lib --extensions '.ts,.tsx,.js'",
+    "build:lib:cjs": "BROWSERSLIST_ENV=node12 BABEL_MODULES=cjs yarn g:babel-lite --out-dir lib --extensions '.cts' && mv ./lib/makeRenderDataClient/renderHook.js ./lib/makeRenderDataClient/renderHook.cjs && mv ./lib/makeRenderDataClient/use18.js ./lib/makeRenderDataClient/use18.cjs && mv ./lib/makeRenderDataClient/use18.native.js ./lib/makeRenderDataClient/use18.native.cjs",
+    "build:legacy:lib": "run build:legacy:lib:esm && run build:legacy:lib:cjs",
+    "build:legacy:lib:esm": "NODE_ENV=production BROWSERSLIST_ENV=2018 yarn g:babel-lite --out-dir legacy --extensions '.ts,.tsx,.js'",
+    "build:legacy:lib:cjs": "BABEL_MODULES=cjs BROWSERSLIST_ENV=2018 yarn g:babel-lite --out-dir legacy --extensions '.cts' && mv ./legacy/makeRenderDataClient/renderHook.js ./legacy/makeRenderDataClient/renderHook.cjs && mv ./legacy/makeRenderDataClient/use18.js ./legacy/makeRenderDataClient/use18.cjs && mv ./legacy/makeRenderDataClient/use18.native.js ./legacy/makeRenderDataClient/use18.native.cjs",
+    "build:bundle": "BROWSERSLIST_ENV=node12 yarn g:rollup && COMPILE_TARGET=native BROWSERSLIST_ENV=node12 yarn g:rollup && echo '{\"type\":\"commonjs\"}' > dist/package.json",
+    "build:clean": "yarn g:clean",
+    "build:legacy-types": "yarn g:downtypes lib ts3.4",
+    "build": "run build:lib && run build:legacy:lib && run build:bundle",
+    "dev": "run build:lib:esm -w & run build:lib:cjs -w && fg",
+    "prepare": "run build:lib",
+    "prepack": "echo 'run prepack' && run prepare && run build:bundle && run build:legacy:lib"
   },
-  "keywords": [
-    "test",
-    "storybook",
-    "hook",
-    "react",
-    "data",
-    "cache",
-    "flux",
-    "suspense",
-    "fetch",
-    "hook",
-    "networking",
-    "concurrent mode",
-    "typescript",
-    "redux",
-    "data fetching",
-    "data cache",
-    "normalized cache",
-    "async",
-    "swr"
-  ],
   "author": "Nathaniel Tucker <me@ntucker.me> (https://github.com/ntucker)",
+  "funding": "https://github.com/sponsors/ntucker",
   "license": "Apache-2.0",
-  "homepage": "https://resthooks.io/docs/guides/storybook",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com:data-client/rest-hooks.git",
-    "directory": "packages/test"
-  },
-  "bugs": {
-    "url": "https://github.com/data-client/rest-hooks/issues"
-  },
   "dependencies": {
     "@babel/runtime": "^7.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/react-hooks": "~8.0.0",
-    "@testing-library/react-native": "^11.5.0",
-    "react-error-boundary": "^3.1.4"
+    "@testing-library/dom": "^10.1.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/react-native": "^13.0.0"
   },
   "peerDependencies": {
-    "@rest-hooks/react": "^0.2.0 || ^0.3.0 || ^1.0.0 || ^6.0.0 || ^7.0.0",
-    "@types/react": "^16.8.4 || ^17.0.0 || ^18.0.0",
+    "@data-client/react": "^0.12.15 || ^0.13.0 || ^0.14.0",
+    "@testing-library/react-hooks": "^8.0.0",
+    "@types/react": "^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0-0 || ^19.0.0",
     "@types/react-dom": "*",
-    "react": "^16.8.4 || ^17.0.0 || ^18.0.0",
+    "jest": "*",
+    "react": "^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0-0 || ^19.0.0",
     "react-dom": "*",
     "react-native": "*",
     "react-test-renderer": "*"
   },
   "peerDependenciesMeta": {
+    "@testing-library/react-hooks": {
+      "optional": true
+    },
     "@types/react": {
       "optional": true
     },
     "@types/react-dom": {
+      "optional": true
+    },
+    "jest": {
       "optional": true
     },
     "react-dom": {
@@ -140,18 +151,18 @@
     }
   },
   "devDependencies": {
-    "@babel/cli": "7.20.7",
-    "@babel/core": "7.20.12",
-    "@types/babel__core": "^7",
-    "@types/react-test-renderer": "^18",
-    "downlevel-dts": "^0.10.0",
-    "rollup": "2.79.1",
-    "rollup-plugin-babel": "^4.4.0",
-    "rollup-plugin-commonjs": "^10.1.0",
-    "rollup-plugin-filesize": "^9.1.2",
-    "rollup-plugin-json": "^4.0.0",
-    "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-replace": "^2.2.0",
-    "rollup-plugin-terser": "^7.0.2"
+    "@anansi/browserslist-config": "^1.4.2",
+    "@data-client/react": "workspace:*",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "19.0.3",
+    "@types/react-dom": "19.0.2",
+    "@types/react-test-renderer": "19.0.0",
+    "jest": "^29.5.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "*",
+    "react-test-renderer": "*",
+    "rollup-plugins": "workspace:*"
   }
 }

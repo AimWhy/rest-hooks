@@ -1,25 +1,23 @@
-import { jest } from '@jest/globals';
-import { Endpoint, Entity } from '@rest-hooks/endpoint';
-import { AbortOptimistic } from '@rest-hooks/endpoint';
-import { CacheProvider } from '@rest-hooks/react';
-import { CacheProvider as ExternalCacheProvider } from '@rest-hooks/redux';
+import { CacheProvider } from '@data-client/react';
+import { DataProvider as ExternalDataProvider } from '@data-client/react/redux';
+import { Endpoint, Entity } from '@data-client/rest';
+import { afterEach, jest } from '@jest/globals';
 import {
-  CoolerArticleResource,
+  OptimisticArticleResource,
   ArticleResourceWithOtherListUrl,
   FutureArticleResource,
-  VisSettings,
   VisSettingsResource,
-  VisEndpoint,
   CoolerArticle,
   Article,
+  VisSettingsResourceFromMixin,
 } from '__tests__/new';
 import { SpyInstance } from 'jest-mock';
 import nock from 'nock';
 import { useContext } from 'react';
 
-import { makeRenderRestHook, act } from '../../../test';
+import { makeRenderDataClient, act } from '../../../test';
 import { StateContext } from '../context';
-import { useCache, useController, useSuspense } from '../hooks';
+import { useCache, useSuspense } from '../hooks';
 import { useError } from '../hooks';
 import {
   payload,
@@ -46,10 +44,10 @@ afterEach(() => {
 */
 describe.each([
   ['CacheProvider', CacheProvider],
-  ['ExternalCacheProvider', ExternalCacheProvider],
+  ['ExternalDataProvider', ExternalDataProvider],
 ] as const)(`%s`, (_, makeProvider) => {
   describe('Optimistic Updates', () => {
-    let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+    let renderDataClient: ReturnType<typeof makeRenderDataClient>;
     let mynock: nock.Scope;
 
     beforeEach(() => {
@@ -92,12 +90,9 @@ describe.each([
       nock.cleanAll();
       jest.useRealTimers().clearAllMocks();
     });
-    afterAll(() => {
-      jest.restoreAllMocks();
-    });
 
     beforeEach(() => {
-      renderRestHook = makeRenderRestHook(makeProvider);
+      renderDataClient = makeRenderDataClient(makeProvider);
     });
 
     it('works with partial update', async () => {
@@ -108,18 +103,105 @@ describe.each([
         content: 'real response',
       });
 
-      const { result, waitForNextUpdate } = renderRestHook(
+      const { result, controller } = renderDataClient(
         () => {
-          const { fetch } = useController();
-          const article = useCache(CoolerArticleResource.get, params);
+          const article = useCache(OptimisticArticleResource.get, params);
           // @ts-expect-error
           article.doesnotexist;
-          return { fetch, article };
+          return article;
         },
         {
           initialFixtures: [
             {
-              endpoint: CoolerArticleResource.get,
+              endpoint: OptimisticArticleResource.get,
+              args: [params],
+              response: payload,
+            },
+          ],
+        },
+      );
+      expect(result.current).toEqual(CoolerArticle.fromJS(payload));
+      let promise: any;
+      act(() => {
+        promise = controller.fetch(
+          OptimisticArticleResource.partialUpdate,
+          params,
+          {
+            content: 'changed',
+          },
+        );
+      });
+
+      expect(result.current).toBeInstanceOf(CoolerArticle);
+      expect(result.current).toEqual(
+        CoolerArticle.fromJS({
+          ...payload,
+          content: 'changed',
+        }),
+      );
+      await act(() => promise);
+      expect(result.current).toEqual(
+        CoolerArticle.fromJS({
+          ...payload,
+          title: 'some other title',
+          content: 'real response',
+        }),
+      );
+    });
+
+    it('partial update does nothing but doesnt crash with no existing data', async () => {
+      const params = { id: payload.id };
+      mynock.patch('/article-cooler/5').reply(200, {
+        ...payload,
+        title: 'some other title',
+        content: 'real response',
+      });
+
+      const { result, controller } = renderDataClient(() => {
+        return useCache(OptimisticArticleResource.get, params);
+      });
+      expect(result.current).toBeUndefined();
+      let promise: any;
+      act(() => {
+        promise = controller.fetch(
+          OptimisticArticleResource.partialUpdate,
+          params,
+          {
+            content: 'changed',
+          },
+        );
+      });
+      expect(result.current).toBeUndefined();
+
+      await act(() => promise);
+      expect(result.current).toEqual(
+        CoolerArticle.fromJS({
+          ...payload,
+          title: 'some other title',
+          content: 'real response',
+        }),
+      );
+    });
+
+    it('works with update', async () => {
+      const params = { id: payload.id };
+      mynock.put('/article-cooler/5').reply(200, {
+        ...payload,
+        title: 'some other title',
+        content: 'real response',
+      });
+
+      const { result, controller } = renderDataClient(
+        () => {
+          const article = useCache(OptimisticArticleResource.get, params);
+          // @ts-expect-error
+          article.doesnotexist;
+          return { article };
+        },
+        {
+          initialFixtures: [
+            {
+              endpoint: OptimisticArticleResource.get,
               args: [params],
               response: payload,
             },
@@ -129,13 +211,10 @@ describe.each([
       expect(result.current.article).toEqual(CoolerArticle.fromJS(payload));
       let promise: any;
       act(() => {
-        promise = result.current.fetch(
-          CoolerArticleResource.partialUpdate,
-          params,
-          {
-            content: 'changed',
-          },
-        );
+        promise = controller.fetch(OptimisticArticleResource.update, params, {
+          ...result.current.article,
+          content: 'changed',
+        });
       });
 
       expect(result.current.article).toBeInstanceOf(CoolerArticle);
@@ -155,20 +234,79 @@ describe.each([
       );
     });
 
-    it('works with deletes', async () => {
+    it('works with update using FormData', async () => {
       const params = { id: payload.id };
-      mynock.delete('/article-cooler/5').reply(200, '');
+      mynock.put('/article-cooler/5').reply(200, {
+        ...payload,
+        title: 'some other title',
+        content: 'real response',
+      });
 
-      const { result, waitForNextUpdate } = renderRestHook(
+      const { result, controller } = renderDataClient(
         () => {
-          const { fetch } = useController();
-          const articles = useCache(CoolerArticleResource.getList);
-          return { fetch, articles };
+          const article = useCache(OptimisticArticleResource.get, params);
+          // @ts-expect-error
+          article.doesnotexist;
+          return article;
         },
         {
           initialFixtures: [
             {
-              endpoint: CoolerArticleResource.getList,
+              endpoint: OptimisticArticleResource.get,
+              args: [params],
+              response: payload,
+            },
+          ],
+        },
+      );
+      expect(result.current).toEqual(CoolerArticle.fromJS(payload));
+      if (!result.current) throw new Error('no result');
+      let promise: any;
+      const formPayload = new FormData();
+      Object.keys(result.current).forEach(k => {
+        if (!result.current || k === 'author' || k === 'tags' || k === 'id')
+          return;
+        formPayload.set(k, (result.current as any)[k]);
+      });
+      formPayload.set('content', 'changed');
+      act(() => {
+        promise = controller.fetch(
+          OptimisticArticleResource.update,
+          params,
+          formPayload,
+        );
+      });
+
+      expect(result.current).toBeInstanceOf(CoolerArticle);
+      expect(result.current).toEqual(
+        CoolerArticle.fromJS({
+          ...payload,
+          content: 'changed',
+        }),
+      );
+      await act(() => promise);
+      expect(result.current).toEqual(
+        CoolerArticle.fromJS({
+          ...payload,
+          title: 'some other title',
+          content: 'real response',
+        }),
+      );
+    });
+
+    it('works with deletes', async () => {
+      const params = { id: payload.id };
+      mynock.delete('/article-cooler/5').reply(200, '');
+
+      const { result, controller } = renderDataClient(
+        () => {
+          const articles = useCache(OptimisticArticleResource.getList);
+          return { articles };
+        },
+        {
+          initialFixtures: [
+            {
+              endpoint: OptimisticArticleResource.getList,
               args: [{}],
               response: [payload],
             },
@@ -178,14 +316,15 @@ describe.each([
       expect(result.current.articles).toEqual([CoolerArticle.fromJS(payload)]);
       let promise: any;
       act(() => {
-        promise = result.current.fetch(CoolerArticleResource.delete, params);
+        promise = controller.fetch(OptimisticArticleResource.delete, params);
       });
       expect(result.current.articles).toEqual([]);
       await act(() => promise);
       expect(result.current.articles).toEqual([]);
     });
 
-    it('works with eager creates', async () => {
+    it('works with eager creates (legacy)', async () => {
+      // legacy creates (non-collection) do not support id inference
       const body = { id: -1111111111, content: 'hi' };
       const existingItem = Article.fromJS({
         id: 100,
@@ -198,12 +337,11 @@ describe.each([
         content: 'real response',
       });
 
-      const { result, waitForNextUpdate } = renderRestHook(
+      const { result, controller } = renderDataClient(
         () => {
-          const { fetch } = useController();
           const listA = useCache(ArticleResourceWithOtherListUrl.getList);
           const listB = useCache(ArticleResourceWithOtherListUrl.otherList);
-          return { fetch, listA, listB };
+          return { listA, listB };
         },
         {
           initialFixtures: [
@@ -221,7 +359,7 @@ describe.each([
 
       let promise: any;
       act(() => {
-        promise = result.current.fetch(
+        promise = controller.fetch(
           ArticleResourceWithOtherListUrl.create,
           body,
         );
@@ -250,11 +388,43 @@ describe.each([
       ]);
     });
 
+    it('should update on create (legacy)', async () => {
+      const { result, controller, waitForNextUpdate } = renderDataClient(() => {
+        const articles = useSuspense(
+          FutureArticleResource.getList.extend({ schema: [CoolerArticle] }),
+        );
+        return { articles };
+      });
+
+      await waitForNextUpdate();
+      expect(result.current.articles.map(({ id }) => id)).toEqual([5, 3]);
+
+      const createOptimistic = FutureArticleResource.create
+        .extend({ schema: CoolerArticle })
+        .extend({
+          update: newid => ({
+            [OptimisticArticleResource.getList.key()]: (
+              existing: string[] = [],
+            ) => [newid, ...existing],
+          }),
+          getOptimisticResponse: (snap, body) => ({
+            id: Math.random(),
+            ...(body as any),
+          }),
+        });
+      act(() => {
+        controller.fetch(createOptimistic, {
+          id: 1,
+          title: 'whatever',
+        });
+      });
+      expect(result.current.articles.map(({ id }) => id)).toEqual([1, 5, 3]);
+    });
+
     it('should update on create', async () => {
-      const { result, waitForNextUpdate } = renderRestHook(() => {
+      const { result, controller, waitForNextUpdate } = renderDataClient(() => {
         const articles = useSuspense(FutureArticleResource.getList);
-        const { fetch } = useController();
-        return { articles, fetch };
+        return { articles };
       });
 
       await waitForNextUpdate();
@@ -267,32 +437,33 @@ describe.each([
         }),
       });
       act(() => {
-        result.current.fetch(createOptimistic, {
+        controller.fetch(createOptimistic, {
           id: 1,
           title: 'whatever',
         });
       });
-      expect(result.current.articles.map(({ id }) => id)).toEqual([1, 5, 3]);
+      expect(result.current.articles.map(({ id }) => id)).toEqual([5, 3, 1]);
     });
 
     it('should clear only earlier optimistic updates when a promise resolves', async () => {
+      jest.useFakeTimers({ legacyFakeTimers: false });
       const params = { id: payload.id };
-      const { result, waitForNextUpdate } = renderRestHook(
+      const { result, controller } = renderDataClient(
         () => {
-          const { fetch } = useController();
-          const article = useCache(CoolerArticleResource.get, params);
-          return { fetch, article };
+          const article = useCache(OptimisticArticleResource.get, params);
+          return { article };
         },
         {
           initialFixtures: [
             {
-              endpoint: CoolerArticleResource.get,
+              endpoint: OptimisticArticleResource.get,
               args: [params],
               response: payload,
             },
           ],
         },
       );
+      jest.advanceTimersByTime(23);
 
       const fetches: Promise<any>[] = [];
       const resolves: ((v: any) => void)[] = [];
@@ -300,8 +471,8 @@ describe.each([
       // first optimistic
       act(() => {
         fetches.push(
-          result.current.fetch(
-            CoolerArticleResource.partialUpdate.extend({
+          controller.fetch(
+            OptimisticArticleResource.partialUpdate.extend({
               fetch(...args: any[]) {
                 return new Promise(resolve => {
                   resolves.push(resolve);
@@ -323,13 +494,13 @@ describe.each([
           content: 'firstoptimistic',
         }),
       );
-      await new Promise(resolve => setTimeout(resolve, 0));
+      jest.advanceTimersByTime(23);
 
       // second optimistic
       act(() => {
         fetches.push(
-          result.current.fetch(
-            CoolerArticleResource.partialUpdate.extend({
+          controller.fetch(
+            OptimisticArticleResource.partialUpdate.extend({
               fetch(...args: any[]) {
                 return new Promise(resolve => {
                   resolves.push(resolve);
@@ -350,13 +521,13 @@ describe.each([
           content: 'firstoptimistic',
         }),
       );
-      await new Promise(resolve => setTimeout(resolve, 0));
+      jest.advanceTimersByTime(23);
 
       // third optimistic
       act(() => {
         fetches.push(
-          result.current.fetch(
-            CoolerArticleResource.partialUpdate.extend({
+          controller.fetch(
+            OptimisticArticleResource.partialUpdate.extend({
               fetch(...args: any[]) {
                 return new Promise(resolve => {
                   resolves.push(resolve);
@@ -380,9 +551,7 @@ describe.each([
       );
 
       // resolve second request while first is in flight
-      act(() => {
-        setTimeout(() => resolves[1]({ ...payload, title: 'second' }), 1);
-      });
+      resolves[1]({ ...payload, title: 'second' });
       await act(() => fetches[1]);
 
       // first and second optimistic should be cleared with only third optimistic left to be layerd
@@ -397,13 +566,11 @@ describe.each([
 
       // resolve the first fetch; but the second fetch happened after so we use it first since this is default 'first fetchedAt' behavior
       // this can be solved by either canceling requests or having server send the total order
-      act(() =>
-        resolves[0]({
-          ...payload,
-          title: 'first',
-          content: 'first',
-        }),
-      );
+      resolves[0]({
+        ...payload,
+        title: 'first',
+        content: 'first',
+      });
       await act(() => fetches[0]);
       expect(result.current.article).toEqual(
         CoolerArticle.fromJS({
@@ -412,25 +579,28 @@ describe.each([
           tags: ['thirdoptimistic'],
         }),
       );
+      jest.useRealTimers();
+      await renderDataClient.allSettled();
     });
 
     it('should clear optimistic when server response resolves in order', async () => {
+      jest.useFakeTimers({ legacyFakeTimers: false });
       const params = { id: payload.id };
-      const { result, controller } = renderRestHook(
+      const { result, controller } = renderDataClient(
         () => {
-          const article = useCache(CoolerArticleResource.get, params);
-          return article;
+          return useCache(OptimisticArticleResource.get, params);
         },
         {
           initialFixtures: [
             {
-              endpoint: CoolerArticleResource.get,
+              endpoint: OptimisticArticleResource.get,
               args: [params],
               response: payload,
             },
           ],
         },
       );
+      jest.advanceTimersByTime(23);
 
       const fetches: Promise<any>[] = [];
       const resolves: ((v: any) => void)[] = [];
@@ -439,7 +609,7 @@ describe.each([
       act(() => {
         fetches.push(
           controller.fetch(
-            CoolerArticleResource.partialUpdate.extend({
+            OptimisticArticleResource.partialUpdate.extend({
               fetch(...args: any[]) {
                 return new Promise(resolve => {
                   resolves.push(resolve);
@@ -461,13 +631,13 @@ describe.each([
           content: 'firstoptimistic',
         }),
       );
-      await new Promise(resolve => setTimeout(resolve, 0));
+      jest.advanceTimersByTime(23);
 
       // second optimistic
       act(() => {
         fetches.push(
           controller.fetch(
-            CoolerArticleResource.partialUpdate.extend({
+            OptimisticArticleResource.partialUpdate.extend({
               fetch(...args: any[]) {
                 return new Promise(resolve => {
                   resolves.push(resolve);
@@ -488,13 +658,13 @@ describe.each([
           content: 'firstoptimistic',
         }),
       );
-      await new Promise(resolve => setTimeout(resolve, 0));
+      jest.advanceTimersByTime(23);
 
       // third optimistic
       act(() => {
         fetches.push(
           controller.fetch(
-            CoolerArticleResource.partialUpdate.extend({
+            OptimisticArticleResource.partialUpdate.extend({
               fetch(...args: any[]) {
                 return new Promise(resolve => {
                   resolves.push(resolve);
@@ -516,11 +686,10 @@ describe.each([
           tags: ['thirdoptimistic'],
         }),
       );
+      jest.advanceTimersByTime(23);
 
       // resolve first request
-      act(() => {
-        setTimeout(() => resolves[0]({ ...payload, content: 'first' }), 0);
-      });
+      resolves[0]({ ...payload, content: 'first' });
       await act(() => fetches[0]);
 
       // replace optimistic with response
@@ -539,7 +708,7 @@ describe.each([
         title: 'second',
         content: 'first',
       });
-      await act(() => fetches[0]);
+      await act(() => fetches[1]);
       expect(result.current).toEqual(
         CoolerArticle.fromJS({
           ...payload,
@@ -556,7 +725,7 @@ describe.each([
         content: 'first',
         tags: ['third'],
       });
-      await act(() => fetches[0]);
+      await act(() => fetches[2]);
       expect(result.current).toEqual(
         CoolerArticle.fromJS({
           ...payload,
@@ -565,6 +734,8 @@ describe.each([
           tags: ['third'],
         }),
       );
+      jest.useRealTimers();
+      await renderDataClient.allSettled();
     });
 
     describe('race conditions', () => {
@@ -581,10 +752,6 @@ describe.each([
       class Toggle extends Entity {
         readonly id: number = 0;
         readonly visible: boolean = true;
-
-        pk() {
-          return `${this.id}`;
-        }
       }
       const getbool = new Endpoint(
         (id: number): Promise<{ id: number; visible: boolean }> =>
@@ -602,8 +769,8 @@ describe.each([
           schema: Toggle,
           sideEffect: true,
           getOptimisticResponse(snap, id) {
-            const { data } = snap.getResponse(getbool, id);
-            if (!data) throw new AbortOptimistic();
+            const data = snap.get(Toggle, { id });
+            if (!data) throw snap.abort;
             return {
               id,
               visible: data.visible ? false : true,
@@ -629,20 +796,19 @@ describe.each([
           mynock
             .persist()
             .post('/toggle/5')
-            .delay(2000)
+            .delay(500)
             .reply(200, () => {
               visible = visible ? false : true;
               return { id: 5, visible };
             });
 
-          const { result, waitForNextUpdate } = renderRestHook(
+          const { result, controller } = renderDataClient(
             () => {
-              const { fetch } = useController();
               const tog = useCache(getbool, 5);
               const err = useError(failToggle, 5);
               // @ts-expect-error
               tog.doesnotexist;
-              return { fetch, tog, err };
+              return { tog, err };
             },
             {
               initialFixtures: [
@@ -658,12 +824,12 @@ describe.each([
 
           let promise: any;
           act(() => {
-            promise = result.current.fetch(failToggle, 5);
+            promise = controller.fetch(failToggle, 5);
           });
           // nothing should change since this failed
           expect(result.current.tog).toEqual({ id: 5, visible: false });
           expect(result.current.err).toEqual(toThrow);
-          await act(() => promise);
+          renderDataClient.cleanup();
         },
       );
 
@@ -678,19 +844,18 @@ describe.each([
         mynock
           .persist()
           .post('/toggle/5')
-          .delay(2000)
+          .delay(700)
           .reply(200, () => {
             visible = visible ? false : true;
             return { id: 5, visible };
           });
 
-        const { result, waitForNextUpdate } = renderRestHook(
+        const { result, controller } = renderDataClient(
           () => {
-            const { fetch } = useController();
             const tog = useCache(getbool, 5);
             // @ts-expect-error
             tog.doesnotexist;
-            return { fetch, tog };
+            return { tog };
           },
           {
             initialFixtures: [
@@ -709,28 +874,33 @@ describe.each([
         const promises2: Promise<any>[] = [];
 
         act(() => {
-          promises.push(result.current.fetch(toggle, 5));
+          promises.push(controller.fetch(toggle, 5));
         });
+        jest.runOnlyPendingTimers();
         expect(result.current.tog).toEqual({ id: 5, visible: true });
 
         act(() => {
-          promises.push(result.current.fetch(toggle, 5));
+          promises.push(controller.fetch(toggle, 5));
         });
+        jest.runOnlyPendingTimers();
         expect(result.current.tog).toEqual({ id: 5, visible: false });
 
         act(() => {
-          promises.push(result.current.fetch(toggle, 5));
+          promises.push(controller.fetch(toggle, 5));
         });
+        jest.runOnlyPendingTimers();
         expect(result.current.tog).toEqual({ id: 5, visible: true });
 
         jest.advanceTimersByTime(300);
 
         act(() => {
-          promises2.push(result.current.fetch(toggle, 5));
+          promises2.push(controller.fetch(toggle, 5));
         });
+        jest.runOnlyPendingTimers();
         expect(result.current.tog).toEqual({ id: 5, visible: false });
 
-        jest.advanceTimersByTime(2001);
+        jest.advanceTimersByTime(701);
+        jest.runOnlyPendingTimers();
         await act(async () => {
           await Promise.all(promises);
         });
@@ -745,6 +915,8 @@ describe.each([
         });
 
         expect(result.current.tog).toEqual({ id: 5, visible: false });
+
+        renderDataClient.cleanup();
       });
 
       it('toggle should handle when response is missing', async () => {
@@ -763,22 +935,23 @@ describe.each([
             return { id: 5, visible };
           });
 
-        const { result, waitForNextUpdate } = renderRestHook(() => {
-          const { fetch, getError } = useController();
+        const { result, controller } = renderDataClient(() => {
           const tog = useCache(getbool, 5);
-          const state = useContext(StateContext);
-          const toggleError = getError(toggle, 5, state);
-          return { fetch, tog, toggleError };
+          return { tog };
         });
 
         expect(result.current.tog).toBeUndefined();
-        expect(result.current.toggleError).toBeUndefined();
+        expect(
+          controller.getError(toggle, 5, controller.getState()),
+        ).toBeUndefined();
 
         act(() => {
-          result.current.fetch(toggle, 5);
+          controller.fetch(toggle, 5);
         });
         expect(result.current.tog).toBeUndefined();
-        expect(result.current.toggleError).toBeUndefined();
+        expect(
+          controller.getError(toggle, 5, controller.getState()),
+        ).toBeUndefined();
       });
 
       it('should error when user error happens', async () => {
@@ -810,13 +983,11 @@ describe.each([
             return { id: 5, visible };
           });
 
-        const { result } = renderRestHook(
+        const { result, controller } = renderDataClient(
           () => {
-            const { fetch, getError } = useController();
             const tog = useCache(getbool, 5);
             const state = useContext(StateContext);
-            const fetchError = getError(toggleError, 5, state);
-            return { fetch, tog, fetchError };
+            return { tog, state };
           },
           {
             initialFixtures: [
@@ -830,150 +1001,164 @@ describe.each([
         );
 
         expect(result.current.tog).toBeDefined();
-        expect(result.current.fetchError).toBeUndefined();
+        expect(
+          controller.getError(toggleError, 5, result.current.state),
+        ).toBeUndefined();
 
         act(() => {
-          result.current.fetch(toggleError, 5);
+          controller.fetch(toggleError, 5);
         });
         expect(result.current.tog).toBeDefined();
-        expect(result.current.fetchError).toBeDefined();
-        expect(result.current.fetchError).toMatchSnapshot();
+        expect(
+          controller.getError(toggleError, 5, result.current.state),
+        ).toBeDefined();
+        expect(
+          controller.getError(toggleError, 5, result.current.state),
+        ).toMatchSnapshot();
       });
 
       describe('with timestamps', () => {
-        it('should handle out of order server responses', async () => {
+        beforeEach(() => {
           jest.useFakeTimers({ legacyFakeTimers: false });
-
-          const initVis = {
-            id: 5,
-            visType: 'graph',
-            numCols: 0,
-            updatedAt: Date.now(),
-          };
-
-          const { result } = renderRestHook(
-            () => {
-              const { fetch } = useController();
-              const vis = useCache(VisSettingsResource.get, { id: 5 });
-              // @ts-expect-error
-              vis.doesnotexist;
-              return { fetch, vis };
-            },
-            {
-              initialFixtures: [
-                {
-                  endpoint: VisSettingsResource.get,
-                  args: [{ id: 5 }],
-                  response: initVis,
-                },
-              ],
-            },
-          );
-          expect(result.current.vis).toEqual(initVis);
-
-          let resolvePartial = (resolution: any) => {};
-          let partialPromise: Promise<any>;
-          let fetchSpy = jest.spyOn(VisSettingsResource.partialUpdate, 'fetch');
-          fetchSpy.mockImplementationOnce(
-            () =>
-              (partialPromise = new Promise(resolve => {
-                resolvePartial = (resolution: any) => {
-                  resolve(resolution);
-                };
-              })),
-          );
-          jest.advanceTimersByTime(100);
-          act(() => {
-            result.current.fetch(
-              VisSettingsResource.partialUpdate,
-              { id: 5 },
-              { visType: 'line' },
-            );
-          });
-          expect(result.current.vis?.visType).toEqual('line');
-
-          let resolveIncrement = (resolution: any) => {};
-          let incrementPromise: Promise<any>;
-          fetchSpy = jest.spyOn(VisSettingsResource.incrementCols, 'fetch');
-          fetchSpy.mockImplementationOnce(
-            () =>
-              (incrementPromise = new Promise(resolve => {
-                resolveIncrement = (resolution: any) => {
-                  resolve(resolution);
-                };
-              })),
-          );
-          jest.advanceTimersByTime(100);
-          act(() => {
-            result.current.fetch(VisSettingsResource.incrementCols, { id: 5 });
-          });
-          expect(result.current.vis?.visType).toEqual('line');
-          expect(result.current.vis?.numCols).toEqual(1);
-
-          const betweenDate = Date.now();
-
-          let resolveIncrement2 = (resolution: any) => {};
-          let incrementPromise2: Promise<any>;
-
-          fetchSpy.mockImplementationOnce(
-            () =>
-              (incrementPromise2 = new Promise(resolve => {
-                resolveIncrement2 = (resolution: any) => {
-                  resolve(resolution);
-                };
-              })),
-          );
-          jest.advanceTimersByTime(100);
-          act(() => {
-            result.current.fetch(VisSettingsResource.incrementCols, { id: 5 });
-          });
-          expect(result.current.vis?.visType).toEqual('line');
-          expect(result.current.vis?.numCols).toEqual(2);
-
-          const afterDate = Date.now();
-
-          jest.advanceTimersByTime(100);
-          await act(() => {
-            resolvePartial({
-              id: 5,
-              visType: 'line',
-              numCols: 5,
-              updatedAt: betweenDate,
-            });
-            return partialPromise;
-          });
-
-          expect(result.current.vis?.visType).toEqual('line');
-          // the server is not aware of our client's last increment, so we +1 to response
-          expect(result.current.vis?.numCols).toEqual(7);
-
-          jest.advanceTimersByTime(100);
-          const finalObject = {
-            id: 5,
-            visType: 'graph',
-            numCols: 100,
-            updatedAt: afterDate,
-          };
-          await act(() => {
-            resolveIncrement2(finalObject);
-            return incrementPromise2;
-          });
-
-          expect(result.current.vis).toEqual(finalObject);
-
-          await act(() => {
-            resolveIncrement({
-              id: 5,
-              visType: 'line',
-              numCols: 0,
-              updatedAt: 0,
-            });
-            return incrementPromise;
-          });
-          expect(result.current.vis).toEqual(finalObject);
-
-          fetchSpy.mockClear();
         });
+        afterEach(() => {
+          jest.useRealTimers();
+        });
+        afterEach;
+        it.each([VisSettingsResource, VisSettingsResourceFromMixin])(
+          'should handle out of order server responses (%#)',
+          async VisResource => {
+            const initVis = {
+              id: 5,
+              visType: 'graph',
+              numCols: 0,
+              updatedAt: Date.now(),
+            };
+
+            const { result, controller } = renderDataClient(
+              () => {
+                const vis = useCache(VisResource.get, { id: 5 });
+                // @ts-expect-error
+                vis.doesnotexist;
+                return { vis };
+              },
+              {
+                initialFixtures: [
+                  {
+                    endpoint: VisResource.get,
+                    args: [{ id: 5 }],
+                    response: initVis,
+                  },
+                ],
+              },
+            );
+            expect(result.current.vis).toEqual(initVis);
+
+            let resolvePartial = (resolution: any) => {};
+            let partialPromise: Promise<any>;
+            let fetchSpy = jest.spyOn(VisResource.partialUpdate, 'fetch');
+            fetchSpy.mockImplementationOnce(
+              () =>
+                (partialPromise = new Promise(resolve => {
+                  resolvePartial = (resolution: any) => {
+                    resolve(resolution);
+                  };
+                })),
+            );
+            jest.advanceTimersByTime(100);
+            act(() => {
+              controller.fetch(
+                VisResource.partialUpdate,
+                { id: 5 },
+                { visType: 'line' },
+              );
+            });
+            expect(result.current.vis?.visType).toEqual('line');
+
+            let resolveIncrement = (resolution: any) => {};
+            let incrementPromise: Promise<any>;
+            fetchSpy = jest.spyOn(VisResource.incrementCols, 'fetch');
+            fetchSpy.mockImplementationOnce(
+              () =>
+                (incrementPromise = new Promise(resolve => {
+                  resolveIncrement = (resolution: any) => {
+                    resolve(resolution);
+                  };
+                })),
+            );
+            jest.advanceTimersByTime(100);
+            act(() => {
+              controller.fetch(VisResource.incrementCols, { id: 5 });
+            });
+            expect(result.current.vis?.visType).toEqual('line');
+            expect(result.current.vis?.numCols).toEqual(1);
+
+            const betweenDate = Date.now();
+
+            let resolveIncrement2 = (resolution: any) => {};
+            let incrementPromise2: Promise<any>;
+
+            fetchSpy.mockImplementationOnce(
+              () =>
+                (incrementPromise2 = new Promise(resolve => {
+                  resolveIncrement2 = (resolution: any) => {
+                    resolve(resolution);
+                  };
+                })),
+            );
+            jest.advanceTimersByTime(100);
+            act(() => {
+              controller.fetch(VisResource.incrementCols, { id: 5 });
+            });
+            expect(result.current.vis?.visType).toEqual('line');
+            expect(result.current.vis?.numCols).toEqual(2);
+
+            const afterDate = Date.now();
+
+            jest.advanceTimersByTime(100);
+            await act(() => {
+              resolvePartial({
+                id: 5,
+                visType: 'line',
+                numCols: 5,
+                updatedAt: betweenDate,
+              });
+              return partialPromise;
+            });
+
+            expect(result.current.vis?.visType).toEqual('line');
+            // the server is not aware of our client's last increment, so we +1 to response
+            expect(result.current.vis?.numCols).toEqual(7);
+
+            jest.advanceTimersByTime(100);
+            const finalObject = {
+              id: 5,
+              visType: 'graph',
+              numCols: 100,
+              updatedAt: afterDate,
+            };
+            await act(() => {
+              resolveIncrement2(finalObject);
+              return incrementPromise2;
+            });
+
+            expect(result.current.vis).toEqual(finalObject);
+
+            await act(() => {
+              resolveIncrement({
+                id: 5,
+                visType: 'line',
+                numCols: 0,
+                updatedAt: 0,
+              });
+              return incrementPromise;
+            });
+            expect(result.current.vis).toEqual(finalObject);
+
+            fetchSpy.mockClear();
+            await renderDataClient.allSettled();
+          },
+        );
       });
     });
   });

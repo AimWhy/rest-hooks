@@ -1,26 +1,30 @@
-import { schema, Entity, Query } from '@rest-hooks/endpoint';
-import { Endpoint } from '@rest-hooks/endpoint';
-import { SimpleRecord } from '@rest-hooks/legacy';
-import { CacheProvider } from '@rest-hooks/react';
-import { CacheProvider as ExternalCacheProvider } from '@rest-hooks/redux';
+import { DataProvider } from '@data-client/react';
+import { DataProvider as ExternalDataProvider } from '@data-client/react/redux';
+import { schema, Entity, Endpoint } from '@data-client/rest';
 import {
   CoolerArticleResource,
   EditorArticleResource,
   ArticleResource,
   PaginatedArticleResource,
-  ListPaginatedArticle,
   CoolerArticleDetail,
   TypedArticleResource,
   UnionResource,
   CoolerArticle,
   FirstUnion,
   PaginatedArticle,
+  CoolerArticleResourceFromMixin,
 } from '__tests__/new';
 import nock from 'nock';
 
 // relative imports to avoid circular dependency in tsconfig references
-import { makeRenderRestHook, act } from '../../../test';
-import { useCache, useController, useFetch, useSuspense } from '../hooks';
+import { makeRenderDataHook, act } from '../../../test';
+import {
+  useCache,
+  useController,
+  useFetch,
+  useQuery,
+  useSuspense,
+} from '../hooks';
 import {
   payload,
   createPayload,
@@ -32,24 +36,21 @@ import {
   editorPayload,
 } from '../test-fixtures';
 
-function onError(e: any) {
-  e.preventDefault();
-}
+let errorspy: jest.SpyInstance;
 beforeEach(() => {
-  if (typeof addEventListener === 'function')
-    addEventListener('error', onError);
+  errorspy = jest.spyOn(global.console, 'error').mockImplementation(() => {});
+  jest.spyOn(global.console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
-  if (typeof removeEventListener === 'function')
-    removeEventListener('error', onError);
+  errorspy.mockRestore();
 });
 
 describe.each([
-  ['CacheProvider', CacheProvider],
-  ['ExternalCacheProvider', ExternalCacheProvider],
+  ['DataProvider', DataProvider],
+  ['ExternalDataProvider', ExternalDataProvider],
 ] as const)(`%s`, (_, makeProvider) => {
   // TODO: add nested resource test case that has multiple partials to test merge functionality
-  let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+  let renderDataHook: ReturnType<typeof makeRenderDataHook>;
   let mynock: nock.Scope;
 
   beforeEach(() => {
@@ -99,7 +100,7 @@ describe.each([
   });
 
   beforeEach(() => {
-    renderRestHook = makeRenderRestHook(makeProvider);
+    renderDataHook = makeRenderDataHook(makeProvider);
   });
 
   describe('Endpoint', () => {
@@ -111,8 +112,9 @@ describe.each([
     });
 
     it('should resolve useSuspense()', async () => {
-      const { result, waitForNextUpdate } = renderRestHook(() => {
-        return useSuspense(CoolerArticleDetail, payload);
+      const { result, waitForNextUpdate } = renderDataHook(() => {
+        const a = useSuspense(CoolerArticleDetail, payload);
+        return a;
       });
       expect(result.current).toBeUndefined();
       await waitForNextUpdate();
@@ -121,41 +123,44 @@ describe.each([
       expect(result.current.lafsjlfd).toBeUndefined();
     });
 
-    it('should resolve useSuspense() with Interceptors', async () => {
-      nock.cleanAll();
-      const { result, waitFor, controller } = renderRestHook(
-        () => {
-          return useSuspense(CoolerArticleResource.get, { id: 'abc123' });
-        },
-        {
-          resolverFixtures: [
-            {
-              endpoint: CoolerArticleResource.get,
-              response: ({ id }) => ({ ...payload, id }),
-            },
-            {
-              endpoint: CoolerArticleResource.partialUpdate,
-              response: ({ id }, body) => ({ ...body, id }),
-              delay: () => 1,
-            },
-          ],
-        },
-      );
-      expect(result.current).toBeUndefined();
-      await waitFor(() => expect(result.current).toBeDefined());
-      expect(result.current.title).toBe(payload.title);
-      // @ts-expect-error
-      expect(result.current.lafsjlfd).toBeUndefined();
-      await controller.fetch(
-        CoolerArticleResource.partialUpdate,
-        { id: 'abc123' },
-        { title: 'updated title' },
-      );
-      expect(result.current.title).toBe('updated title');
-    });
+    it.each([CoolerArticleResource, CoolerArticleResourceFromMixin])(
+      'should resolve useSuspense() with Interceptors',
+      async ArticleResource => {
+        nock.cleanAll();
+        const { result, waitFor, controller } = renderDataHook(
+          () => {
+            return useSuspense(ArticleResource.get, { id: 'abc123' });
+          },
+          {
+            resolverFixtures: [
+              {
+                endpoint: ArticleResource.get,
+                response: ({ id }) => ({ ...payload, id }),
+              },
+              {
+                endpoint: ArticleResource.partialUpdate,
+                response: ({ id }, body) => ({ ...body, id }),
+                delay: () => 1,
+              },
+            ],
+          },
+        );
+        expect(result.current).toBeUndefined();
+        await waitFor(() => expect(result.current).toBeDefined());
+        expect(result.current.title).toBe(payload.title);
+        // @ts-expect-error
+        expect(result.current.lafsjlfd).toBeUndefined();
+        await controller.fetch(
+          ArticleResource.partialUpdate,
+          { id: 'abc123' },
+          { title: 'updated title' },
+        );
+        expect(result.current.title).toBe('updated title');
+      },
+    );
 
     it('should maintain global referential equality', async () => {
-      const { result, waitForNextUpdate } = renderRestHook(() => {
+      const { result, waitForNextUpdate } = renderDataHook(() => {
         return [
           useSuspense(CoolerArticleDetail, payload),
           useCache(CoolerArticleDetail, payload),
@@ -173,7 +178,7 @@ describe.each([
         signal: abort.signal,
       });
 
-      const { result, waitForNextUpdate } = renderRestHook(() => {
+      const { result, waitForNextUpdate } = renderDataHook(() => {
         return {
           data: useSuspense(AbortableArticle, { id: payload.id }),
           fetch: useController().fetch,
@@ -190,35 +195,19 @@ describe.each([
       expect(result.error).toBeUndefined();
       expect(result.current.data.title).toBe(payload.title);
     });
-
-    it('should resolve useSuspense() with SimpleRecords', async () => {
-      mynock.get(`/article-paginated`).reply(200, paginatedFirstPage);
-
-      const { result, waitForNextUpdate } = renderRestHook(() => {
-        return useSuspense(ListPaginatedArticle);
-      });
-      expect(result.current).toBeUndefined();
-      await waitForNextUpdate();
-      expect(result.current).toBeInstanceOf(SimpleRecord);
-      expect(result.current.nextPage).toBe('');
-      expect(result.current.prevPage).toBe('');
-      expect(result.current.results).toMatchSnapshot();
-      // @ts-expect-error
-      expect(result.current.lafsjlfd).toBeUndefined();
-    });
   });
 
-  describe('renderRestHook()', () => {
+  describe('renderDataClient()', () => {
     let warnspy: jest.SpyInstance;
     beforeEach(() => {
-      warnspy = jest.spyOn(global.console, 'warn');
+      warnspy = jest.spyOn(global.console, 'warn').mockImplementation(() => {});
     });
     afterEach(() => {
       warnspy.mockRestore();
     });
 
     it('should resolve useSuspense()', async () => {
-      const { result, waitForNextUpdate } = renderRestHook(() => {
+      const { result, waitForNextUpdate } = renderDataHook(() => {
         return useSuspense(CoolerArticleResource.get, { id: payload.id });
       });
       expect(result.current).toBeUndefined();
@@ -237,7 +226,7 @@ describe.each([
       path: `${CoolerArticleResource.getList.path}/values` as const,
     });
 
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataHook(() => {
       return useSuspense(GetValues);
     });
     expect(result.current).toBeUndefined();
@@ -250,15 +239,15 @@ describe.each([
     });
   });
 
-  it('should denormalize Query', async () => {
+  it('should denormalize All', async () => {
     const getList = CoolerArticleResource.getList.extend({
       schema: new schema.All(CoolerArticle),
     });
-    const queryArticle = new Query(new schema.All(CoolerArticle));
+    const allArticles = new schema.All(CoolerArticle);
 
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataHook(() => {
       useFetch(getList);
-      return useCache(queryArticle);
+      return useQuery(allArticles);
     });
     expect(result.current).toBeUndefined();
     await waitForNextUpdate();
@@ -272,7 +261,7 @@ describe.each([
   });
 
   it('should filter Query based on arguments', async () => {
-    const queryArticle = new Query(
+    const queryArticle = new schema.Query(
       new schema.All(CoolerArticle),
       (entries, { tags }: { tags: string }) => {
         if (!tags) return entries;
@@ -280,11 +269,10 @@ describe.each([
       },
     );
 
-    const { result, waitForNextUpdate, rerender, controller } = renderRestHook(
+    const { result, waitForNextUpdate, rerender, controller } = renderDataHook(
       ({ tags }: { tags: string }) => {
         useFetch(CoolerArticleResource.getList);
-        const data = useCache(queryArticle, { tags });
-        return useCache(queryArticle, { tags });
+        return useQuery(queryArticle, { tags });
       },
       { initialProps: { tags: 'a' } },
     );
@@ -322,6 +310,53 @@ describe.each([
     expect(result.current).toMatchSnapshot();
   });
 
+  it('Query should work as endpoint Schema', async () => {
+    const queryArticle = new schema.Query(
+      CoolerArticleResource.getList.schema,
+      (entries, { tags }: { tags: string }) => {
+        if (!tags || !entries) return entries;
+        return entries.filter(article => article.tags.includes(tags));
+      },
+    );
+    const getList = CoolerArticleResource.getList.extend({
+      schema: queryArticle,
+    });
+
+    const { result, waitForNextUpdate, controller } = renderDataHook(
+      ({ tags }: { tags: string }) => {
+        return useSuspense(getList, { tags });
+      },
+      { initialProps: { tags: 'a' } },
+    );
+    expect(result.current).toBeUndefined();
+    await waitForNextUpdate();
+    expect(result.current).toBeDefined();
+    expect(result.current?.length).toBe(1);
+
+    expect(result.current).toMatchSnapshot();
+
+    await act(
+      async () =>
+        await controller.fetch(getList.push, {
+          id: 1000,
+          title: 'bob says',
+          tags: ['a'],
+        }),
+    );
+    await act(
+      async () =>
+        await controller.fetch(getList.push, {
+          id: 2000,
+          title: 'should not exist',
+          tags: [],
+        }),
+    );
+    expect(result.current).toBeDefined();
+    // should only include the one with the tag
+    expect(result.current?.length).toBe(2);
+    expect(result.current).toMatchSnapshot();
+  });
+
   it('should denormalize schema.Union()', async () => {
     class IDEntity extends Entity {
       readonly id: string = '';
@@ -350,7 +385,7 @@ describe.each([
       ],
     });
 
-    const { result } = renderRestHook(
+    const { result } = renderDataHook(
       () => {
         return useSuspense(unionEndpoint, {});
       },
@@ -390,7 +425,13 @@ describe.each([
     const prevWarn = global.console.warn;
     global.console.warn = jest.fn();
 
-    const { result } = renderRestHook(
+    const response = [
+      null,
+      { id: '5', body: 'hi', type: 'first' },
+      { id: '5', body: 'hi', type: 'another' },
+      { id: '5', body: 'hi' },
+    ];
+    const { result } = renderDataHook(
       () => {
         return useSuspense(UnionResource.getList);
       },
@@ -399,12 +440,7 @@ describe.each([
           {
             endpoint: UnionResource.getList,
             args: [],
-            response: [
-              null,
-              { id: '5', body: 'hi', type: 'first' },
-              { id: '5', body: 'hi', type: 'another' },
-              { id: '5', body: 'hi' },
-            ],
+            response,
           },
         ],
       },
@@ -414,73 +450,67 @@ describe.each([
     expect(result.current[1]).toBeInstanceOf(FirstUnion);
     expect(result.current[2]).not.toBeInstanceOf(FirstUnion);
     expect(result.current[3]).not.toBeInstanceOf(FirstUnion);
+    // should still passthrough objects
+    expect(result.current[2]).toEqual(result.current[2]);
+    expect(result.current[3]).toEqual(result.current[3]);
     expect((global.console.warn as jest.Mock).mock.calls).toMatchSnapshot();
     global.console.warn = prevWarn;
   });
 
-  it('should resolve useSuspense() with SimpleRecords', async () => {
-    mynock.get(`/article-paginated`).reply(200, paginatedFirstPage);
-
-    const { result, waitForNextUpdate } = renderRestHook(() => {
-      return useSuspense(PaginatedArticleResource.getListDefaults);
-    });
-    expect(result.current).toBeUndefined();
-    await waitForNextUpdate();
-    expect(result.current).toBeInstanceOf(SimpleRecord);
-    expect(result.current.nextPage).toBe('');
-    expect(result.current.prevPage).toBe('');
-    expect(result.current.results).toMatchSnapshot();
-  });
-
-  it('should suspend once deleted', async () => {
-    const temppayload = {
-      ...payload,
-      id: 1234,
-    };
-    mynock
-      .get(`/article-cooler/${temppayload.id}`)
-      .reply(200, temppayload)
-      .delete(`/article-cooler/${temppayload.id}`)
-      .reply(204, '');
-    const throws: Promise<any>[] = [];
-    const { result, waitForNextUpdate } = renderRestHook(() => {
-      try {
-        return [
-          useSuspense(CoolerArticleResource.get, {
-            id: temppayload.id,
-          }),
-          useController().fetch,
-        ] as const;
-      } catch (e: any) {
-        if (typeof e.then === 'function') {
-          if (e !== throws[throws.length - 1]) {
-            throws.push(e);
+  it.each([CoolerArticleResource, CoolerArticleResourceFromMixin])(
+    'should suspend once deleted (%#)',
+    async ArticleResource => {
+      const temppayload = {
+        ...payload,
+        id: 1234,
+      };
+      mynock
+        .get(`/article-cooler/${temppayload.id}`)
+        .reply(200, temppayload)
+        .delete(`/article-cooler/${temppayload.id}`)
+        .reply(204, '');
+      const throws: Promise<any>[] = [];
+      const { result, waitForNextUpdate, waitFor, controller } = renderDataHook(
+        () => {
+          try {
+            return useSuspense(ArticleResource.get, {
+              id: temppayload.id,
+            });
+          } catch (e: any) {
+            if (typeof e.then === 'function') {
+              if (e !== throws[throws.length - 1]) {
+                throws.push(e);
+              }
+            }
+            throw e;
           }
-        }
-        throw e;
-      }
-    });
-    expect(result.current).toBeUndefined();
-    await waitForNextUpdate();
-    let [data, fetch] = result.current;
-    expect(data).toBeInstanceOf(CoolerArticle);
-    expect(data.title).toBe(temppayload.title);
-    expect(throws.length).toBe(1);
+        },
+      );
+      expect(result.current).toBeUndefined();
+      await waitForNextUpdate();
+      let data = result.current;
+      expect(data).toBeInstanceOf(ArticleResource.get.schema);
+      expect(data.title).toBe(temppayload.title);
+      // react 19 suspends twice
+      expect(throws.length).toBeGreaterThanOrEqual(1);
 
-    mynock
-      .persist()
-      .get(`/article-cooler/${temppayload.id}`)
-      .reply(200, { ...temppayload, title: 'othertitle' });
+      mynock
+        .persist()
+        .get(`/article-cooler/${temppayload.id}`)
+        .reply(200, { ...temppayload, title: 'othertitle' });
 
-    await act(async () => {
-      await fetch(CoolerArticleResource.delete, { id: temppayload.id });
-    });
-    expect(throws.length).toBeGreaterThanOrEqual(2); //TODO: delete seems to have receive process multiple times. we suspect this is because of test+act integration.
-    await Promise.race([waitForNextUpdate(), throws[throws.length - 1]]);
-    [data, fetch] = result.current;
-    expect(data).toBeInstanceOf(CoolerArticle);
-    expect(data.title).toBe('othertitle');
-  });
+      await act(async () => {
+        await controller.fetch(ArticleResource.delete, { id: temppayload.id });
+      });
+      expect(throws.length).toBeGreaterThanOrEqual(2); //TODO: delete seems to have receive process multiple times. we suspect this is because of test+act integration.
+      await Promise.race([
+        waitFor(() => expect(data.title).toBe('othertitle')),
+        throws[throws.length - 1],
+      ]);
+      data = result.current;
+      expect(data).toBeInstanceOf(ArticleResource.get.schema);
+    },
+  );
 
   it('should suspend once invalidated', async () => {
     const temppayload = {
@@ -493,7 +523,7 @@ describe.each([
       .delete(`/article-cooler/${temppayload.id}`)
       .reply(204, '');
     const throws: Promise<any>[] = [];
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataHook(() => {
       try {
         return [
           useSuspense(CoolerArticleResource.get, {
@@ -515,7 +545,8 @@ describe.each([
     let [data, { invalidate }] = result.current;
     expect(data).toBeInstanceOf(CoolerArticle);
     expect(data.title).toBe(temppayload.title);
-    expect(throws.length).toBe(1);
+    // react 19 suspends twice
+    expect(throws.length).toBeGreaterThanOrEqual(1);
 
     mynock
       .persist()
@@ -524,7 +555,8 @@ describe.each([
     act(() => {
       invalidate(CoolerArticleResource.get, { id: temppayload.id });
     });
-    expect(throws.length).toBe(2);
+    // react 19 suspends twice
+    expect(throws.length).toBeGreaterThanOrEqual(2);
     await waitForNextUpdate();
     [data, { invalidate }] = result.current;
     expect(data).toBeInstanceOf(CoolerArticle);
@@ -532,7 +564,7 @@ describe.each([
   });
 
   it('should throw when retrieving an empty string', async () => {
-    const { result } = renderRestHook(() => {
+    const { result } = renderDataHook(() => {
       return useController().fetch;
     });
 
@@ -545,7 +577,7 @@ describe.each([
     ['CoolerArticleResource', CoolerArticleResource.delete],
     ['ArticleResource', ArticleResource.delete],
   ] as const)(`should not throw on delete [%s]`, async (_, endpoint) => {
-    const { result } = renderRestHook(() => {
+    const { result } = renderDataHook(() => {
       return useController().fetch;
     });
     await expect(
@@ -554,7 +586,7 @@ describe.each([
   });
 
   it('useSuspense() should throw errors on bad network', async () => {
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataHook(() => {
       return useSuspense(CoolerArticleResource.get, {
         title: '0',
       });
@@ -568,7 +600,7 @@ describe.each([
   });
 
   /*it('useResource() should throw errors on bad network (multiarg)', async () => {
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataClient(() => {
       return useResource([
         CoolerArticleResource.get,
         {
@@ -583,7 +615,7 @@ describe.each([
   });*/
 
   it('useSuspense() should throw 500 errors', async () => {
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataHook(() => {
       return useSuspense(TypedArticleResource.get, {
         id: 500,
       });
@@ -595,7 +627,7 @@ describe.each([
   });
 
   it('useSuspense() should not throw 500 if data already available', async () => {
-    const { result, waitForNextUpdate } = renderRestHook(
+    const { result, waitForNextUpdate } = renderDataHook(
       () => {
         return [
           useSuspense(TypedArticleResource.get, {
@@ -655,7 +687,7 @@ describe.each([
   it('useSuspense() should throw errors on malformed response', async () => {
     const response = [1];
     mynock.get(`/article-cooler/${878}`).reply(200, response);
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataHook(() => {
       return useSuspense(CoolerArticleResource.get, {
         id: 878,
       });
@@ -669,7 +701,7 @@ describe.each([
 
   /* TODO: when we have parallel patterns for useSuspense
   it('should resolve parallel useResource() request', async () => {
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataClient(() => {
       return useResource(
         [
           CoolerArticleResource.get,
@@ -700,7 +732,7 @@ describe.each([
     `should not suspend with no params to useSuspense() [%s]`,
     (_, endpoint) => {
       let article: any;
-      const { result } = renderRestHook(() => {
+      const { result } = renderDataHook(() => {
         article = useSuspense(endpoint, null);
         return 'done';
       });
@@ -709,20 +741,24 @@ describe.each([
     },
   );
 
-  it('should update on create', async () => {
-    const { result, waitForNextUpdate, controller } = renderRestHook(() => {
-      const articles = useSuspense(CoolerArticleResource.getList);
+  it('should update on create (legacy)', async () => {
+    const { result, waitForNextUpdate, controller } = renderDataHook(() => {
+      const articles = useSuspense(
+        CoolerArticleResource.getList.extend({ schema: [CoolerArticle] }),
+      );
       return { articles };
     });
     await waitForNextUpdate();
-    const createEndpoint = CoolerArticleResource.create.extend({
-      update: (newid: string) => ({
-        [CoolerArticleResource.getList.key()]: (existing: string[] = []) => [
-          ...existing,
-          newid,
-        ],
-      }),
-    });
+    const createEndpoint = CoolerArticleResource.create
+      .extend({ schema: CoolerArticle })
+      .extend({
+        update: newid => ({
+          [CoolerArticleResource.getList.key()]: (existing: string[] = []) => [
+            ...existing,
+            newid,
+          ],
+        }),
+      });
     await act(async () => {
       await controller.fetch(createEndpoint, { id: 1 });
     });
@@ -731,11 +767,57 @@ describe.each([
     ).toEqual([5, 3, 1]);
   });
 
+  it('should update on create', async () => {
+    const { result, waitForNextUpdate, controller } = renderDataHook(() => {
+      const articles = useSuspense(CoolerArticleResource.getList);
+      return { articles };
+    });
+    await waitForNextUpdate();
+    await act(async () => {
+      await controller.fetch(CoolerArticleResource.create, { id: 1 });
+    });
+    expect(
+      result.current.articles.map(({ id }: Partial<CoolerArticle>) => id),
+    ).toEqual([5, 3, 1]);
+  });
+
+  it('should update collection on push/unshift', async () => {
+    const getArticles = CoolerArticleResource.getList
+      .extend({ schema: [CoolerArticle] })
+      .extend({
+        schema: new schema.Collection([CoolerArticle], {
+          argsKey: (urlParams, body) => ({
+            ...urlParams,
+          }),
+        }),
+      });
+    const { result, waitForNextUpdate, controller } = renderDataHook(() => {
+      const articles = useSuspense(getArticles);
+      return articles;
+    });
+    await waitForNextUpdate();
+    expect(result.current.map(({ id }: Partial<CoolerArticle>) => id)).toEqual([
+      5, 3,
+    ]);
+    await act(async () => {
+      await controller.fetch(getArticles.push, { id: 1, title: 'hi' });
+    });
+    expect(result.current.map(({ id }: Partial<CoolerArticle>) => id)).toEqual([
+      5, 3, 1,
+    ]);
+    await act(async () => {
+      await controller.fetch(getArticles.unshift, { id: 55, title: 'hi' });
+    });
+    expect(result.current.map(({ id }: Partial<CoolerArticle>) => id)).toEqual([
+      55, 5, 3, 1,
+    ]);
+  });
+
   it('should update on get for a paginated resource', async () => {
     mynock.get(`/article-paginated`).reply(200, paginatedFirstPage);
     mynock.get(`/article-paginated?cursor=2`).reply(200, paginatedSecondPage);
 
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataHook(() => {
       const { results: articles } = useSuspense(
         PaginatedArticleResource.getList,
       );
@@ -744,7 +826,7 @@ describe.each([
     });
     await waitForNextUpdate();
     const extendEndpoint = PaginatedArticleResource.getList.extend({
-      update: (newArticles: { results: string[] }, ...args: any) => ({
+      update: (newArticles, ...args) => ({
         [PaginatedArticleResource.getList.key()]: (articles: {
           results?: string[];
         }) => ({
@@ -759,7 +841,7 @@ describe.each([
   });
   describe("a parent resource endpoint returns an attribute NOT in its own schema but used in a child's schemas", () => {
     it('should not error when fetching the child entity from cache', async () => {
-      const { result, waitForNextUpdate } = renderRestHook(() => {
+      const { result, waitForNextUpdate } = renderDataHook(() => {
         // CoolerArticleResource does NOT have editor in its schema, but return editor from the server
         const articleWithoutEditorSchema = useSuspense(
           CoolerArticleResource.get,

@@ -3,18 +3,16 @@ title: TypeScript Standard Endpoints
 sidebar_label: Custom Protocol
 ---
 
-<head>
-  <title>TypeScript Standard Endpoints</title>
-</head>
-
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import LanguageTabs from '@site/src/components/LanguageTabs';
 import PkgTabs from '@site/src/components/PkgTabs';
 
+# TypeScript Standard Endpoints
+
 [Endpoints](/rest/api/Endpoint) describe an asynchronous [API](https://www.freecodecamp.org/news/what-is-an-api-in-english-please-b880a3214a82/). This includes both runtime behavior as well as (optionally) typing.
 
-<PkgTabs pkgs="@rest-hooks/endpoint" />
+<PkgTabs pkgs="@data-client/endpoint" />
 
 <LanguageTabs>
 
@@ -51,7 +49,8 @@ const todoDetail = new Endpoint(fetchTodoDetail);
 </LanguageTabs>
 
 
-<details><summary><b>Example Usage</b></summary>
+<details>
+<summary><b>Example Usage</b></summary>
 
 ```js
 console.log(await todoDetail({ id: '1' }));
@@ -91,7 +90,7 @@ In addition to an async function and (optional) types, [Endpoint](/rest/api/Endp
 allowing them to provide any additional relevant information about the endpoint itself.
 
 For instance, to allow integration into a cache as well as knowing when to recompute and/or refetch
-when parameters change, Endpoints have a [key()](/rest/api/Endpoint#key-params--string) member that serializes
+when parameters change, Endpoints have a [key()](/rest/api/Endpoint#key) member that serializes
 the endpoint and parameters to a unique string.
 
 ```js

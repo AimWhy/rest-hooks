@@ -1,9 +1,9 @@
 ---
-title: hookifyResource
+title: hookifyResource() - Collection of CRUD hook Endpoints
+sidebar_label: hookifyResource
 ---
 
 <head>
-  <title>hookifyResource() - Collection of CRUD hook Endpoints</title>
   <meta name="docsearch:pagerank" content="20"/>
 </head>
 
@@ -11,7 +11,9 @@ import LanguageTabs from '@site/src/components/LanguageTabs';
 import HooksPlayground from '@site/src/components/HooksPlayground';
 import TypeScriptEditor from '@site/src/components/TypeScriptEditor';
 
-`hookifyResource()` Turns any [Resource](./createResource.md) (collection of [RestEndpoints](./RestEndpoint.md)) into a collection
+# hookfiyResource
+
+`hookifyResource()` Turns any [Resource](./resource.md) (collection of [RestEndpoints](./RestEndpoint.md)) into a collection
 of hooks that return [RestEndpoints](./RestEndpoint.md).
 
 :::info
@@ -22,22 +24,18 @@ TypeScript >=4.3 is required for generative types to work correctly.
 
 <TypeScriptEditor row={false}>
 
-```ts title="api/ArticleResource.ts"
+```ts title="resources/Article"
 import React from 'react';
-import { createResource, hookifyResource, Entity } from '@rest-hooks/rest';
+import { resource, hookifyResource, Entity } from '@data-client/rest';
 
 class Article extends Entity {
   id = '';
   title = '';
   content = '';
-
-  pk() {
-    return this.id;
-  }
 }
 const AuthContext = React.createContext('');
 
-const ArticleResourceBase = createResource({
+const ArticleResourceBase = resource({
   urlPrefix: 'http://test.com',
   path: '/article/:id',
   schema: Article,
@@ -55,8 +53,8 @@ export const ArticleResource = hookifyResource(
 );
 ```
 
-```tsx title="ArticleDetail.tsx"
-import { ArticleResource } from './api/ArticleResource';
+```tsx title="ArticleDetail"
+import { ArticleResource } from './resources/Article';
 
 function ArticleDetail({ id }) {
   const article = useSuspense(ArticleResource.useGet(), { id });
@@ -73,7 +71,7 @@ render(<ArticleDetail id="1" />);
 
 ## Members
 
-Assuming you use the unchanged result of [createResource()](./createResource.md), these will be your methods
+Assuming you use the unchanged result of [resource()](./resource.md), these will be your methods
 
 ### useGet()
 
@@ -84,7 +82,7 @@ Assuming you use the unchanged result of [createResource()](./createResource.md)
 ```typescript
 // GET //test.com/api/abc/xyz
 hookifyResource(
-  createResource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
+  resource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
 ).useGet()({
   group: 'abc',
   id: 'xyz',
@@ -99,9 +97,9 @@ Commonly used with [useSuspense()](/docs/api/useSuspense), [Controller.invalidat
 - path: `shortenPath(path)`
   - Removes the last argument:
     ```ts
-    hookifyResource(createResource({ path: '/:first/:second' })).useGetList()
+    hookifyResource(resource({ path: '/:first/:second' })).useGetList()
       .path === '/:first';
-    hookifyResource(createResource({ path: '/:first' })).useGetList().path ===
+    hookifyResource(resource({ path: '/:first' })).useGetList().path ===
       '/';
     ```
 - schema: [\[schema\]](./Array.md)
@@ -109,7 +107,7 @@ Commonly used with [useSuspense()](/docs/api/useSuspense), [Controller.invalidat
 ```typescript
 // GET //test.com/api/abc?isExtra=xyz
 hookifyResource(
-  createResource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
+  resource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
 ).useGetList()({
   group: 'abc',
   isExtra: 'xyz',
@@ -118,25 +116,63 @@ hookifyResource(
 
 Commonly used with [useSuspense()](/docs/api/useSuspense), [Controller.invalidate](/docs/api/Controller#invalidate)
 
-### useCreate()
+### useGetList().push {#push}
+
+[push](./RestEndpoint.md#push) creates a new entity and pushes it to the end of useGetList().
 
 - method: 'POST'
 - path: `shortenPath(path)`
-  - Removes the last argument:
-    ```ts
-    hookifyResource(createResource({ path: '/:first/:second' })).useCreate()
-      .path === '/:first';
-    hookifyResource(createResource({ path: '/:first' })).useCreate().path ===
-      '/';
-    ```
-- schema: `schema`
+- schema: `useGetList().schema.push`
 
 ```typescript
 // POST //test.com/api/abc
 // BODY { "title": "winning" }
-hookifyResource(
-  createResource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
-).useCreate()({ group: 'abc' }, { title: 'winning' });
+resource({
+  urlPrefix: '//test.com',
+  path: '/api/:group/:id',
+}).useGetList().push({ group: 'abc' }, { title: 'winning' });
+```
+
+Commonly used with [Controller.fetch](/docs/api/Controller#fetch)
+
+### useGetList().unshift {#unshift}
+
+[unshift](./RestEndpoint.md#unshift) creates a new entity and pushes it to the beginning of useGetList().
+
+- method: 'POST'
+- path: `shortenPath(path)`
+- schema: `useGetList().schema.unshift`
+
+```typescript
+// POST //test.com/api/abc
+// BODY { "title": "winning" }
+resource({
+  urlPrefix: '//test.com',
+  path: '/api/:group/:id',
+}).useGetList().push({ group: 'abc' }, { title: 'winning' });
+```
+
+Commonly used with [Controller.fetch](/docs/api/Controller#fetch)
+
+### useGetList().getPage {#getpage}
+
+[getPage](./RestEndpoint.md#getpage) retrieves another [page](../guides/pagination.md#infinite-scrolling) appending to useGetList() ensuring there are no duplicates.
+
+- method: 'GET'
+- args: `shortenPath(path) & { [paginationField]: string | number } & searchParams`
+- schema: [new schema.Collection(\[schema\]).addWith(paginatedMerge, paginatedFilter(removeCursor))](./Collection.md)
+
+```typescript
+// GET //test.com/api/abc?isExtra=xyz&page=2
+resource({
+  urlPrefix: '//test.com',
+  path: '/api/:group/:id',
+  paginationField: 'page',
+}).useGetList().getPage({
+  group: 'abc',
+  isExtra: 'xyz',
+  page: '2',
+});
 ```
 
 Commonly used with [Controller.fetch](/docs/api/Controller#fetch)
@@ -151,7 +187,7 @@ Commonly used with [Controller.fetch](/docs/api/Controller#fetch)
 // PUT //test.com/api/abc/xyz
 // BODY { "title": "winning" }
 hookifyResource(
-  createResource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
+  resource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
 ).useUpdate()({ group: 'abc', id: 'xyz' }, { title: 'winning' });
 ```
 
@@ -167,7 +203,7 @@ Commonly used with [Controller.fetch](/docs/api/Controller#fetch)
 // PATCH //test.com/api/abc/xyz
 // BODY { "title": "winning" }
 hookifyResource(
-  createResource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
+  resource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
 ).usePartialUpdate()({ group: 'abc', id: 'xyz' }, { title: 'winning' });
 ```
 
@@ -177,7 +213,7 @@ Commonly used with [Controller.fetch](/docs/api/Controller#fetch)
 
 - method: 'DELETE'
 - path: `path`
-- schema: [new schema.Delete(schema)](./Delete.md)
+- schema: [new schema.Invalidate(schema)](./Invalidate.md)
 - process:
   ```ts
   (value, params) {
@@ -188,7 +224,7 @@ Commonly used with [Controller.fetch](/docs/api/Controller#fetch)
 ```typescript
 // DELETE //test.com/api/abc/xyz
 hookifyResource(
-  createResource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
+  resource({ urlPrefix: '//test.com', path: '/api/:group/:id' }),
 ).useDelete()({
   group: 'abc',
   id: 'xyz',

@@ -4,15 +4,13 @@ exports[`useSuspense() errors should throw error when response is {} when expect
 [Error: Error processing GET http://test.com/article-cooler/400
 
 Full Schema: {
-  "name": "CoolerArticle",
+  "key": "CoolerArticle",
   "schema": {
     "author": {
-      "name": "User",
-      "schema": {},
-      "key": "User"
+      "key": "User",
+      "schema": {}
     }
-  },
-  "key": "CoolerArticle"
+  }
 }
 
 Error:
@@ -20,8 +18,8 @@ Attempted to initialize CoolerArticle with an array, but named members were expe
 
 This is likely due to a malformed response.
 Try inspecting the network response or fetch() return value.
-Or use debugging tools: https://resthooks.io/docs/guides/debugging
-Learn more about schemas: https://resthooks.io/docs/api/schema
+Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+Learn more about schemas: https://dataclient.io/docs/api/schema
 If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
 
 First three members: []]
@@ -31,15 +29,13 @@ exports[`useSuspense() errors should throw error when response is array when exp
 [Error: Error processing GET http://test.com/article-cooler/400
 
 Full Schema: {
-  "name": "CoolerArticle",
+  "key": "CoolerArticle",
   "schema": {
     "author": {
-      "name": "User",
-      "schema": {},
-      "key": "User"
+      "key": "User",
+      "schema": {}
     }
-  },
-  "key": "CoolerArticle"
+  }
 }
 
 Error:
@@ -47,8 +43,8 @@ Attempted to initialize CoolerArticle with an array, but named members were expe
 
 This is likely due to a malformed response.
 Try inspecting the network response or fetch() return value.
-Or use debugging tools: https://resthooks.io/docs/guides/debugging
-Learn more about schemas: https://resthooks.io/docs/api/schema
+Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+Learn more about schemas: https://dataclient.io/docs/api/schema
 If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
 
 First three members: []]
@@ -58,15 +54,13 @@ exports[`useSuspense() errors should throw error when response is number when ex
 [Error: Error processing GET http://test.com/article-cooler/400
 
 Full Schema: {
-  "name": "CoolerArticle",
+  "key": "CoolerArticle",
   "schema": {
     "author": {
-      "name": "User",
-      "schema": {},
-      "key": "User"
+      "key": "User",
+      "schema": {}
     }
-  },
-  "key": "CoolerArticle"
+  }
 }
 
 Error:
@@ -74,8 +68,8 @@ Attempted to initialize CoolerArticle with an array, but named members were expe
 
 This is likely due to a malformed response.
 Try inspecting the network response or fetch() return value.
-Or use debugging tools: https://resthooks.io/docs/guides/debugging
-Learn more about schemas: https://resthooks.io/docs/api/schema
+Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+Learn more about schemas: https://dataclient.io/docs/api/schema
 If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
 
 First three members: []]
@@ -85,15 +79,13 @@ exports[`useSuspense() errors should throw error when response is string when ex
 [Error: Error processing GET http://test.com/article-cooler/400
 
 Full Schema: {
-  "name": "CoolerArticle",
+  "key": "CoolerArticle",
   "schema": {
     "author": {
-      "name": "User",
-      "schema": {},
-      "key": "User"
+      "key": "User",
+      "schema": {}
     }
-  },
-  "key": "CoolerArticle"
+  }
 }
 
 Error:
@@ -101,8 +93,8 @@ Attempted to initialize CoolerArticle with an array, but named members were expe
 
 This is likely due to a malformed response.
 Try inspecting the network response or fetch() return value.
-Or use debugging tools: https://resthooks.io/docs/guides/debugging
-Learn more about schemas: https://resthooks.io/docs/api/schema
+Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+Learn more about schemas: https://dataclient.io/docs/api/schema
 If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
 
 First three members: []]
@@ -110,22 +102,17 @@ First three members: []]
 
 exports[`useSuspense() should dispatch an action that fetches 1`] = `
 {
+  "args": [
+    {
+      "id": 5,
+    },
+  ],
   "endpoint": [Function],
+  "key": "GET http://test.com/article-cooler/5",
   "meta": {
-    "args": [
-      {
-        "id": 5,
-      },
-    ],
-    "key": "GET http://test.com/article-cooler/5",
-    "options": [Function],
     "reject": [Function],
     "resolve": [Function],
-    "schema": [Function],
-    "throttle": true,
-    "type": "read",
   },
-  "payload": [Function],
-  "type": "rest-hooks/fetch",
+  "type": "rdc/fetch",
 }
 `;

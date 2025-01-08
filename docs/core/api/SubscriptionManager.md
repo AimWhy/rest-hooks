@@ -22,8 +22,8 @@ Each instance represents one subscription to a specific unique endpoint.
 
 ## Consumed Actions
 
-- 'rest-hooks/subscribe'
-- 'rest-hooks/unsubscribe'
+- 'rdc/subscribe'
+- 'rdc/unsubscribe'
 
 ## Subscription
 
@@ -31,14 +31,6 @@ Each instance represents one subscription to a specific unique endpoint.
 handle the actual subscriptions.
 
 ```typescript
-/** Properties sent to Subscription constructor */
-export interface SubscriptionInit {
-  schema: Schema;
-  fetch: () => Promise<any>;
-  url: string;
-  frequency?: number;
-}
-
 /** Interface handling a single resource subscription */
 interface Subscription {
   add(frequency?: number): void;
@@ -47,8 +39,11 @@ interface Subscription {
 }
 
 /** The static class that constructs Subscription */
-interface SubscriptionConstructable {
-  new (init: SubscriptionInit, dispatch: React.Dispatch<any>): Subscription;
+export interface SubscriptionConstructable {
+  new (
+    action: Omit<SubscribeAction, 'type'>,
+    controller: Controller,
+  ): Subscription;
 }
 ```
 
@@ -69,9 +64,11 @@ Provides any cleanup of dangling resources after Subscription is no longer in us
 
 * [PollingSubscription](./PollingSubscription)
 
-> #### Note
->
-> Implementing your own `Subscription` to handle websockets can be done by
-> dispatching `rest-hooks/receive` actions with the data it gets to update.
-> Be sure to handle connection opening in the constructor and close the connection
-> in `cleanup()`
+:::note
+
+Implementing your own `Subscription` to handle websockets can be done by
+[dispatching](./Controller.md#set) `rdc/set` actions with the data it gets to update.
+Be sure to handle connection opening in the constructor and close the connection
+in `cleanup()`
+
+:::

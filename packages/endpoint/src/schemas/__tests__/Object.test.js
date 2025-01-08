@@ -1,16 +1,16 @@
 // eslint-env jest
-import { normalize } from '@rest-hooks/normalizr';
+import { normalize, denormalize } from '@data-client/normalizr';
+import { Temporal } from '@js-temporal/polyfill';
 import { IDEntity } from '__tests__/new';
 import { fromJS } from 'immutable';
 
-import denormalize from './denormalize';
 import { schema } from '../../';
 import Entity from '../Entity';
 
 let dateSpy;
 beforeAll(() => {
   dateSpy = jest
-    // eslint-disable-next-line no-undef
+
     .spyOn(global.Date, 'now')
     .mockImplementation(() => new Date('2019-05-14T11:01:58.135Z').valueOf());
 });
@@ -24,24 +24,22 @@ describe(`${schema.Object.name} normalization`, () => {
     const object = new schema.Object({
       user: User,
     });
-    expect(normalize({ user: { id: '1' } }, object)).toMatchSnapshot();
+    expect(normalize(object, { user: { id: '1' } })).toMatchSnapshot();
   });
 
   test(`normalizes plain objects as shorthand for ${schema.Object.name}`, () => {
     class User extends IDEntity {}
-    expect(normalize({ user: { id: '1' } }, { user: User })).toMatchSnapshot();
+    expect(normalize({ user: User }, { user: { id: '1' } })).toMatchSnapshot();
   });
 
   test('filters out undefined and null values', () => {
-    class User extends Entity {
-      pk() {
-        return this.id;
-      }
-    }
+    class User extends Entity {}
     const users = new schema.Object({ foo: User, bar: User, baz: User });
     const oldenv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
-    expect(normalize({ foo: {}, bar: { id: '1' } }, users)).toMatchSnapshot();
+    expect(
+      normalize(users, { foo: undefined, bar: { id: '1' } }),
+    ).toMatchSnapshot();
     process.env.NODE_ENV = oldenv;
   });
 
@@ -50,19 +48,15 @@ describe(`${schema.Object.name} normalization`, () => {
     const WithOptional = new schema.Object({
       user: User,
       nextPage: '',
-      createdAt: Date,
+      createdAt: Temporal.Instant.from,
     });
-    const normalized = normalize(
-      {
-        user: { id: '5' },
-        nextPage: 'blob',
-        createdAt: '2020-06-07T02:00:15.000Z',
-      },
-      WithOptional,
-    );
-    expect(normalized.result.createdAt.getTime()).toBe(
-      normalized.result.createdAt.getTime(),
-    );
+    const normalized = normalize(WithOptional, {
+      user: { id: '5' },
+      nextPage: 'blob',
+      createdAt: '2020-06-07T02:00:15.000Z',
+    });
+    expect(normalized.result.createdAt).toBe(normalized.result.createdAt);
+    expect(typeof normalized.result.createdAt).toBe('string');
     expect(normalized).toMatchSnapshot();
   });
 
@@ -71,15 +65,12 @@ describe(`${schema.Object.name} normalization`, () => {
     const WithOptional = new schema.Object({
       user: User,
       nextPage: '',
-      createdAt: Date,
+      createdAt: Temporal.Instant.from,
     });
-    const normalized = normalize(
-      {
-        user: { id: '5' },
-        nextPage: 'blob',
-      },
-      WithOptional,
-    );
+    const normalized = normalize(WithOptional, {
+      user: { id: '5' },
+      nextPage: 'blob',
+    });
     expect(normalized.result.createdAt).toBeUndefined();
     expect(normalized).toMatchSnapshot();
   });
@@ -96,12 +87,12 @@ describe(`${schema.Object.name} denormalization`, () => {
         1: { id: '1', name: 'Nacho' },
       },
     };
-    expect(denormalize({ user: '1' }, object, entities)).toMatchSnapshot();
+    expect(denormalize(object, { user: '1' }, entities)).toMatchSnapshot();
     expect(
-      denormalize({ user: '1' }, object, fromJS(entities)),
+      denormalize(object, { user: '1' }, fromJS(entities)),
     ).toMatchSnapshot();
     expect(
-      denormalize(fromJS({ user: '1' }), object, fromJS(entities)),
+      denormalize(object, fromJS({ user: '1' }), fromJS(entities)),
     ).toMatchSnapshot();
   });
 
@@ -116,40 +107,33 @@ describe(`${schema.Object.name} denormalization`, () => {
         1: { id: '1', name: 'Nacho' },
       },
     };
-    expect(denormalize({ user: '1' }, object, entities)).toMatchSnapshot();
+    expect(denormalize(object, { user: '1' }, entities)).toMatchSnapshot();
     expect(
-      denormalize({ user: '1' }, object, fromJS(entities)),
+      denormalize(object, { user: '1' }, fromJS(entities)),
     ).toMatchSnapshot();
     expect(
-      denormalize(fromJS({ user: '1' }), object, fromJS(entities)),
+      denormalize(object, fromJS({ user: '1' }), fromJS(entities)),
     ).toMatchSnapshot();
   });
 
   test('should have found = true with null member even when schema has nested entity', () => {
     class User extends IDEntity {}
     const object = new schema.Object({
-      item: {
+      item: new schema.Object({
         user: User,
-      },
+      }),
     });
     const entities = {
       User: {
         1: { id: '1', name: 'Nacho' },
       },
     };
-    let [value, found] = denormalize({ item: null }, object, entities);
+    let value = denormalize(object, { item: null }, entities);
     expect(value).toMatchSnapshot();
-    expect(found).toBe(true);
-    [value, found] = denormalize({ item: null }, object, fromJS(entities));
+    value = denormalize(object, { item: null }, fromJS(entities));
     expect(value).toMatchSnapshot();
-    expect(found).toBe(true);
-    [value, found] = denormalize(
-      fromJS({ item: null }),
-      object,
-      fromJS(entities),
-    );
+    value = denormalize(object, fromJS({ item: null }), fromJS(entities));
     expect(value).toMatchSnapshot();
-    expect(found).toBe(true);
   });
 
   test('denormalizes plain object shorthand', () => {
@@ -161,44 +145,44 @@ describe(`${schema.Object.name} denormalization`, () => {
     };
     expect(
       denormalize(
-        { user: '1' },
         new schema.Object({ user: User, tacos: {} }),
+        { user: '1' },
         entities,
       ),
     ).toMatchSnapshot();
     expect(
       denormalize(
-        { user: '1' },
         new schema.Object({ user: User, tacos: {} }),
+        { user: '1' },
         fromJS(entities),
       ),
     ).toMatchSnapshot();
     expect(
       denormalize(
-        fromJS({ user: '1' }),
         new schema.Object({ user: User, tacos: {} }),
+        fromJS({ user: '1' }),
         fromJS(entities),
       ),
     ).toMatchSnapshot();
 
     expect(
       denormalize(
-        { user: '1', tacos: {} },
         new schema.Object({ user: User, tacos: {} }),
+        { user: '1', tacos: {} },
         entities,
       ),
     ).toMatchSnapshot();
     expect(
       denormalize(
-        { user: '1', tacos: {} },
         new schema.Object({ user: User, tacos: {} }),
+        { user: '1', tacos: {} },
         fromJS(entities),
       ),
     ).toMatchSnapshot();
     expect(
       denormalize(
-        fromJS({ user: '1', tacos: {} }),
         new schema.Object({ user: User, tacos: {} }),
+        fromJS({ user: '1', tacos: {} }),
         fromJS(entities),
       ),
     ).toMatchSnapshot();
@@ -214,12 +198,12 @@ describe(`${schema.Object.name} denormalization`, () => {
         0: { id: '0', name: 'Chancho' },
       },
     };
-    expect(denormalize({ user: '0' }, object, entities)).toMatchSnapshot();
+    expect(denormalize(object, { user: '0' }, entities)).toMatchSnapshot();
     expect(
-      denormalize({ user: '0' }, object, fromJS(entities)),
+      denormalize(object, { user: '0' }, fromJS(entities)),
     ).toMatchSnapshot();
     expect(
-      denormalize(fromJS({ user: '0' }), object, fromJS(entities)),
+      denormalize(object, fromJS({ user: '0' }), fromJS(entities)),
     ).toMatchSnapshot();
   });
 });

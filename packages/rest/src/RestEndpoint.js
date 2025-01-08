@@ -1,27 +1,29 @@
-import { Endpoint } from '@rest-hooks/endpoint';
+import { Endpoint } from '@data-client/endpoint';
 import { pathToRegexp } from 'path-to-regexp';
 
+import extractCollection from './extractCollection.js';
+import mapCollection from './mapCollection.js';
 import NetworkError from './NetworkError.js';
-import paginationUpdate from './paginationUpdate.js';
+import { createPaginationSchema } from './paginatedCollections.js';
 import paramsToString from './paramsToString.js';
 import { getUrlBase, getUrlTokens, isPojo } from './RestHelpers.js';
 
 /** Simplifies endpoint definitions that follow REST patterns
  *
- * @see https://resthooks.io/rest/api/RestEndpoint
+ * @see https://dataclient.io/rest/api/RestEndpoint
  */
 export default class RestEndpoint extends Endpoint {
   #hasBody;
   constructor(options) {
     super(
       options.fetch ??
-        function (...args) {
+        async function (...args) {
           const urlParams =
             this.#hasBody && args.length < 2 ? {} : args[0] || {};
           const body = this.#hasBody ? args[args.length - 1] : undefined;
           return this.fetchResponse(
             this.url(urlParams),
-            this.getRequestInit(body),
+            await this.getRequestInit(body),
           )
             .then(response => this.parseResponse(response))
             .then(res => this.process(res, ...args));
@@ -29,11 +31,14 @@ export default class RestEndpoint extends Endpoint {
       options,
     );
     // we want to use the prototype chain here
-    if (!('sideEffect' in this)) {
+    if (
+      !('sideEffect' in this) ||
+      ('method' in options && !('sideEffect' in options))
+    ) {
       this.sideEffect =
-        options.method === 'GET' || options.method === undefined
-          ? undefined
-          : true;
+        options.method === 'GET' || options.method === undefined ?
+          undefined
+        : true;
     }
     if (this.method === undefined) {
       this.method = this.sideEffect ? 'POST' : 'GET';
@@ -44,6 +49,14 @@ export default class RestEndpoint extends Endpoint {
     this.#hasBody =
       (!('body' in this) || this.body !== undefined) &&
       !['GET', 'DELETE'].includes(this.method);
+
+    Object.defineProperty(this, 'name', {
+      get() {
+        // using 'in' to ensure inheritance lookup
+        if ('__name' in this) return this.__name;
+        return this.urlPrefix + this.path;
+      },
+    });
   }
 
   key(...args) {
@@ -63,9 +76,14 @@ export default class RestEndpoint extends Endpoint {
       }
     });
     if (Object.keys(searchParams).length) {
-      return `${this.urlPrefix}${urlBase}?${paramsToString(searchParams)}`;
+      return `${this.urlPrefix}${urlBase}?${this.searchToString(searchParams)}`;
     }
     return `${this.urlPrefix}${urlBase}`;
+  }
+
+  /** Encode the url searchParams */
+  searchToString(searchParams) {
+    return paramsToString(searchParams);
   }
 
   getHeaders(headers) {
@@ -73,7 +91,7 @@ export default class RestEndpoint extends Endpoint {
   }
 
   /** Init options for fetch - run at fetch */
-  getRequestInit(body) {
+  async getRequestInit(body) {
     const bodyIsPojo = isPojo(body);
     if (bodyIsPojo) {
       body = JSON.stringify(body);
@@ -91,7 +109,7 @@ export default class RestEndpoint extends Endpoint {
         ...init.headers,
       };
     }
-    init.headers = this.getHeaders(init.headers);
+    init.headers = await this.getHeaders(init.headers);
     return init;
   }
 
@@ -119,9 +137,11 @@ export default class RestEndpoint extends Endpoint {
     if (!response.headers.get('content-type')?.includes('json')) {
       return response.text().then(text => {
         // string or 'not set' schema, are valid
+        // when overriding process they might handle other cases, so we don't want to block on our logic
         if (
           ['string', 'undefined'].includes(typeof this.schema) ||
-          this.schema === null
+          this.schema === null ||
+          this.process !== RestEndpoint.prototype.process
         )
           return text;
 
@@ -142,7 +162,7 @@ export default class RestEndpoint extends Endpoint {
 See https://www.rfc-editor.org/rfc/rfc4627 for information on JSON responses
 
 Using parsed JSON.
-If text content was expected see https://resthooks.io/rest/api/RestEndpoint#parseResponse`;
+If text content was expected see https://dataclient.io/rest/api/RestEndpoint#parseResponse`;
             }
           } else {
             error.message = `Unexpected html response for schema ${this.schema}
@@ -181,28 +201,71 @@ Response (first 300 characters): ${text.substring(0, 300)}`;
   }
 
   extend(options) {
-    // fetch overrides are banned
-    /*if ('fetch' in options)
-      throw new Error('fetch overrides not allowed for RestEndpoint');
-      we now just only allow the same type*/
-
     // make a constructor/prototype based off this
     // extend from it and init with options sent
     class E extends this.constructor {}
 
     Object.assign(E.prototype, this);
-    const instance = new E(
-      // name and fetch get overridden by function prototype, so we must set it explicitly every time
-      this.name
-        ? { name: this.name, fetch: this.fetch, ...options }
-        : { fetch: this.fetch, ...options },
-    );
 
-    return instance;
+    return new E(
+      //  fetch get overridden by function prototype, so we must set it explicitly every time
+      { fetch: this.fetch, ...options },
+    );
   }
 
   paginated(removeCursor) {
-    return this.extend({ update: paginationUpdate(this, removeCursor) });
+    if (typeof removeCursor === 'string') {
+      const fieldName = removeCursor;
+      removeCursor = ({ ...params }) => {
+        delete params[fieldName];
+        return [params];
+      };
+    }
+    let found = false;
+    const createPaginatedSchema = collection => {
+      found = true;
+      return createPaginationSchema(removeCursor, collection);
+    };
+    const newSchema = mapCollection(this.schema, createPaginatedSchema);
+
+    if (!found) throw new Error('Missing Collection');
+    const sup = this;
+
+    return this.extend({
+      schema: newSchema,
+      key(...args) {
+        return sup.key.call(this, ...removeCursor(...args));
+      },
+      name: this.name + '.getPage',
+    });
+  }
+
+  get getPage() {
+    return this.paginated(this.paginationField);
+  }
+
+  get push() {
+    return this.extend({
+      method: 'POST',
+      schema: extractCollection(this.schema, s => s.push),
+      name: this.name + '.create',
+    });
+  }
+
+  get unshift() {
+    return this.extend({
+      method: 'POST',
+      schema: extractCollection(this.schema, s => s.unshift),
+      name: this.name + '.create',
+    });
+  }
+
+  get assign() {
+    return this.extend({
+      method: 'POST',
+      schema: extractCollection(this.schema, s => s.assign),
+      name: this.name + '.create',
+    });
   }
 }
 

@@ -1,18 +1,32 @@
 ---
-title: RestEndpoint
-description: Strongly typed path-based API definitions.
+title: RestEndpoint - Strongly typed path-based HTTP API definitions
+sidebar_label: RestEndpoint
+description: Strongly typed path-based extensible HTTP API definitions.
 ---
 
 <head>
-  <title>RestEndpoint - Strongly typed path-based HTTP API definitions</title>
   <meta name="docsearch:pagerank" content="30"/>
 </head>
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import TypeScriptEditor from '@site/src/components/TypeScriptEditor';
+import EndpointPlayground from '@site/src/components/HTTP/EndpointPlayground';
+import Grid from '@site/src/components/Grid';
+import Link from '@docusaurus/Link';
+
+# RestEndpoint
 
 `RestEndpoints` are for [HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP) based protocols like REST.
+
+:::info extends
+
+`RestEndpoint` extends [Endpoint](./Endpoint.md)
+
+:::
+
+<details>
+<summary><b>Interface</b></summary>
 
 <Tabs
 defaultValue="RestEndpoint"
@@ -28,6 +42,9 @@ interface RestGenerics {
   readonly schema?: Schema | undefined;
   readonly method?: string;
   readonly body?: any;
+  readonly searchParams?: any;
+  readonly paginationField?: string;
+  process?(value: any, ...args: any): any;
 }
 
 export class RestEndpoint<O extends RestGenerics = any> extends Endpoint {
@@ -36,18 +53,22 @@ export class RestEndpoint<O extends RestGenerics = any> extends Endpoint {
   readonly urlPrefix: string;
   readonly requestInit: RequestInit;
   readonly method: string;
+  readonly paginationField?: string;
   readonly signal: AbortSignal | undefined;
   url(...args: Parameters<F>): string;
+  searchToString(searchParams: Record<string, any>): string;
   getRequestInit(
     this: any,
     body?: RequestInit['body'] | Record<string, unknown>,
-  ): RequestInit;
-  getHeaders(headers: HeadersInit): HeadersInit;
+  ): Promise<RequestInit> | RequestInit;
+  getHeaders(headers: HeadersInit): Promise<HeadersInit> | HeadersInit;
 
   /* Perform/process fetch */
   fetchResponse(input: RequestInfo, init: RequestInit): Promise<Response>;
   parseResponse(response: Response): Promise<any>;
   process(value: any, ...args: Parameters<F>): any;
+
+  testKey(key: string): boolean;
 }
 ```
 
@@ -79,17 +100,15 @@ class Endpoint<F extends (...args: any) => Promise<any>> {
   ) => ResolveType<F>;
   /** Determines whether to throw or fallback to */
   readonly errorPolicy?: (error: any) => 'soft' | undefined;
+
+  testKey(key: string): boolean;
 }
 ```
 
 </TabItem>
 </Tabs>
 
-:::info extends
-
-`RestEndpoint` extends [Endpoint](./Endpoint.md)
-
-:::
+</details>
 
 ## Usage
 
@@ -97,10 +116,26 @@ All options are supported as arguments to the constructor, [extend](#extend), an
 
 ### Simplest retrieval
 
+<Grid>
+
 ```ts
 const getTodo = new RestEndpoint({
-  path: 'https\\://jsonplaceholder.typicode.com/todos/:id',
+  path: '/todos/:id',
 });
+```
+
+```ts
+const todo = await getTodo({ id: 1 });
+```
+
+</Grid>
+
+### Configuration sharing
+
+Use [RestEndpoint.extend()](#extend) instead of `{...getTodo}` ([Object spread](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax#spread_in_object_literals))
+
+```ts
+const updateTodo = getTodo.extend({ method: 'PUT' });
 ```
 
 ### Managing state
@@ -112,60 +147,91 @@ export class Todo extends Entity {
   id = '';
   title = '';
   completed = false;
-  pk() {
-    return this.id;
-  }
 }
 
-const getTodo = new RestEndpoint({
+export const getTodo = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
   path: '/todos/:id',
   schema: Todo,
 });
-const updateTodo = new RestEndpoint({
-  urlPrefix: 'https://jsonplaceholder.typicode.com',
-  path: '/todos/:id',
-  method: 'PUT',
-  schema: Todo,
-});
+export const updateTodo = getTodo.extend({ method: 'PUT' });
 ```
 
 </TypeScriptEditor>
 
-Using a [Schema](./schema.md) enables automatic data consistency without the need to hurt performance with refetching.
+Using a [Schema](./schema.md) enables [automatic data consistency](/docs/concepts/normalization) without the need to hurt performance with [refetching](/docs/api/Controller#expireAll).
 
 ### Typing
 
+<TypeScriptEditor>
+
+```ts title="Comment" collapsed
+export class Comment extends Entity {
+  id = '';
+  title = '';
+  body = '';
+  postId = '';
+
+  static key = 'Comment';
+}
+```
+
+```ts title="Usage"
+import { Comment } from './Comment';
+
+const getComments = new RestEndpoint({
+  path: '/posts/:postId/comments',
+  schema: new schema.Collection([Comment]),
+  searchParams: {} as { sortBy?: 'votes' | 'recent' } | undefined,
+});
+
+// Hover your mouse over 'comments' to see its type
+const comments = useSuspense(getComments, {
+  postId: '5',
+  sortBy: 'votes',
+});
+
+const ctrl = useController();
+const createComment = async data =>
+  ctrl.fetch(getComments.push, { postId: '5' }, data);
+```
+
+</TypeScriptEditor>
+
 #### Resolution/Return
 
-[schema](#schema) determines the return value when used with data-binding hooks like [useSuspense](/docs/api/useSuspense), [useDLE](/docs/api/useDLE) or [useCache](/docs/api/useCache)
+[schema](#schema) determines the return value when used with data-binding hooks like [useSuspense](/docs/api/useSuspense), [useDLE](/docs/api/useDLE), [useCache](/docs/api/useCache)
+or when used with [Controller.fetch](/docs/api/Controller#fetch)
 
 <TypeScriptEditor>
 
-```ts title=Todo.ts collapsed
+```ts title="Todo.ts" collapsed
 export class Todo extends Entity {
   id = '';
   title = '';
   completed = false;
-  pk() {
-    return this.id;
-  }
+
+  static key = 'Todo';
 }
 ```
 
-```ts title=getTodo.ts
+```ts title="getTodo.ts"
 import { Todo } from './Todo';
 
 const getTodo = new RestEndpoint({ path: '/', schema: Todo });
 // Hover your mouse over 'todo' to see its type
 const todo = useSuspense(getTodo);
+
+async () => {
+  const ctrl = useController();
+  const todo2 = await ctrl.fetch(getTodo);
+};
 ```
 
 </TypeScriptEditor>
 
-[process](#process) determines the resolution value when the endpoint is called directly or
-when use with [Controller.fetch](/docs/api/Controller#fetch). Otherwise this will be 'any' to
-ensure compatibility.
+[process](#process) determines the resolution value when the endpoint is called directly. For
+`RestEndpoints` without a schema, it also determines the return type of [hooks](/docs/api/useSuspense) and [Controller.fetch](/docs/api/Controller#fetch).
 
 <TypeScriptEditor>
 
@@ -214,7 +280,10 @@ getById({ id: '5' });
 <TypeScriptEditor>
 
 ```ts path=method.ts
-export const update = new RestEndpoint({ path: '/:id', method: 'PUT' });
+export const update = new RestEndpoint({
+  path: '/:id',
+  method: 'PUT',
+});
 update({ id: 5 }, { title: 'updated', completed: true });
 ```
 
@@ -222,7 +291,7 @@ update({ id: 5 }, { title: 'updated', completed: true });
 
 However, this is typed as 'any' so it won't catch typos.
 
-`body` can be used to type the argument after the url parameters. It is only used for typing so the
+[body](#body) can be used to type the argument after the url parameters. It is only used for typing so the
 value sent does not matter. `undefined` value can be used to 'disable' the second argument.
 
 <TypeScriptEditor>
@@ -245,21 +314,28 @@ rpc({ id: 5 });
 
 </TypeScriptEditor>
 
-`searchParams` can be used in a similar way to `body` to specify types extra parameters, used
-for the GET/searchParams/queryParams in a [url()](#url).
+[searchParams](#searchParams) can be used in a similar way to `body` to specify types extra parameters, used
+for the GET searchParams/queryParams in a [url()](#url).
 
 ```ts
-const getList = getUser.extend({
+const getUsers = new RestEndpoint({
+  path: '/:group/user/:id',
   searchParams: {} as { isAdmin?: boolean; sort: 'asc' | 'desc' },
 });
-getList.url({ group: 'big', id: '5', sort: 'asc' }) === '/big/user/5?sort=asc';
-getList.url({ group: 'big', id: '5', sort: 'desc', isAdmin: true }) ===
-  '/big/user/5?isAdmin=true&sort=asc';
+getList.url({ group: 'big', id: '5', sort: 'asc' }) ===
+  '/big/user/5?sort=asc';
+getList.url({
+  group: 'big',
+  id: '5',
+  sort: 'desc',
+  isAdmin: true,
+}) === '/big/user/5?isAdmin=true&sort=asc';
 ```
 
 ## Fetch Lifecycle
 
-RestEndpoint adds to Endpoint by providing customizations for a provided fetch method.
+RestEndpoint adds to Endpoint by providing customizations for a provided fetch method using
+[inheritance](#inheritance) or [.extend()](#extend).
 
 import Lifecycle from '../diagrams/\_restendpoint_lifecycle.mdx';
 
@@ -269,8 +345,11 @@ import Lifecycle from '../diagrams/\_restendpoint_lifecycle.mdx';
 function fetch(...args) {
   const urlParams = this.#hasBody && args.length < 2 ? {} : args[0] || {};
   const body = this.#hasBody ? args[args.length - 1] : undefined;
-  return this.fetchResponse(this.url(urlParams), this.getRequestInit(body))
-    .then(this.parseResponse)
+  return this.fetchResponse(
+    this.url(urlParams),
+    await this.getRequestInit(body),
+  )
+    .then(response => this.parseResponse(response))
     .then(res => this.process(res, ...args));
 }
 ```
@@ -282,16 +361,17 @@ have defaults.
 
 ### url(params): string {#url}
 
-`urlPrefix` + `path template` + '?' + `searchParams`
+`urlPrefix` + `path template` + '?' + searchToString(`searchParams`)
 
 `url()` uses the `params` to fill in the [path template](#path). Any unused `params` members are then used
 as [searchParams](https://developer.mozilla.org/en-US/docs/Web/API/URL/searchParams) (aka 'GET' params - the stuff after `?`).
 
-[searchParams](https://developer.mozilla.org/en-US/docs/Web/API/URL/searchParams) (aka queryParams) are sorted to maintain determinism.
-
-<details collapsed><summary><b>Implementation</b></summary>
+<details collapsed>
+<summary><b>Implementation</b></summary>
 
 ```typescript
+import { getUrlBase, getUrlTokens } from '@rest-hooks/rest';
+
 url(urlParams = {}) {
   const urlBase = getUrlBase(this.path)(urlParams);
   const tokens = getUrlTokens(this.path);
@@ -302,7 +382,7 @@ url(urlParams = {}) {
     }
   });
   if (Object.keys(searchParams).length) {
-    return `${this.urlPrefix}${urlBase}?${paramsToString(searchParams)}`;
+    return `${this.urlPrefix}${urlBase}?${this.searchToString(searchParams)}`;
   }
   return `${this.urlPrefix}${urlBase}`;
 }
@@ -310,9 +390,74 @@ url(urlParams = {}) {
 
 </details>
 
+### searchToString(searchParams): string {#searchToString}
+
+Constructs the [searchParams](https://developer.mozilla.org/en-US/docs/Web/API/URL/searchParams) component of [url](#url).
+
+By default uses the standard [URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams) global.
+
+[searchParams](https://developer.mozilla.org/en-US/docs/Web/API/URL/searchParams) (aka queryParams) are sorted to maintain determinism.
+
+<details collapsed>
+<summary><b>Implementation</b></summary>
+
+```typescript
+searchToString(searchParams) {
+  const params = new URLSearchParams(searchParams);
+  params.sort();
+  return params.toString();
+}
+```
+
+</details>
+
+#### Using `qs` library
+
+To encode complex objects in the searchParams, you can use the [qs](https://github.com/ljharb/qs) library.
+
+```typescript
+import { RestEndpoint, RestGenerics } from '@data-client/rest';
+import qs from 'qs';
+
+class QSEndpoint<O extends RestGenerics = any> extends RestEndpoint<O> {
+  searchToString(searchParams) {
+    // highlight-next-line
+    return qs.stringify(searchParams);
+  }
+}
+```
+
+<EndpointPlayground input="/foo?a%5Bb%5D=c" init={{method: 'GET', headers: {'Content-Type': 'application/json'}}}>
+
+```typescript title="QSEndpoint" collapsed {7}
+import { RestEndpoint, RestGenerics } from '@data-client/rest';
+import qs from 'qs';
+
+export default class QSEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
+  searchToString(searchParams) {
+    return qs.stringify(searchParams);
+  }
+}
+```
+
+```typescript title="getFoo"
+import QSEndpoint from './QSEndpoint';
+
+const getFoo = new QSEndpoint({
+  path: '/foo',
+  searchParams: {} as { a: Record<string, string> },
+});
+
+getFoo({ a: { b: 'c' } });
+```
+
+</EndpointPlayground>
+
 ### path: string {#path}
 
-Uses [path-to-regex](https://github.com/pillarjs/path-to-regexp#compile-reverse-path-to-regexp) to build
+Uses [path-to-regexp](https://github.com/pillarjs/path-to-regexp#compile-reverse-path-to-regexp) to build
 urls using the parameters passed. This also informs the types so they are properly enforced.
 
 `:` prefixed words are key names. Both strings and numbers are accepted as options.
@@ -331,19 +476,23 @@ getThing({ group: 'first', id: 77 });
 <TypeScriptEditor>
 
 ```ts
-const optional = new RestEndpoint({ path: '/:group/things/:number?' });
+const optional = new RestEndpoint({
+  path: '/:group/things/:number?',
+});
 optional({ group: 'first' });
 optional({ group: 'first', number: 'fifty' });
 ```
 
 </TypeScriptEditor>
 
-`\\` to escape special characters like `:` or `?`
+`\\` to escape special characters `:`, `?`, `+`, `*`, `{`, or `}`
 
 <TypeScriptEditor>
 
 ```ts
-const getSite = new RestEndpoint({ path: 'https\\://site.com/:slug' });
+const getSite = new RestEndpoint({
+  path: 'https\\://site.com/:slug',
+});
 getSite({ slug: 'first' });
 ```
 
@@ -353,47 +502,88 @@ getSite({ slug: 'first' });
 
 Types are inferred automatically from `path`.
 
-`body` can be used to set a second argument for mutation endpoints. The actual value is not
-used in any way so it does not matter.
+Additional parameters can be specified with [searchParams](#searchParams)
+and [body](#body).
 
-<TypeScriptEditor>
+:::
 
-```ts {3}
-const updateSite = new RestEndpoint({
-  path: 'https\\://site.com/:slug',
-  body: {} as { url: string },
-});
+### searchParams {#searchParams}
 
-updateSite({ slug: 'cool' }, { url: 'https://resthooks.io/' });
-```
+`searchParams` can be to specify types extra parameters, used for the GET searchParams/queryParams in a [url()](#url).
 
-</TypeScriptEditor>
+The actual **value is not used** in any way - this only determines [typing](#typing).
 
-`searchParams` can be to specify types extra parameters, used for the GET/searchParams/queryParams in a [url()](#url).
+<EndpointPlayground input="https://site.com/cool?isReact=true" init={{method: 'GET', headers: {'Content-Type': 'application/json'}}}>
 
-<TypeScriptEditor>
-
-```ts {3}
+```typescript title="getFoo"
 const getReactSite = new RestEndpoint({
   path: 'https\\://site.com/:slug',
   searchParams: {} as { isReact: boolean },
 });
 
 getReactSite({ slug: 'cool', isReact: true });
-getReactSite.url({ slug: 'cool', isReact: true }) === 'https://site.com/cool?isReact=true';
 ```
 
-</TypeScriptEditor>
+</EndpointPlayground>
 
-:::
+### body {#body}
+
+`body` can be used to set a second argument for mutation endpoints. The actual **value is not
+used** in any way - this only determines [typing](#typing).
+
+This is only used by endpoings with a method that uses body: 'POST', 'PUT', 'PATCH'.
+
+<EndpointPlayground input="https://site.com/cool" init={{method: 'POST', body: '{ "url": "/" }', headers: {'Content-Type': 'application/json'}}}>
+
+```ts {4}
+const updateSite = new RestEndpoint({
+  path: 'https\\://site.com/:slug',
+  method: 'POST',
+  body: {} as { url: string },
+});
+
+updateSite({ slug: 'cool' }, { url: '/' });
+```
+
+</EndpointPlayground>
+
+### paginationField
+
+If specified, will add [getPage](#getpage) method on the `RestEndpoint`. [Pagination guide](../guides/pagination.md). Schema
+must also contain a [Collection](./Collection.md).
 
 ### urlPrefix: string = '' {#urlPrefix}
 
 Prepends this to the compiled [path](#path)
 
+#### Inheritance defaults
+
+```typescript
+export class MyEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
+  // this allows us to override the prefix in production environments, with a dev fallback
+  urlPrefix = process.env.API_SERVER ?? 'http://localhost:8000';
+}
+```
+
+[Learn more about inheritance patterns](#inheritance) for RestEndpoint
+
+#### Instance overrides
+
+```typescript
+export const getTicker = new RestEndpoint({
+  urlPrefix: 'https://api.exchange.coinbase.com',
+  path: '/products/:product_id/ticker',
+  schema: Ticker,
+});
+```
+
+#### Dynamic prefix
+
 :::tip
 
-For a dynamic prefix, try overriding the url() method:
+For a dynamic prefix, try overriding the url() method instead:
 
 ```ts
 const getTodo = new RestEndpoint({
@@ -410,7 +600,8 @@ const getTodo = new RestEndpoint({
 
 [Method](https://developer.mozilla.org/en-US/docs/Web/API/Request/method) is part of the HTTP protocol.
 REST protocols use these to indicate the type of operation. Because of this RestEndpoint uses this
-to inform `sideEffect` and whether the endpoint should use a `body` payload.
+to inform `sideEffect` and whether the endpoint should use a `body` payload. Setting
+`sideEffect` explicitly will override this behavior, allowing for non-standard API designs.
 
 `GET` is 'readonly', other methods imply sideEffects.
 
@@ -452,15 +643,69 @@ to indicate there is no body.
 Prepares [RequestInit](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch) used in fetch.
 This is sent to [fetchResponse](#fetchResponse)
 
+:::tip async
+
+<TypeScriptEditor>
+
+```ts
+import { RestEndpoint, RestGenerics } from '@data-client/rest';
+
+export default class AuthdEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
+  async getRequestInit(body) {
+    return {
+      ...(await super.getRequestInit(body)),
+      method: await getMethod(),
+    };
+  }
+}
+
+async function getMethod() {
+  return 'GET';
+}
+```
+
+</TypeScriptEditor>
+
+:::
+
 ### getHeaders(headers: HeadersInit): HeadersInit {#getHeaders}
 
 Called by [getRequestInit](#getRequestInit) to determine [HTTP Headers](https://developer.mozilla.org/en-US/docs/Web/API/Request/headers)
 
 This is often useful for [authentication](../guides/auth)
 
-:::caution
+:::warning
 
-Don't use hooks here.
+Don't use hooks here. If you need to use hooks, try using [hookifyResource](./hookifyResource.md)
+
+:::
+
+:::tip async
+
+<TypeScriptEditor>
+
+```ts
+import { RestEndpoint, RestGenerics } from '@data-client/rest';
+
+export default class AuthdEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
+  async getHeaders(headers: HeadersInit) {
+    return {
+      ...headers,
+      'Access-Token': await getAuthToken(),
+    };
+  }
+}
+
+async function getAuthToken() {
+  return 'example';
+}
+```
+
+</TypeScriptEditor>
 
 :::
 
@@ -468,15 +713,22 @@ Don't use hooks here.
 
 ### fetchResponse(input, init): Promise {#fetchResponse}
 
-Performs the [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) call
+Performs the [fetch(input, init)](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) call. When
+[response.ok](https://developer.mozilla.org/en-US/docs/Web/API/Response/ok) is not `true` (like 404),
+will throw a NetworkError.
 
 ### parseResponse(response): Promise {#parseResponse}
 
-Takes the [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) and parses via .text() or .json()
+Takes the [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) and parses via [.text()](https://developer.mozilla.org/en-US/docs/Web/API/Response/text) or [.json()](https://developer.mozilla.org/en-US/docs/Web/API/Response/json) depending
+on ['content-type' header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type) having 'json' (e.g., `application/json`).
+
+If `status` is 204, resolves as `null`.
+
+Override this to handle other response types like [arrayBuffer](https://developer.mozilla.org/en-US/docs/Web/API/Response/arrayBuffer)
 
 ### process(value, ...args): any {#process}
 
-Perform any transforms with the parsed result. Defaults to identity function.
+Perform any transforms with the parsed result. Defaults to identity function (do nothing).
 
 :::tip
 
@@ -514,26 +766,23 @@ async (id: string) => {
 
 :::
 
-## schema?: Schema {#schema}
+## Endpoint Lifecycle
+
+### schema?: Schema {#schema}
 
 [Declarative data lifecycle](./schema.md)
 
 - Global data consistency and performance with [DRY](https://www.plutora.com/blog/understanding-the-dry-dont-repeat-yourself-principle) state: [where](./schema.md) to expect [Entities](./Entity.md)
-- Classes to [deserialize fields](/rest/guides/network-transform#deserializing-fields)
-- [Race condition handling](./Entity.md#useincoming)
+- Functions to [deserialize fields](/rest/guides/network-transform#deserializing-fields)
+- [Race condition handling](./Entity.md#shouldreorder)
 - [Validation](./Entity.md#validate)
-- [Expiry](./Entity.md#expiresat)
 
 ```tsx
-import { Entity, RestEndpoint } from '@rest-hooks/rest';
+import { Entity, RestEndpoint } from '@data-client/rest';
 
 class User extends Entity {
-  readonly id: string = '';
-  readonly username: string = '';
-
-  pk() {
-    return this.id;
-  }
+  id = '';
+  username = '';
 }
 
 const getUser = new RestEndpoint({
@@ -542,155 +791,28 @@ const getUser = new RestEndpoint({
 });
 ```
 
-## Endpoint Life-Cycles
-
-These are inherited from [Endpoint](./Endpoint.md#lifecycle)
-
-### dataExpiryLength?: number {#dataexpirylength}
-
-Custom data cache lifetime for the fetched resource. Will override the value set in NetworkManager.
-
-[Learn more about expiry time](/docs/concepts/expiry-policy#expiry-time)
-
-### errorExpiryLength?: number {#errorexpirylength}
-
-Custom data error lifetime for the fetched resource. Will override the value set in NetworkManager.
-
-### errorPolicy?: (error: any) => 'soft' | undefined {#errorpolicy}
-
-'soft' will use stale data (if exists) in case of error; undefined or not providing option will result
-in error.
-
-[Learn more about errorPolicy](/docs/concepts/expiry-policy#error-policy)
-
-```ts
-errorPolicy(error) {
-  return error.status >= 500 ? 'soft' : undefined;
-}
-```
-
-### invalidIfStale: boolean {#invalidifstale}
-
-Indicates stale data should be considered unusable and thus not be returned from the cache. This means
-that useSuspense() will suspend when data is stale even if it already exists in cache.
-
-### pollFrequency: number {#pollfrequency}
-
-Frequency in millisecond to poll at. Requires using [useSubscription()](/docs/api/useSubscription) or
-[useLive()](/docs/api/useLive) to have an effect.
-
-### getOptimisticResponse: (snap, ...args) => fakePayload {#getoptimisticresponse}
-
-When provided, any fetches with this endpoint will behave as though the `fakePayload` return value
-from this function was a succesful network response. When the actual fetch completes (regardless
-of failure or success), the optimistic update will be replaced with the actual network response.
-
-[Optimistic update guide](guides/optimistic-updates.md)
-
-### update(normalizedResponseOfThis, ...args) => ({ [endpointKey]: (normalizedResponseOfEndpointToUpdate) => updatedNormalizedResponse) }) {#update}
-
-```ts title="UpdateType.ts"
-type UpdateFunction<
-  Source extends EndpointInterface,
-  Updaters extends Record<string, any> = Record<string, any>,
-> = (
-  source: ResultEntry<Source>,
-  ...args: Parameters<Source>
-) => { [K in keyof Updaters]: (result: Updaters[K]) => Updaters[K] };
-```
-
-Simplest case:
-
-```ts title="userEndpoint.ts"
-const createUser = new RestEndpoint({
-  path: '/user',
-  method: 'POST',
-  schema: User,
-  update: (newUserId: string) => ({
-    [userList.key()]: (users = []) => [newUserId, ...users],
-  }),
-});
-```
-
-More updates:
-
-```typescript title="Component.tsx"
-const allusers = useSuspense(userList);
-const adminUsers = useSuspense(userList, { admin: true });
-```
-
-The endpoint below ensures the new user shows up immediately in the usages above.
-
-```ts title="userEndpoint.ts"
-const createUser = new RestEndpoint({
-  path: '/user',
-  method: 'POST',
-  schema: User,
-  update: (newUserId, newUser)  => {
-    const updates = {
-      [userList.key()]: (users = []) => [newUserId, ...users],
-    ];
-    if (newUser.isAdmin) {
-      updates[userList.key({ admin: true })] = (users = []) => [newUserId, ...users];
-    }
-    return updates;
-  },
-});
-```
-
-This is usage with a [createResource](./createResource.md)
-
-```typescript title="TodoResource.ts"
-import { Entity, createResource } from '@rest-hooks/rest';
-
-export class Todo extends Entity {
-  readonly id: number = 0;
-  readonly userId: number = 0;
-  readonly title: string = '';
-  readonly completed: boolean = false;
-
-  pk() {
-    return `${this.id}`;
-  }
-}
-
-// We declare BaseTodoResource before TodoResource to prevent recursive type definitions
-const BaseTodoResource = createResource({
-  path: 'https://jsonplaceholder.typicode.com/todos/:id',
-  schema: Todo,
-});
-export const TodoResource = {
-  ...BaseTodoResource,
-  create: BaseTodoResource.create.extend({
-    // highlight-start
-    update: (newResourceId: string) => ({
-      [todoList.key({})]: (resourceIds: string[] = []) => [
-        ...resourceIds,
-        newResourceId,
-      ],
-    }),
-    // highlight-end
-  }),
-};
-```
-
-## key(urlParams): string {#key}
+### key(urlParams): string {#key}
 
 Serializes the parameters. This is used to build a lookup key in global stores.
 
 Default:
 
 ```typescript
-`${this.method} ${this.url(urlParams)}`
+`${this.method} ${this.url(urlParams)}`;
 ```
 
-## testKey(key): boolean
+### testKey(key): boolean {#testKey}
 
 Returns `true` if the provided (fetch) [key](#key) matches this endpoint.
 
-This is used for mock interceptors with with [<MockResolver /&gt;](/docs/api/MockResolver)
+This is used for mock interceptors with with [&lt;MockResolver /&gt;](/docs/api/MockResolver),
+[Controller.expireAll()](/docs/api/Controller#expireAll), and [Controller.invalidateAll()](/docs/api/Controller#invalidateAll).
 
-## extend(options): Endpoint {#extend}
+import EndpointLifecycle from './_EndpointLifecycle.mdx';
+
+<EndpointLifecycle />
+
+## extend(options): RestEndpoint {#extend}
 
 Can be used to further customize the endpoint definition
 
@@ -708,7 +830,67 @@ const UserDetailNormalized = getUser.extend({
 });
 ```
 
-## paginated(removeCursor): args {#paginated}
+## Specialized extenders
+
+### push
+
+This is a convenience to place newly created Entities at the _end_ of a [Collection](./Collection.md).
+
+When this `RestEndpoint`'s schema contains a [Collection](./Collection.md), this returned a new
+RestEndpoint with its parents properties, but with [method](#method): 'POST' and schema: [Collection.push](./Collection.md#push)
+
+### unshift
+
+This is a convenience to place newly created Entities at the _start_ of a [Collection](./Collection.md).
+
+When this `RestEndpoint`'s schema contains a [Collection](./Collection.md), this returned a new
+RestEndpoint with its parents properties, but with [method](#method): 'POST' and schema: [Collection.push](./Collection.md#unshift)
+
+### assign
+
+This is a convenience to add newly created Entities to a [Values](./Values.md) [Collection](./Collection.md).
+
+When this `RestEndpoint`'s schema contains a [Collection](./Collection.md), this returned a new
+RestEndpoint with its parents properties, but with [method](#method): 'POST' and schema: [Collection.push](./Collection.md#assign)
+
+### getPage
+
+An endpoint to retrieve the next page using [paginationField](#paginationfield) as the searchParameter key. Schema
+must also contain a [Collection](./Collection.md)
+
+```tsx
+const getTodos = new RestEndpoint({
+  path: '/todos',
+  schema: Todo,
+  paginationField: 'page',
+});
+
+const todos = useSuspense(getTodos);
+return (
+  <PaginatedList
+    items={todos}
+    fetchNextPage={() =>
+      // fetches url `/todos?page=${nextPage}`
+      ctrl.fetch(TodoResource.getList.getPage, { page: nextPage })
+    }
+  />
+);
+```
+
+See [pagination guide](guides/pagination.md) for more info.
+
+### paginated(paginationfield) {#paginated}
+
+Creates a new endpoint with an extra `paginationfield` string that will be used to find the specific
+page, to append to this endpoint. See [Infinite Scrolling Pagination](guides/pagination.md#infinite-scrolling) for more info.
+
+```ts
+const getNextPage = getList.paginated('cursor');
+```
+
+Schema must also contain a [Collection](./Collection.md)
+
+### paginated(removeCursor) {#paginated-function}
 
 ```typescript
 function paginated<E, A extends any[]>(
@@ -717,8 +899,7 @@ function paginated<E, A extends any[]>(
 ): PaginationEndpoint<E, A>;
 ```
 
-Extends an endpoint whose schema contains an Array and creates a new endpoint that
-will append the items it finds into the list from the first endpoint. See [Infinite Scrolling Pagination](guides/pagination.md#infinite-scrolling) for more info.
+The function form allows any argument processing. This is the equivalent of sending `cursor` string like above.
 
 ```ts
 const getNextPage = getList.paginated(
@@ -730,14 +911,18 @@ const getNextPage = getList.paginated(
 `removeCusor` is a function that takes the arguments sent in fetch of `getNextPage` and returns
 the arguments to update `getList`.
 
+Schema must also contain a [Collection](./Collection.md)
+
 ## Inheritance
 
 Make sure you use `RestGenerics` to keep types working.
 
 ```ts
-import { RestEndpoint, RestGenerics } from '@rest-hooks/rest';
+import { RestEndpoint, type RestGenerics } from '@data-client/rest';
 
-class GithubEndpoint<O extends RestGenerics = any> extends RestEndpoint<O> {
+class GithubEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
   urlPrefix = 'https://api.github.com';
 
   getHeaders(headers: HeadersInit): HeadersInit {

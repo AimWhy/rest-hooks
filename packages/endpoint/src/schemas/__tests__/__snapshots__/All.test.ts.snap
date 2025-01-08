@@ -280,13 +280,12 @@ exports[`AllSchema normalization (%s) should throw a custom error if data loads 
 
 Parsing this input string as JSON worked. This likely indicates fetch function did not parse
 the JSON. By default, this only happens if "content-type" header includes "json".
-See https://resthooks.io/rest/api/RestEndpoint#parseResponse for more information
+See https://dataclient.io/rest/api/RestEndpoint#parseResponse for more information
 
   Schema: [
   {
-    "name": "User",
-    "schema": {},
-    "key": "User"
+    "key": "User",
+    "schema": {}
   }
 ]
   Input: "[{"id":5}]""
@@ -297,28 +296,53 @@ exports[`AllSchema normalization (%s) should throw a custom error if data loads 
 
           Schema: [
   {
-    "name": "User",
-    "schema": {},
-    "key": "User"
+    "key": "User",
+    "schema": {}
   }
 ]
           Input: "abc""
 `;
 
+exports[`ArraySchema denormalization (direct) denormalize maintains referential equality until entities are added 1`] = `
+[
+  Cat {
+    "id": "1",
+    "name": "Milo",
+  },
+  Cat {
+    "id": "2",
+    "name": "Jake",
+  },
+]
+`;
+
+exports[`ArraySchema denormalization (direct) denormalize maintains referential equality until entities are added 2`] = `
+[
+  Cat {
+    "id": "1",
+    "name": "Milo",
+  },
+  Cat {
+    "id": "2",
+    "name": "Jake",
+  },
+  Cat {
+    "id": "3",
+    "name": "Jelico",
+  },
+]
+`;
+
 exports[`ArraySchema denormalization (direct) denormalizes a single entity 1`] = `
 [
-  [
-    Cat {
-      "id": "1",
-      "name": "Milo",
-    },
-    Cat {
-      "id": "2",
-      "name": "Jake",
-    },
-  ],
-  true,
-  false,
+  Cat {
+    "id": "1",
+    "name": "Milo",
+  },
+  Cat {
+    "id": "2",
+    "name": "Jake",
+  },
 ]
 `;
 
@@ -340,22 +364,18 @@ exports[`ArraySchema denormalization (direct) denormalizes multiple entities 1`]
 `;
 
 exports[`ArraySchema denormalization (direct) denormalizes nested in object 1`] = `
-[
-  {
-    "results": [
-      Cat {
-        "id": "1",
-        "name": "Milo",
-      },
-      Cat {
-        "id": "2",
-        "name": "Jake",
-      },
-    ],
-  },
-  true,
-  false,
-]
+{
+  "results": [
+    Cat {
+      "id": "1",
+      "name": "Milo",
+    },
+    Cat {
+      "id": "2",
+      "name": "Jake",
+    },
+  ],
+}
 `;
 
 exports[`ArraySchema denormalization (direct) denormalizes nested in object with primitive 1`] = `
@@ -387,7 +407,7 @@ exports[`ArraySchema denormalization (direct) denormalizes nested in object with
 }
 `;
 
-exports[`ArraySchema denormalization (direct) denormalizes removes undefined or DELETED entities 1`] = `
+exports[`ArraySchema denormalization (direct) denormalizes removes undefined or INVALID entities 1`] = `
 [
   Cat {
     "id": "1",
@@ -400,7 +420,7 @@ exports[`ArraySchema denormalization (direct) denormalizes removes undefined or 
 ]
 `;
 
-exports[`ArraySchema denormalization (direct) denormalizes removes undefined or DELETED entities 2`] = `
+exports[`ArraySchema denormalization (direct) denormalizes removes undefined or INVALID entities 2`] = `
 {
   "nextPage": "",
   "results": [
@@ -417,30 +437,52 @@ exports[`ArraySchema denormalization (direct) denormalizes removes undefined or 
 `;
 
 exports[`ArraySchema denormalization (direct) returns the input value if is null 1`] = `
+Taco {
+  "fillings": null,
+  "id": "123",
+}
+`;
+
+exports[`ArraySchema denormalization (immutable) denormalize maintains referential equality until entities are added 1`] = `
 [
-  Taco {
-    "fillings": null,
-    "id": "123",
+  Cat {
+    "id": "1",
+    "name": "Milo",
   },
-  true,
-  false,
+  Cat {
+    "id": "2",
+    "name": "Jake",
+  },
+]
+`;
+
+exports[`ArraySchema denormalization (immutable) denormalize maintains referential equality until entities are added 2`] = `
+[
+  Cat {
+    "id": "1",
+    "name": "Milo",
+  },
+  Cat {
+    "id": "2",
+    "name": "Jake",
+  },
+  Cat {
+    "id": "3",
+    "name": "Jelico",
+  },
 ]
 `;
 
 exports[`ArraySchema denormalization (immutable) denormalizes a single entity 1`] = `
 [
-  [
-    Cat {
-      "id": "1",
-      "name": "Milo",
-    },
-    Cat {
-      "id": "2",
-      "name": "Jake",
-    },
-  ],
-  true,
-  false,
+  Cat {
+    "id": "1",
+    "name": "Milo",
+  },
+  Cat {
+    "id": "2",
+    "name": "Jake",
+  },
 ]
 `;
 
@@ -462,22 +504,18 @@ exports[`ArraySchema denormalization (immutable) denormalizes multiple entities 
 `;
 
 exports[`ArraySchema denormalization (immutable) denormalizes nested in object 1`] = `
-[
-  {
-    "results": [
-      Cat {
-        "id": "1",
-        "name": "Milo",
-      },
-      Cat {
-        "id": "2",
-        "name": "Jake",
-      },
-    ],
-  },
-  true,
-  false,
-]
+{
+  "results": [
+    Cat {
+      "id": "1",
+      "name": "Milo",
+    },
+    Cat {
+      "id": "2",
+      "name": "Jake",
+    },
+  ],
+}
 `;
 
 exports[`ArraySchema denormalization (immutable) denormalizes nested in object with primitive 1`] = `
@@ -509,7 +547,7 @@ exports[`ArraySchema denormalization (immutable) denormalizes nested in object w
 }
 `;
 
-exports[`ArraySchema denormalization (immutable) denormalizes removes undefined or DELETED entities 1`] = `
+exports[`ArraySchema denormalization (immutable) denormalizes removes undefined or INVALID entities 1`] = `
 [
   Cat {
     "id": "1",
@@ -522,7 +560,7 @@ exports[`ArraySchema denormalization (immutable) denormalizes removes undefined 
 ]
 `;
 
-exports[`ArraySchema denormalization (immutable) denormalizes removes undefined or DELETED entities 2`] = `
+exports[`ArraySchema denormalization (immutable) denormalizes removes undefined or INVALID entities 2`] = `
 {
   "nextPage": "",
   "results": [
@@ -539,12 +577,8 @@ exports[`ArraySchema denormalization (immutable) denormalizes removes undefined 
 `;
 
 exports[`ArraySchema denormalization (immutable) returns the input value if is null 1`] = `
-[
-  Taco {
-    "fillings": null,
-    "id": "123",
-  },
-  true,
-  false,
-]
+Taco {
+  "fillings": null,
+  "id": "123",
+}
 `;

@@ -1,5 +1,6 @@
+import { useRouter } from '@anansi/router';
+import { AsyncBoundary } from '@data-client/react';
 import { styled } from '@linaria/react';
-import { AsyncBoundary } from '@rest-hooks/react';
 import { Spin } from 'antd';
 import { memo } from 'react';
 import type { ReactNode } from 'react';
@@ -11,7 +12,13 @@ function Boundary({
   children: ReactNode;
   fallback?: ReactNode;
 }) {
-  return <AsyncBoundary fallback={fallback}>{children}</AsyncBoundary>;
+  const router = useRouter();
+
+  return (
+    <AsyncBoundary fallback={fallback} listen={router.history.listen}>
+      {children}
+    </AsyncBoundary>
+  );
 }
 export default memo(Boundary);
 

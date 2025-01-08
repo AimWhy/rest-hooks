@@ -9,10 +9,11 @@ module.exports = function (api) {
       [
         '@anansi',
         {
-          typing: 'typescript',
+          hasJsxRuntime: true,
           loose: true,
           resolver: {
             resolvePath(sourcePath, currentFile, opts) {
+              // babel needs to handle .js imports that refer to .ts files
               if (
                 process.env.NODE_ENV === 'test' &&
                 sourcePath.startsWith('.') &&
@@ -42,7 +43,7 @@ module.exports = function (api) {
                     resolved + ext,
                   );
                   if (fs.existsSync(absolutePath)) {
-                    return resolved;
+                    return resolved + path.extname(sourcePath);
                   }
                 }
               }
@@ -59,6 +60,7 @@ module.exports = function (api) {
       objectRestNoSymbols: true,
       pureGetters: true,
     },
+    sourceMaps: 'inline',
     // allows us to load .babelrc in addition to this
     babelrcRoots: ['packages/*', '__tests__'],
     // this is just for testing react native...they ship packages with flowtype in them
@@ -66,6 +68,7 @@ module.exports = function (api) {
       {
         test: /node_modules\/.+\.(m|c)?js$/,
         presets: ['@babel/preset-flow'],
+        plugins: ['babel-plugin-syntax-hermes-parser'],
       },
     ],
   };

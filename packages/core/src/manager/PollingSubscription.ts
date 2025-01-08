@@ -1,45 +1,43 @@
-import type { EndpointInterface, Schema } from '@rest-hooks/normalizr';
+import type { EndpointInterface } from '@data-client/normalizr';
 
 import ConnectionListener from './ConnectionListener.js';
 import DefaultConnectionListener from './DefaultConnectionListener.js';
-import { Subscription, SubscriptionInit } from './SubscriptionManager.js';
-import createFetch from '../controller/createFetch.js';
-import type { State, Dispatch } from '../types.js';
+import type { Subscription } from './SubscriptionManager.js';
+import type Controller from '../controller/Controller.js';
+import type { SubscribeAction } from '../types.js';
 
 /**
  * PollingSubscription keeps a given resource updated by
  * dispatching a fetch at a rate equal to the minimum update
  * interval requested.
  *
- * @see https://resthooks.io/docs/api/PollingSubscription
+ * @see https://dataclient.io/docs/api/PollingSubscription
  */
 export default class PollingSubscription implements Subscription {
-  protected declare readonly schema: Schema | undefined;
-  protected declare readonly fetch: () => Promise<any>;
-  protected declare readonly key: string;
-  protected declare frequency: number;
+  declare protected readonly endpoint: EndpointInterface;
+  declare protected readonly args: readonly any[];
+  declare protected readonly key: string;
+  declare protected frequency: number;
   protected frequencyHistogram: Map<number, number> = new Map();
-  protected declare dispatch: Dispatch<any>;
-  protected declare getState: () => State<unknown>;
-  protected declare intervalId?: ReturnType<typeof setInterval>;
-  protected declare lastIntervalId?: ReturnType<typeof setInterval>;
-  protected declare startId?: ReturnType<typeof setTimeout>;
-  private declare connectionListener: ConnectionListener;
+  declare protected controller: Controller;
+  declare protected intervalId?: ReturnType<typeof setInterval>;
+  declare protected lastIntervalId?: ReturnType<typeof setInterval>;
+  declare protected startId?: ReturnType<typeof setTimeout>;
+  declare private connectionListener: ConnectionListener;
 
   constructor(
-    { key, schema, fetch, frequency, getState }: SubscriptionInit,
-    dispatch: Dispatch<any>,
+    action: Omit<SubscribeAction, 'type'>,
+    controller: Controller,
     connectionListener?: ConnectionListener,
   ) {
-    if (frequency === undefined)
+    if (action.endpoint.pollFrequency === undefined)
       throw new Error('frequency needed for polling subscription');
-    this.schema = schema;
-    this.fetch = fetch;
-    this.frequency = frequency;
-    this.key = key;
+    this.endpoint = action.endpoint;
+    this.frequency = action.endpoint.pollFrequency;
+    this.args = action.args;
+    this.key = action.key;
     this.frequencyHistogram.set(this.frequency, 1);
-    this.dispatch = dispatch;
-    this.getState = getState;
+    this.controller = controller;
     this.connectionListener =
       connectionListener || new DefaultConnectionListener();
 
@@ -123,16 +121,17 @@ export default class PollingSubscription implements Subscription {
 
   /** Trigger request for latest resource */
   protected update() {
-    const endpoint: EndpointInterface = () => this.fetch();
-    (endpoint as any).schema = this.schema;
-    endpoint.key = () => this.key;
-    (endpoint as any).dataExpiryLength = this.frequency / 2;
-    (endpoint as any).errorExpiryLength = this.frequency / 10;
+    const sup = this.endpoint;
+    const endpoint = function (this: any, ...args: any[]) {
+      return sup.call(this, ...args);
+    };
+    Object.assign(endpoint, this.endpoint);
+    endpoint.dataExpiryLength = this.frequency / 2;
+    endpoint.errorExpiryLength = this.frequency / 10;
     endpoint.errorPolicy = () => 'soft' as const;
-    const action = createFetch(endpoint, { args: [] });
+    endpoint.key = () => this.key;
     // stop any errors here from bubbling
-    (action.meta.promise as Promise<any>).catch(e => null);
-    this.dispatch(action);
+    this.controller.fetch(endpoint, ...this.args).catch(() => null);
   }
 
   /** What happens when browser goes offline */
@@ -146,11 +145,20 @@ export default class PollingSubscription implements Subscription {
   protected onlineListener = () => {
     this.connectionListener.removeOnlineListener(this.onlineListener);
     const now = Date.now();
-    this.startId = setTimeout(() => {
-      delete this.startId;
-      this.update();
-      this.run();
-    }, Math.max(0, this.lastFetchTime() - now + this.frequency));
+    this.startId = setTimeout(
+      () => {
+        if (this.startId) {
+          delete this.startId;
+          this.update();
+          this.run();
+        } else if (process.env.NODE_ENV !== 'production') {
+          console.warn(
+            `Poll setTimeout for ${this.key} still running, but timeoutId deleted`,
+          );
+        }
+      },
+      Math.max(0, this.lastFetchTime() - now + this.frequency),
+    );
     this.connectionListener.addOfflineListener(this.offlineListener);
   };
 
@@ -168,12 +176,17 @@ export default class PollingSubscription implements Subscription {
         clearInterval(this.lastIntervalId);
         delete this.lastIntervalId;
       }
-      this.update();
+      if (this.intervalId) this.update();
+      else if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          `Poll intervalId for ${this.key} still running, but intervalId deleted`,
+        );
+      }
     }, this.frequency);
   }
 
   /** Last fetch time */
   protected lastFetchTime() {
-    return this.getState().meta[this.key]?.date ?? 0;
+    return this.controller.getState().meta[this.key]?.date ?? 0;
   }
 }

@@ -1,12 +1,7 @@
-import { Entity, createResource, RestEndpoint, Schema } from '@rest-hooks/rest';
+import { Entity, resource, RestEndpoint, Schema } from '@data-client/rest';
 
 export abstract class PlaceholderEntity extends Entity {
-  readonly id: number = 0;
-
-  // all Resources of `jsonplaceholder` use an id for the primary key
-  pk() {
-    return `${this.id}`;
-  }
+  id = 0;
 }
 
 /** Common patterns in the https://jsonplaceholder.typicode.com API */
@@ -19,7 +14,7 @@ export function createPlaceholderResource<U extends string, S extends Schema>({
   readonly schema: S;
   readonly Endpoint?: typeof RestEndpoint;
 }) {
-  const base = createResource({ path, schema, Endpoint });
+  const base = resource({ path, schema, Endpoint });
   const partialUpdate = base.partialUpdate.extend({
     fetch: async function (...args: any) {
       // body only contains what we're changing, but we can find the id in params
@@ -35,7 +30,7 @@ export function createPlaceholderResource<U extends string, S extends Schema>({
     // the correct ID in certain cases
     //
     // This is sometimes needed when you don't control the server API itself
-    // More here: https://resthooks.io/docs/guides/network-transform#case-of-the-missing-id
+    // More here: https://dataclient.io/docs/guides/network-transform#case-of-the-missing-id
     partialUpdate,
     create: base.create.extend({
       fetch: async function (...args: any) {

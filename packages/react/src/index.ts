@@ -3,23 +3,17 @@ Object.hasOwn =
   /* istanbul ignore next */ function hasOwn(it, key) {
     return Object.prototype.hasOwnProperty.call(it, key);
   };
-export {
-  PollingSubscription,
-  DevToolsManager,
-  SubscriptionManager,
-  DefaultConnectionListener,
-  NetworkManager,
-  LogoutManager,
-  Controller,
-  ExpiryStatus,
-  actionTypes,
-} from '@rest-hooks/core';
+export { Controller, ExpiryStatus, actionTypes } from '@data-client/core';
 export type {
   EndpointExtraOptions,
   FetchFunction,
   ResolveType,
   EndpointInterface,
+  EntityInterface,
+  Queryable,
+  SchemaArgs,
   Schema,
+  SchemaClass,
   DenormalizeNullable,
   Denormalize,
   Normalize,
@@ -29,11 +23,12 @@ export type {
   UnsubscribeAction,
   SubscribeAction,
   ResetAction,
-  ReceiveAction,
+  SetAction,
+  SetResponseAction,
   ActionTypes,
-  ReceiveTypes,
   NetworkError,
   UnknownError,
+  ErrorTypes,
   AbstractInstanceType,
   UpdateFunction,
   State,
@@ -42,16 +37,18 @@ export type {
   Middleware,
   MiddlewareAPI,
   Manager,
-} from '@rest-hooks/core';
+  GCInterface,
+  GCOptions,
+  CreateCountRef,
+  // used in Controller generic
+  DataClientDispatch,
+  GenericDispatch,
+} from '@data-client/core';
+export { default as GCPolicy } from './state/GCPolicy.js';
+export * from './managers/index.js';
 export * from './components/index.js';
 export * from './hooks/index.js';
-export {
-  StateContext,
-  DispatchContext,
-  ControllerContext,
-  StoreContext,
-  DenormalizeCacheContext,
-  type Store,
-} from './context.js';
+export { StateContext, ControllerContext, StoreContext } from './context.js';
+export type { Store } from './context.js';
 export * as __INTERNAL__ from './internal.js';
-export { usePromisifiedDispatch } from '@rest-hooks/use-enhanced-reducer';
+export { usePromisifiedDispatch } from '@data-client/use-enhanced-reducer';

@@ -1,12 +1,11 @@
-import { Entity } from '@rest-hooks/endpoint';
-import { useController } from '@rest-hooks/react';
-import { useSuspense } from '@rest-hooks/react';
-import { CacheProvider } from '@rest-hooks/react';
-import { act } from '@testing-library/react-hooks';
-import { Article, CoolerArticle, CoolerArticleResource } from '__tests__/new';
+import { Entity, schema } from '@data-client/endpoint';
+import { useController } from '@data-client/react';
+import { useSuspense } from '@data-client/react';
+import { CacheProvider } from '@data-client/react';
+import { CoolerArticle, CoolerArticleResource } from '__tests__/new';
 import nock from 'nock';
 
-import { makeRenderRestHook } from '../../../test';
+import { makeRenderDataClient } from '../../../test';
 import RestEndpoint, {
   Defaults,
   RestEndpointConstructorOptions,
@@ -27,10 +26,6 @@ export class User extends Entity {
   readonly username: string = '';
   readonly email: string = '';
   readonly isAdmin: boolean = false;
-
-  pk() {
-    return this.id?.toString();
-  }
 }
 const getUser = new RestEndpoint({
   path: 'http\\://test.com/user/:id',
@@ -46,10 +41,6 @@ export class PaginatedArticle extends Entity {
   readonly author: number | null = null;
   readonly tags: string[] = [];
 
-  pk() {
-    return this.id?.toString();
-  }
-
   static schema = {
     author: User,
   };
@@ -57,10 +48,9 @@ export class PaginatedArticle extends Entity {
 const getArticleList = new RestEndpoint({
   urlPrefix: 'http://test.com',
   path: '/article-paginated',
-  name: 'get',
   schema: {
     nextPage: '',
-    data: { results: [PaginatedArticle] },
+    data: { results: new schema.Collection([PaginatedArticle]) },
   },
   method: 'GET',
 });
@@ -74,7 +64,7 @@ const getArticleList2 = new RestEndpoint({
   name: 'get',
   schema: {
     nextPage: '',
-    data: { results: [PaginatedArticle] },
+    data: { results: new schema.Collection([PaginatedArticle]) },
   },
   method: 'GET',
 });
@@ -88,9 +78,65 @@ const getNextPage2 = getArticleList2.paginated(
   }) => [rest],
 );
 
+const getArticleList3 = new RestEndpoint({
+  urlPrefix: 'http://test.com',
+  path: '/article-paginated',
+  schema: {
+    nextPage: '',
+    data: { results: new schema.Collection([PaginatedArticle]) },
+  },
+  method: 'GET',
+  searchParams: {} as { group: string | number },
+  paginationField: 'cursor',
+}).extend({
+  dataExpiryLength: 10000,
+});
+const getNextPage3 = getArticleList3.getPage;
+
+// type tests
+() => {
+  const base = new RestEndpoint({
+    urlPrefix: 'http://test.com',
+    path: '/article-paginated',
+    schema: {
+      nextPage: '',
+      data: { results: new schema.Collection([PaginatedArticle]) },
+    },
+    method: 'GET',
+  });
+  // @ts-expect-error
+  () => base.getPage();
+  () =>
+    // @ts-expect-error
+    base
+      .extend({
+        path: '',
+        dataExpiryLength: 10000,
+      })
+      .getPage();
+  const a = new RestEndpoint({
+    urlPrefix: 'http://test.com',
+    path: '/article-paginated',
+    schema: {
+      nextPage: '',
+      data: { results: new schema.Collection([PaginatedArticle]) },
+    },
+    method: 'GET',
+    searchParams: {} as { group: string | number },
+  }).extend({
+    path: ':blob',
+    searchParams: {} as { isAdmin?: boolean },
+    method: 'GET',
+    paginationField: 'cursor',
+  });
+  a.getPage({ cursor: 'hi', blob: 'ho' });
+  // @ts-expect-error
+  a.getPage({ blob: 'ho' });
+};
+
 describe('RestEndpoint', () => {
-  const renderRestHook: ReturnType<typeof makeRenderRestHook> =
-    makeRenderRestHook(CacheProvider);
+  const renderDataClient: ReturnType<typeof makeRenderDataClient> =
+    makeRenderDataClient(CacheProvider);
   let mynock: nock.Scope;
 
   beforeEach(() => {
@@ -161,7 +207,26 @@ describe('RestEndpoint', () => {
     const y: undefined = updateUser.sideEffect;
   });
 
-  /* TODO: it('should allow sideEffect overrides', () => {
+  it('only optional path means the arg is not required', () => {
+    const ep = new RestEndpoint({ path: '/users/:id?/:group?' });
+    const epbody = new RestEndpoint({
+      path: '/users/:id?/:group?',
+      body: { title: '' },
+      method: 'POST',
+    });
+    () => ep();
+    () => ep({ id: 5 });
+    () => ep({ group: 5 });
+    () => ep({ id: 5, group: 5 });
+    () => epbody({ title: 'hi' });
+    () => epbody({ id: 5 }, { title: 'hi' });
+    () => epbody({ group: 5 }, { title: 'hi' });
+    () => epbody({ id: 5, group: 5 }, { title: 'hi' });
+    // @ts-expect-error
+    () => epbody({ title: 'hi' }, { title: 'hi' });
+  });
+
+  it('should allow sideEffect overrides', () => {
     const weirdGetUser = new RestEndpoint({
       path: 'http\\://test.com/user/:id',
       name: 'getter',
@@ -171,9 +236,10 @@ describe('RestEndpoint', () => {
     });
 
     expect(weirdGetUser.sideEffect).toBe(undefined);
-    //s @ts-expect-error
-    //const y: true = weirdGetUser.sideEffect;
-  });*/
+    const a: undefined = weirdGetUser.sideEffect;
+    // @ts-expect-error
+    const y: true = weirdGetUser.sideEffect;
+  });
 
   it('should handle simple urls', () => {
     expect(getUser.url({ id: '5' })).toBe('http://test.com/user/5');
@@ -221,13 +287,19 @@ describe('RestEndpoint', () => {
 
   it('should automatically name methods', () => {
     expect(getUser.name).toBe('User.get');
+    expect(getArticleList.name).toMatchInlineSnapshot(
+      `"http://test.com/article-paginated"`,
+    );
+    expect(
+      getArticleList.extend({ path: '/:something' }).name,
+    ).toMatchInlineSnapshot(`"http://test.com/:something"`);
   });
 
   it('should update on get for a paginated resource', async () => {
     mynock.get(`/article-paginated`).reply(200, paginatedFirstPage);
     mynock.get(`/article-paginated?cursor=2`).reply(200, paginatedSecondPage);
 
-    const { result, waitForNextUpdate, controller } = renderRestHook(() => {
+    const { result, waitForNextUpdate, controller } = renderDataClient(() => {
       const { fetch } = useController();
       const {
         data: { results: articles },
@@ -254,26 +326,74 @@ describe('RestEndpoint', () => {
       .get(`/article-paginated/happy?cursor=2`)
       .reply(200, paginatedSecondPage);
 
-    const { result, waitForNextUpdate } = renderRestHook(() => {
-      const { fetch } = useController();
+    const { result, waitForNextUpdate, controller } = renderDataClient(() => {
       const {
         data: { results: articles },
         nextPage,
       } = useSuspense(getArticleList2, {
         group: 'happy',
       });
-      return { articles, nextPage, fetch };
+      return { articles, nextPage };
     });
     await waitForNextUpdate();
     // @ts-expect-error
-    () => result.current.fetch(getNextPage2);
+    () => controller.fetch(getNextPage2);
     // @ts-expect-error
-    () => result.current.fetch(getNextPage2, { fake: 5 });
+    () => controller.fetch(getNextPage2, { fake: 5 });
     // @ts-expect-error
-    () => result.current.fetch(getNextPage2, { group: 'happy' });
+    () => controller.fetch(getNextPage2, { group: 'happy' });
     // @ts-expect-error
-    () => result.current.fetch(getNextPage2, { cursor: 2 });
-    await result.current.fetch(getNextPage2, {
+    () => controller.fetch(getNextPage2, { cursor: 2 });
+    await controller.fetch(getNextPage2, {
+      group: 'happy',
+      cursor: 2,
+    });
+    expect(result.current.articles.map(({ id }) => id)).toEqual([5, 3, 7, 8]);
+  });
+
+  it('push: should extend name of parent endpoint', () => {
+    expect(getArticleList3.push.name).toMatchSnapshot();
+    expect(getArticleList3.push.name).toBe(getArticleList3.unshift.name);
+  });
+
+  it('unshift: should extend name of parent endpoint', () => {
+    expect(getArticleList3.unshift.name).toMatchSnapshot();
+  });
+
+  // TODO: but we need a Values collection
+  // it('assign: should extend name of parent endpoint', () => {
+  //   expect(getArticleList3.assign.name).toMatchSnapshot();
+  // });
+
+  it('getPage: should extend name of parent endpoint', () => {
+    expect(getNextPage3.name).toMatchSnapshot();
+  });
+
+  it('getPage: should update on get for a paginated resource with parameter in path', async () => {
+    mynock.get(`/article-paginated?group=happy`).reply(200, paginatedFirstPage);
+    mynock
+      .get(`/article-paginated?cursor=2&group=happy`)
+      .reply(200, paginatedSecondPage);
+
+    const { result, waitForNextUpdate, controller } = renderDataClient(() => {
+      const {
+        data: { results: articles },
+        nextPage,
+      } = useSuspense(getArticleList3, {
+        group: 'happy',
+      });
+      return { articles, nextPage };
+    });
+    await waitForNextUpdate();
+    // @ts-expect-error
+    () => controller.fetch(getNextPage3);
+    // @ts-expect-error
+    () => controller.fetch(getNextPage3, { fake: 5 });
+    // @ts-expect-error
+    () => controller.fetch(getNextPage3, { group: 'happy' });
+    // @ts-expect-error
+    () => controller.fetch(getNextPage3, { cursor: 2 });
+    await controller.fetch(getNextPage3, {
       group: 'happy',
       cursor: 2,
     });
@@ -287,7 +407,7 @@ describe('RestEndpoint', () => {
       results: [nested[nested.length - 1], ...moreNested],
     });
 
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataClient(() => {
       const { fetch } = useController();
       const {
         data: { results: articles },
@@ -335,7 +455,7 @@ describe('RestEndpoint', () => {
     };
     mynock.get(`/complex-thing/5`).reply(200, firstResponse);
 
-    const { result, waitForNextUpdate } = renderRestHook(() => {
+    const { result, waitForNextUpdate } = renderDataClient(() => {
       const { fetch } = useController();
       const article = useSuspense(getComplex, { id: '5' });
       return { article, fetch };
@@ -369,7 +489,7 @@ describe('RestEndpoint', () => {
       path: 'http\\://test.com/user/:id',
       name: 'get',
       schema: User,
-      getRequestInit(body): RequestInit {
+      getRequestInit(body) {
         if (body && isPojo(body)) {
           return RestEndpoint.prototype.getRequestInit.call(this, {
             ...body,
@@ -408,7 +528,7 @@ describe('RestEndpoint', () => {
         return super.parseResponse(response);
       }
 
-      getRequestInit(body: any): RequestInit {
+      getRequestInit(body: any) {
         if (isPojo(body)) {
           return super.getRequestInit({ ...body, email: 'always@always.com' });
         }
@@ -461,6 +581,11 @@ describe('RestEndpoint', () => {
         body: 5,
         path: 'http\\://test.com/charmer/:charm',
       });
+      () => {
+        // test type widening
+        const second = updateUser.extend({ body: { body: '' } });
+        second({ charm: 5 }, { body: 'hi' });
+      };
       const response = await updateUser(
         { charm: 5 },
         // @ts-expect-error
@@ -571,7 +696,7 @@ describe('RestEndpoint', () => {
         path: 'http\\://test.com/user/:id',
         name: 'update',
       });
-      const { result, waitForNextUpdate } = renderRestHook(() => {
+      const { result, waitForNextUpdate } = renderDataClient(() => {
         return useSuspense(getUser, { id: 5 });
       });
       await waitForNextUpdate();
@@ -610,7 +735,7 @@ describe('RestEndpoint', () => {
         method: 'GET',
         name: 'update',
       });
-      const { result, waitForNextUpdate } = renderRestHook(() => {
+      const { result, waitForNextUpdate } = renderDataClient(() => {
         return useSuspense(getUser, { id: 5 });
       });
       await waitForNextUpdate();
@@ -629,7 +754,7 @@ describe('RestEndpoint', () => {
       () => useSuspense(getUser);
     });
 
-    it('should work with extends', async () => {
+    it('update should work with extends', async () => {
       mynock.put('/6/user/5').reply(200, (uri, body: any) => ({
         id: 5,
         username: 'charles',
@@ -660,7 +785,7 @@ describe('RestEndpoint', () => {
       `);
     });
 
-    it('should work with extends', async () => {
+    it('get should work with extends', async () => {
       mynock.get('/6/user/5').reply(200, (uri, body: any) => ({
         id: 5,
         username2: 'charles',
@@ -671,10 +796,6 @@ describe('RestEndpoint', () => {
         readonly username2: string = '';
         readonly email: string = '';
         readonly isAdmin: boolean = false;
-
-        pk() {
-          return this.id?.toString();
-        }
       }
 
       const getUserBase = new MyEndpoint({
@@ -689,6 +810,7 @@ describe('RestEndpoint', () => {
       });
       getUserBase.body;
       expect(getUserBase.name).toBe('getuser');
+      expect(getUserBase.extend({ method: 'GET' }).name).toBe('getuser');
       expect(getUser.name).toBe('getuser');
       expect(getUser.additional).toBe(5);
       expect(getUser.method).toBe('GET');
@@ -709,9 +831,13 @@ describe('RestEndpoint', () => {
         }
       `);
 
-      const newBody = getUser.extend({
-        body: {} as { title: string },
-      });
+      const newBody = getUser
+        .extend({
+          body: {} as { title: string },
+          dataExpiryLength: 0,
+          method: 'POST',
+        })
+        .extend({ dataExpiryLength: 5 });
       () => newBody({ group: 'hi', id: 'what' }, { title: 'cool' });
       // @ts-expect-error
       () => newBody({ id: 'what' }, { title: 'cool' });
@@ -722,11 +848,12 @@ describe('RestEndpoint', () => {
       // @ts-expect-error
       () => newBody({ group: 'hi', id: 'what' }, { sdfsd: 'cool' });
 
-      const bodyNoParams = newBody
-        .extend({
-          path: '/',
-        })
-        .extend({ body: {} as { happy: string } });
+      const bodyNoPath = newBody.extend({
+        path: '/',
+      });
+      const bodyNoParams = bodyNoPath.extend({
+        body: {} as { happy: string },
+      });
       () => bodyNoParams({ happy: 'cool' });
       // @ts-expect-error
       () => bodyNoParams({ group: 'hi', id: 'what' }, { happy: 'cool' });
@@ -823,19 +950,78 @@ describe('RestEndpoint', () => {
       ).toMatchInlineSnapshot(`"/users?bigger=true"`);
       expect(searchParams4.url()).toMatchInlineSnapshot(`"/users"`);
     });
+
+    it('should work with custom searchToString', async () => {
+      class SearchEndpoint<O extends RestGenerics = any> extends MyEndpoint<O> {
+        searchToString(searchParams: Record<string, any>) {
+          return super.searchToString({ ...searchParams, bob: 5 });
+        }
+      }
+
+      mynock.get('/6/user/5').reply(200, (uri, body: any) => ({
+        id: 5,
+        username2: 'charles',
+        ...body,
+      }));
+      class User2 extends Entity {
+        readonly id: number | undefined = undefined;
+        readonly username2: string = '';
+        readonly email: string = '';
+        readonly isAdmin: boolean = false;
+
+        pk() {
+          return this.id?.toString();
+        }
+      }
+
+      const getUserBase = new SearchEndpoint({
+        method: 'GET',
+        path: 'http\\://test.com/user/:id',
+        name: 'getuser',
+        schema: User,
+      });
+      const getUser = getUserBase.extend({
+        path: 'http\\://test.com/:group/user/:id',
+        schema: User2,
+      });
+
+      const searchParams = getUser.extend({
+        path: 'http\\://test.com/:group/user/:id',
+        searchParams: {} as { isAdmin?: boolean; sort: 'asc' | 'desc' },
+      });
+
+      expect(
+        searchParams.url({
+          group: 'hi',
+          id: 'what',
+          sort: 'desc',
+          isAdmin: true,
+        }),
+      ).toMatchInlineSnapshot(
+        `"http://test.com/hi/user/what?bob=5&isAdmin=true&sort=desc"`,
+      );
+    });
   });
+
   it('extending with name should work', () => {
     const endpoint = CoolerArticleResource.get.extend({ name: 'mything' });
+    const endpoint2 = CoolerArticleResource.get.extend({ path: '/:bob' });
+    expect(CoolerArticleResource.get.name).toMatchInlineSnapshot(
+      `"CoolerArticle.get"`,
+    );
     expect(endpoint.name).toBe('mything');
+    expect(endpoint2.name).toMatchInlineSnapshot(`"CoolerArticle.get"`);
   });
   it('should infer default method when sideEffect is set', async () => {
     const endpoint = new RestEndpoint({
       sideEffect: true,
       path: 'http\\://test.com/article-cooler',
-      body: 0 as any,
       schema: CoolerArticle,
     }).extend({ name: 'createarticle' });
+    const a: true = endpoint.sideEffect;
+    const b: 'POST' = endpoint.method;
     expect(endpoint.method).toBe('POST');
+    expect(endpoint.sideEffect).toBe(true);
     const article = await endpoint(payload);
     expect(article).toMatchInlineSnapshot(`
       {
@@ -984,6 +1170,28 @@ describe('RestEndpoint', () => {
         params.group;
         // @ts-expect-error
         params.id;
+      },
+    });
+
+    const endpoint2 = new RestEndpoint({
+      sideEffect: true,
+      path: 'http\\://test.com/article-cooler/:id',
+      body: 0 as any,
+      schema: CoolerArticle,
+      getOptimisticResponse(snap, params, body) {
+        params.id;
+        // @ts-expect-error
+        params.two;
+
+        body.hi;
+      },
+    }).extend({
+      getOptimisticResponse(snap, params, body) {
+        params.id;
+        // @ts-expect-error
+        params.two;
+
+        body.hi;
       },
     });
   });
@@ -1161,7 +1369,6 @@ describe('RestEndpoint.fetch()', () => {
     expect(error).toBeDefined();
     expect(error.status).toBe(500);
 
-    // eslint-disable-next-line require-atomic-updates
     console.error = oldError;
   });
 
@@ -1262,6 +1469,34 @@ describe('RestEndpoint.fetch()', () => {
       id,
     });
     expect(res).toEqual({ id, title: 'hi' });
+  });
+
+  it('without Collection in schema - endpoint.push schema should be null', () => {
+    const noColletionEndpoint = new RestEndpoint({
+      urlPrefix: 'http://test.com/article-paginated/',
+      path: ':group',
+      name: 'get',
+      schema: {
+        nextPage: '',
+        data: { results: [PaginatedArticle] },
+      },
+      method: 'GET',
+    });
+    expect(noColletionEndpoint.push.schema).toBeFalsy();
+  });
+
+  it('without Collection in schema - endpoint.getPage should throw', () => {
+    const noColletionEndpoint = new RestEndpoint({
+      urlPrefix: 'http://test.com/article-paginated/',
+      path: ':group',
+      name: 'get',
+      schema: {
+        nextPage: '',
+        data: { results: [PaginatedArticle] },
+      },
+      method: 'GET',
+    });
+    expect(() => noColletionEndpoint.getPage).toThrowErrorMatchingSnapshot();
   });
 });
 const proto = Object.prototype;

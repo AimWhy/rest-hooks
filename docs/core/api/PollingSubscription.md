@@ -20,9 +20,9 @@ resource.
 import {
   SubscriptionManager,
   PollingSubscription,
-  CacheProvider,
+  DataProvider,
   NetworkManager,
-} from '@rest-hooks/react';
+} from '@data-client/react';
 import ReactDOM from 'react-dom';
 
 const managers = [
@@ -31,17 +31,17 @@ const managers = [
 ]
 
 ReactDOM.render(
-  <CacheProvider managers={managers}>
+  <DataProvider managers={managers}>
     <App />
-  </CacheProvider>,
+  </DataProvider>,
   document.body,
 );
 ```
 
 ## Dispatched Actions
 
-- 'rest-hooks/fetch'
+- 'rdc/fetch'
 
 > #### Note:
 >
-> This is already used by `CacheProvider` by default.
+> This is already used by `DataProvider` by default.

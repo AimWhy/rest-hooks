@@ -1,10 +1,11 @@
-import { useSuspense, useController, useCache } from '@rest-hooks/react';
+import { useController, useCache } from '@data-client/react';
 import { Tag } from 'antd';
 import React, { useCallback } from 'react';
-import { Issue } from 'resources/Issue';
-import { Reaction, ReactionResource } from 'resources/Reaction';
-import { UserResource } from 'resources/User';
 import { v4 as uuid } from 'uuid';
+
+import { Issue } from '@/resources/Issue';
+import { Reaction, ReactionResource } from '@/resources/Reaction';
+import { UserResource } from '@/resources/User';
 
 const { CheckableTag } = Tag;
 
@@ -26,7 +27,7 @@ export function ReactionSpan({
       if (!currentUser) return;
       if (!userReaction) {
         ctrl.fetch(
-          ReactionResource.create,
+          ReactionResource.getList.push,
           {
             owner: issue.owner,
             number: issue.number,

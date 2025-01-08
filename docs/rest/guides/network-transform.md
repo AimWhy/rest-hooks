@@ -3,7 +3,7 @@ title: Transforming data on fetch
 ---
 
 import HooksPlayground from '@site/src/components/HooksPlayground';
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint } from '@data-client/rest';
 
 All network requests flow through the `fetch()` method, so any transforms needed can simply
 be done by overriding it with a call to super.
@@ -26,7 +26,7 @@ prefer `camelCase`. This snippet lets us make the transform needed.
 
 ```typescript title="CamelResource.ts"
 import { camelCase, snakeCase } from 'lodash';
-import { RestEndpoint, RestGenerics  } from '@rest-hooks/rest';
+import { RestEndpoint, RestGenerics  } from '@data-client/rest';
 
 function deeplyApplyKeyTransform(obj: any, transform: (key: string) => string) {
   const ret: Record<string, any> = Array.isArray(obj) ? [] : {};
@@ -63,7 +63,7 @@ Keeping data in the serialized form is often fine, especially if it is only bein
 be displayed. However, this can be problematic when derived data is computed like adding time to a date
 or multiplying two numbers.
 
-In this case, simply use the [static schema](api/Entity.md#schema) with [Date](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date) and [BigNumber](https://github.com/MikeMcl/bignumber.js)
+In this case, simply use the [static schema](api/Entity.md#schema) with [Temporal.Instant](https://tc39.es/proposal-temporal/) and [BigNumber](https://github.com/MikeMcl/bignumber.js)
 
 <HooksPlayground groupId="schema" defaultOpen="y" fixtures={[
 {
@@ -78,19 +78,20 @@ delay: 150,
 },
 ]}>
 
-```tsx title="api/Price.ts"
+```tsx title="api/Price"
 import BigNumber from 'bignumber.js';
 
 export class ExchangePrice extends Entity {
   exchangePair = '';
-  updatedAt = new Date(0);
+  updatedAt = Temporal.Instant.fromEpochSeconds(0);
   price = new BigNumber(0);
   pk() {
     return this.exchangePair;
   }
+  static key = 'ExchangePrice';
 
   static schema = {
-    updatedAt: Date,
+    updatedAt: Temporal.Instant.from,
     price: BigNumber,
   };
 }
@@ -100,16 +101,18 @@ export const getPrice = new RestEndpoint({
 });
 ```
 
-```tsx title="PricePage.tsx"
+```tsx title="PricePage"
 import { getPrice } from './api/Price';
 
 function PricePage() {
-  const currentPrice = useSuspense(getPrice, { exchangePair: 'btc-usd' });
+  const currentPrice = useSuspense(getPrice, {
+    exchangePair: 'btc-usd',
+  });
   return (
     <div>
-      {currentPrice.price.toPrecision(2)} as of{' '}
+      ${currentPrice.price.toFormat(2)} as of{' '}
       <time>
-        {Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
+        {DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
           currentPrice.updatedAt,
         )}
       </time>
@@ -120,6 +123,29 @@ render(<PricePage />);
 ```
 
 </HooksPlayground>
+
+### Deserializing Date
+
+In case you want to use legacy [Date](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date),
+you can turn the constructor into a function [schema](../api/schema.md).
+
+```ts
+export class ExchangePrice extends Entity {
+  exchangePair = '';
+  updatedAt = new Date(0);
+  price = new BigNumber(0);
+  pk() {
+    return this.exchangePair;
+  }
+  static key = 'ExchangePrice';
+
+  static schema = {
+    // highlight-next-line
+    updatedAt: iso => new Date(iso),
+    price: BigNumber,
+  };
+}
+```
 
 ## Case of the missing `Id`
 
@@ -145,27 +171,98 @@ response.
 const USERNAME_MATCHER = /.*\/([^\/]+)\/?/;
 
 class Stream extends Entity {
-  readonly username: string = '';
-  readonly title: string = '';
-  readonly game: string = '';
-  readonly currentViewers: number = 0;
-  readonly live: boolean = false;
+  username = '';
+  title = '';
+  game = '';
+  currentViewers = 0;
+  live = false;
 
   pk() {
     return this.username;
   }
+  static key = 'Stream';
 }
 
 const getStream = new RestEndpoint({
   urlPrefix: 'https://mystreamsite.tv',
   path: '/:username',
   schema: Stream,
+  // highlight-start
   process(value, { username }) {
     value.username = username;
     return value;
   },
+  // highlight-end
 });
 ```
+
+### Ticker prices
+
+Here's a real world example of an API that does where ticket data does not include its primary key `product_id`.
+
+We use [RestEndpoint.process()](../api/RestEndpoint.md#process) to add the `product_id` member from its argument.
+
+<HooksPlayground row>
+
+```typescript title="Ticker" {28-31}
+import { Entity, RestEndpoint } from '@data-client/rest';
+
+export class Ticker extends Entity {
+  product_id = '';
+  trade_id = 0;
+  price = 0;
+  size = '0';
+  time = Temporal.Instant.fromEpochSeconds(0);
+  bid = '0';
+  ask = '0';
+  volume = '';
+
+  pk(): string {
+    return this.product_id;
+  }
+  static key = 'Ticker';
+
+  static schema = {
+    price: Number,
+    time: Temporal.Instant.from,
+  };
+}
+
+export const getTicker = new RestEndpoint({
+  urlPrefix: 'https://api.exchange.coinbase.com',
+  path: '/products/:productId/ticker',
+  schema: Ticker,
+  process(value, { productId }) {
+    value.product_id = productId;
+    return value;
+  },
+  pollFrequency: 2000,
+});
+```
+
+```tsx title="AssetPrice" {5} collapsed
+import { useLive } from '@data-client/react';
+import { getTicker } from './Ticker';
+
+function AssetPrice({ productId }: Props) {
+  const ticker = useLive(getTicker, { productId });
+  return (
+    <center>
+      {productId}{' '}
+      <NumberFlow
+        value={ticker.price}
+        format={{ style: 'currency', currency: 'USD' }}
+      />
+    </center>
+  );
+}
+interface Props {
+  productId: string;
+}
+render(<AssetPrice productId="BTC-USD" />);
+```
+
+</HooksPlayground>
 
 ## Using HTTP Headers
 
@@ -176,9 +273,11 @@ can be used to construct [RestEndpoint](../api/RestEndpoint.md).
 Sometimes this is used for cursor based [pagination](./pagination.md#tokens-in-http-headers).
 
 ```typescript
-import { RestEndpoint, RestGenerics } from '@rest-hooks/rest';
+import { RestEndpoint, RestGenerics } from '@data-client/rest';
 
-class GithubEndpoint<O extends RestGenerics = any> extends RestEndpoint<O> {
+class GithubEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
   async parseResponse(response: Response) {
     const results = await super.parseResponse(response);
     if (
@@ -202,10 +301,15 @@ you have much better naming standards, so instead of your `Resource` class defin
 and all your code, you just want to remap that key.
 
 ```typescript title="ArticleResource.ts"
-class RenamedEndpoint<O extends RestGenerics = any> extends RestEndpoint<O> {
+class RenamedEndpoint<
+  O extends RestGenerics = any,
+> extends RestEndpoint<O> {
   getRequestInit(body) {
     if (body && 'carrotsUsed' in body) {
-      const newBody = { ...body, carrotsUSedIsThisNameTooLong: carrotsUsed };
+      const newBody = {
+        ...body,
+        carrotsUSedIsThisNameTooLong: carrotsUsed,
+      };
       delete newBody.carrotsUsed;
       return super.getRequestInit(newBody);
     }

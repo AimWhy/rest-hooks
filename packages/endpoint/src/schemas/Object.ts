@@ -1,26 +1,22 @@
 import { isImmutable, denormalizeImmutable } from './ImmutableUtils.js';
+import { GetIndex, GetEntity, Visit } from '../interface.js';
 
 export const normalize = (
   schema: any,
   input: any,
   parent: any,
   key: any,
-  visit: any,
+  args: any[],
+  visit: Visit,
   addEntity: any,
-  visitedEntities: any,
+  getEntity: any,
+  checkLoop: any,
 ) => {
   const object = { ...input };
   Object.keys(schema).forEach(key => {
     const localSchema = schema[key];
-    const value = visit(
-      input[key],
-      input,
-      key,
-      localSchema,
-      addEntity,
-      visitedEntities,
-    );
-    if (value === undefined || value === null) {
+    const value = visit(localSchema, input[key], input, key, args);
+    if (value === undefined) {
       delete object[key];
     } else {
       object[key] = value;
@@ -29,51 +25,51 @@ export const normalize = (
   return object;
 };
 
-export const denormalize = (
+export function denormalize(
   schema: any,
-  // eslint-disable-next-line @typescript-eslint/ban-types
   input: {},
-  unvisit: any,
-): [denormalized: any, found: boolean, deleted: boolean] => {
+  args: readonly any[],
+  unvisit: (schema: any, input: any) => any,
+): any {
   if (isImmutable(input)) {
     return denormalizeImmutable(schema, input, unvisit);
   }
 
   const object: Record<string, any> = { ...input };
-  let found = true;
-  let deleted = false;
-  Object.keys(schema).forEach(key => {
-    const [item, foundItem, deletedItem] = unvisit(object[key], schema[key]);
+
+  for (const key of Object.keys(schema)) {
+    const item = unvisit(schema[key], object[key]);
     if (object[key] !== undefined) {
       object[key] = item;
     }
-    if (deletedItem) {
-      deleted = true;
+    if (typeof item === 'symbol') {
+      return item;
     }
-    if (!foundItem) {
-      found = false;
-    }
-  });
-  return [object, found, deleted];
-};
-
-export function infer(
-  schema: any,
-  args: readonly any[],
-  indexes: any,
-  recurse: any,
-  entities: any,
-) {
-  const resultObject: any = {};
-  for (const k of Object.keys(schema)) {
-    resultObject[k] = recurse(schema[k], args, indexes, entities);
   }
-  return resultObject;
+  return object;
 }
 
+export function objectQueryKey(
+  schema: any,
+  args: readonly any[],
+  queryKey: (
+    schema: any,
+    args: any,
+    getEntity: GetEntity,
+    getIndex: GetIndex,
+  ) => any,
+  getEntity: GetEntity,
+  getIndex: GetIndex,
+) {
+  const resultObject: any = {};
+  Object.keys(schema).forEach(k => {
+    resultObject[k] = queryKey(schema[k], args, getEntity, getIndex);
+  });
+  return resultObject;
+}
 /**
  * Represents objects with statically known members
- * @see https://resthooks.io/rest/api/Object
+ * @see https://dataclient.io/rest/api/Object
  */
 export default class ObjectSchema {
   protected schema: any;
@@ -94,20 +90,25 @@ export default class ObjectSchema {
       input: any,
       parent: any,
       key: any,
+      args: any[],
       visit: any,
       addEntity: any,
-      visitedEntities: any,
+      getEntity: any,
+      checkLoop: any,
     ]
   ) {
     return normalize(this.schema, ...args);
   }
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  denormalize(...args: readonly [input: {}, unvisit: any]) {
-    return denormalize(this.schema, ...args);
+  denormalize(
+    input: {},
+    args: readonly any[],
+    unvisit: (schema: any, input: any) => any,
+  ): any {
+    return denormalize(this.schema, input, args, unvisit);
   }
 
-  infer(args: any, indexes: any, recurse: any, entities: any) {
-    return infer(this.schema, args, indexes, recurse, entities);
+  queryKey(args: any, queryKey: any, getEntity: any, getIndex: any) {
+    return objectQueryKey(this.schema, args, queryKey, getEntity, getIndex);
   }
 }

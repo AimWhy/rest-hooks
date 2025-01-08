@@ -1,6 +1,19 @@
-import BackupBoundary from './BackupBoundary.js';
-import CacheProvider from './CacheProvider.js';
+import BackupLoading from './BackupLoading.js';
+import DataProvider from './DataProvider.js';
+import { getDefaultManagers } from './getDefaultManagers.js';
+import UniversalSuspense from './UniversalSuspense.js';
+export type { ProviderProps } from './DataProvider.js';
+export type { DevToolsPosition } from './DevToolsButton.js';
 
-export { CacheProvider, BackupBoundary };
+export {
+  DataProvider as DataProvider,
+  BackupLoading,
+  UniversalSuspense,
+  getDefaultManagers,
+};
+export { default as CacheProvider } from './DataProvider.js';
 export { default as AsyncBoundary } from './AsyncBoundary.js';
-export { default as NetworkErrorBoundary } from './NetworkErrorBoundary.js';
+export {
+  default as NetworkErrorBoundary,
+  default as ErrorBoundary,
+} from './ErrorBoundary.js';

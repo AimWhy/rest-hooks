@@ -1,38 +1,56 @@
-import { usePrismTheme } from '@docusaurus/theme-common';
+import type { Fixture, Interceptor } from '@data-client/test';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import type { Fixture, FixtureEndpoint, Interceptor } from '@rest-hooks/test';
 import clsx from 'clsx';
+import type { Language, PrismTheme } from 'prism-react-renderer';
 import React, { lazy } from 'react';
-import { LiveProvider, LiveProviderProps } from 'react-live';
+import { LiveProvider } from 'react-live';
 
 import Boundary from './Boundary';
+import { isGoogleBot } from './isGoogleBot';
 import MonacoPreloads from './MonacoPreloads';
-import { PlaygroundTextEdit, useCode } from './PlaygroundTextEdit';
-import PreviewWithHeader from './PreviewWithHeader';
+import { PlaygroundTextEdit } from './PlaygroundTextEdit';
+import PreviewWrapper from './PreviewWrapper';
 import styles from './styles.module.css';
+import { useCode } from './useCode';
+import { useReactLiveTheme } from './useReactLiveTheme';
 
-export default function Playground({
+// previously exported by react-live
+type LiveProviderProps = {
+  code?: string;
+  disabled?: boolean;
+  enableTypeScript?: boolean;
+  language?: Language;
+  noInline?: boolean;
+  scope?: Record<string, unknown>;
+  theme?: PrismTheme;
+  hidden?: boolean;
+  transformCode?(code: string): void;
+};
+
+export default function Playground<T>({
   children,
   transformCode,
   groupId,
   defaultOpen,
-  row,
-  hidden,
+  row = false,
+  hidden = false,
   fixtures,
-  includeEndpoints,
+  getInitialInterceptorData,
+  defaultTab,
   ...props
 }: Omit<LiveProviderProps, 'ref'> & {
   groupId: string;
   defaultOpen: 'y' | 'n';
-  row: boolean;
+  row?: boolean;
   children: string | any[];
-  fixtures: (Fixture | Interceptor)[];
-  includeEndpoints: boolean;
+  fixtures: (Fixture | Interceptor<T>)[];
+  getInitialInterceptorData?: () => T;
+  defaultTab?: string;
 }) {
   const {
     liveCodeBlock: { playgroundPosition },
   } = useDocusaurusContext().siteConfig.themeConfig as any;
-  const prismTheme = usePrismTheme();
+  const realTheme = useReactLiveTheme();
 
   return (
     <>
@@ -42,14 +60,15 @@ export default function Playground({
           [styles.hidden]: hidden,
         })}
       >
-        <LiveProvider theme={prismTheme} {...props}>
+        <LiveProvider theme={realTheme} enableTypeScript={true} {...props}>
           <PlaygroundContent
             reverse={playgroundPosition === 'top'}
             row={row}
             fixtures={fixtures}
-            includeEndpoints={includeEndpoints}
             groupId={groupId}
             defaultOpen={defaultOpen}
+            getInitialInterceptorData={getInitialInterceptorData}
+            defaultTab={defaultTab}
           >
             {children}
           </PlaygroundContent>
@@ -59,21 +78,18 @@ export default function Playground({
     </>
   );
 }
-Playground.defaultProps = {
-  row: false,
-  hidden: false,
-};
 
-function PlaygroundContent({
+function PlaygroundContent<T>({
   reverse,
   children,
   row,
   fixtures,
-  includeEndpoints,
   groupId,
   defaultOpen,
-}: ContentProps) {
-  const { handleCodeChange, codes, codeTabs } = useCode(children);
+  defaultTab,
+  getInitialInterceptorData,
+}: ContentProps<T>) {
+  const { handleCodeChange, codes, codeTabs } = useCode(children, defaultTab);
   /*const code = ready.every(v => v)
     ? codes.join('\n')
     : 'render(<div>Loading...</div>);';*/
@@ -88,62 +104,58 @@ function PlaygroundContent({
         handleCodeChange={handleCodeChange}
         codes={codes}
       />
-      <Boundary
-        fallback={
-          <LiveProvider
-            key="preview"
-            code={'render(() => "Loading...");'}
-            noInline
-          >
-            <PreviewWithHeader
-              key="preview"
-              {...{
-                includeEndpoints,
-                groupId,
-                defaultOpen,
-                row,
-                fixtures,
-              }}
-            />
-          </LiveProvider>
-        }
-      >
+      <Boundary fallback={previewLoading}>
         <PreviewWithScopeLazy
           code={code}
-          {...{ includeEndpoints, groupId, defaultOpen, row, fixtures }}
+          {...{
+            groupId,
+            defaultOpen,
+            row,
+            fixtures,
+            getInitialInterceptorData,
+          }}
         />
       </Boundary>
     </Reversible>
   );
 }
-interface ContentProps {
+interface ContentProps<T = any> {
   groupId: string;
   defaultOpen: 'y' | 'n';
   row: boolean;
-  fixtures: (Fixture | Interceptor)[];
+  fixtures: (Fixture | Interceptor<T>)[];
   children: React.ReactNode;
   reverse?: boolean;
-  includeEndpoints: boolean;
+  getInitialInterceptorData?: () => T;
+  defaultTab?: string;
 }
 
-const isGoogleBot =
-  typeof navigator === 'object' &&
-  /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator?.userAgent);
+const previewLoading = (
+  <PreviewWrapper key="preview">
+    <div className={styles.playgroundPreview}></div>
+    <div className={styles.debugToggle}>
+      Store
+      <span className={clsx(styles.arrow, styles.right, styles.vertical)}>
+        ▶
+      </span>
+    </div>
+  </PreviewWrapper>
+);
 
 const PreviewWithScopeLazy = lazy(() =>
-  isGoogleBot
-    ? Promise.resolve({ default: (props: any): JSX.Element => null })
-    : import(
-        /* webpackChunkName: '[request]', webpackPrefetch: true */ './PreviewWithScope'
-      ),
+  isGoogleBot ?
+    Promise.resolve({ default: (props: any): JSX.Element => previewLoading })
+  : import(
+      /* webpackChunkName: 'PreviewWithScope', webpackPrefetch: true */ './PreviewWithScope'
+    ),
 );
 
 function Reversible({
   children,
-  reverse,
+  reverse = false,
 }: {
   children: React.ReactNode[];
-  reverse: boolean;
+  reverse?: boolean;
 }): React.ReactElement {
   const newchild = [...children];
   newchild.reverse();
@@ -152,6 +164,3 @@ function Reversible({
   }
   return children as any;
 }
-Reversible.defaultProps = {
-  reverse: false,
-};

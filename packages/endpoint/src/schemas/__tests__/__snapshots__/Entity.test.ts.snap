@@ -1,153 +1,85 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Entity denormalization can denormalize already partially denormalized data 1`] = `
-[
-  Menu {
-    "food": Food {
-      "id": "1",
-    },
+Menu {
+  "food": Food {
     "id": "1",
   },
-  true,
-  false,
-]
+  "id": "1",
+}
 `;
 
 exports[`Entity denormalization can denormalize already partially denormalized data 2`] = `
-[
-  Menu {
-    "food": Food {
-      "id": "1",
-    },
+Menu {
+  "food": Food {
     "id": "1",
   },
-  true,
-  false,
-]
+  "id": "1",
+}
 `;
 
 exports[`Entity denormalization denormalizes an entity 1`] = `
-[
-  Tacos {
-    "alias": undefined,
-    "id": "1",
-    "name": "foo",
-  },
-  true,
-  false,
-]
+Tacos {
+  "alias": undefined,
+  "id": "1",
+  "name": "foo",
+}
 `;
 
 exports[`Entity denormalization denormalizes an entity 2`] = `
-[
-  Tacos {
-    "alias": undefined,
-    "id": "1",
-    "name": "foo",
-  },
-  true,
-  false,
-]
+Tacos {
+  "alias": undefined,
+  "id": "1",
+  "name": "foo",
+}
 `;
 
 exports[`Entity denormalization denormalizes deep entities 1`] = `
-[
-  Menu {
-    "food": Food {
-      "id": "1",
-    },
+Menu {
+  "food": Food {
     "id": "1",
   },
-  true,
-  false,
-]
+  "id": "1",
+}
 `;
 
 exports[`Entity denormalization denormalizes deep entities 2`] = `
-[
-  Menu {
-    "food": Food {
-      "id": "1",
-    },
-    "id": "1",
-  },
-  true,
-  false,
-]
-`;
-
-exports[`Entity denormalization denormalizes deep entities 3`] = `
-[
-  Menu {
-    "food": Food {
-      "id": undefined,
-    },
-    "id": "2",
-  },
-  true,
-  false,
-]
-`;
-
-exports[`Entity denormalization denormalizes deep entities 4`] = `
-[
-  Menu {
-    "food": Food {
-      "id": undefined,
-    },
-    "id": "2",
-  },
-  false,
-  false,
-]
+Menu {
+  "food": Food {},
+  "id": "2",
+}
 `;
 
 exports[`Entity denormalization denormalizes deep entities with records 1`] = `
-[
-  Menu {
-    "food": Food {
-      "id": "1",
-    },
+Menu {
+  "food": Food {
     "id": "1",
   },
-  true,
-  false,
-]
+  "id": "1",
+}
 `;
 
 exports[`Entity denormalization denormalizes deep entities with records 2`] = `
-[
-  Menu {
-    "food": Food {
-      "id": "1",
-    },
+Menu {
+  "food": Food {
     "id": "1",
   },
-  true,
-  false,
-]
+  "id": "1",
+}
 `;
 
 exports[`Entity denormalization denormalizes deep entities with records 3`] = `
-[
-  Menu {
-    "food": null,
-    "id": "2",
-  },
-  true,
-  false,
-]
+Menu {
+  "food": null,
+  "id": "2",
+}
 `;
 
 exports[`Entity denormalization denormalizes deep entities with records 4`] = `
-[
-  Menu {
-    "food": null,
-    "id": "2",
-  },
-  true,
-  false,
-]
+Menu {
+  "food": null,
+  "id": "2",
+}
 `;
 
 exports[`Entity denormalization denormalizes recursive dependencies 1`] = `
@@ -176,12 +108,7 @@ Report {
   "draftedBy": User {
     "id": "456",
     "reports": Immutable.List [
-      Immutable.Map {
-        "id": "123",
-        "title": "Weekly report",
-        "draftedBy": "456",
-        "publishedBy": "456",
-      },
+      [Circular],
     ],
     "role": "manager",
   },
@@ -189,12 +116,7 @@ Report {
   "publishedBy": User {
     "id": "456",
     "reports": Immutable.List [
-      Immutable.Map {
-        "id": "123",
-        "title": "Weekly report",
-        "draftedBy": "456",
-        "publishedBy": "456",
-      },
+      [Circular],
     ],
     "role": "manager",
   },
@@ -222,21 +144,9 @@ User {
   "id": "456",
   "reports": Immutable.List [
     Report {
-      "draftedBy": Immutable.Map {
-        "id": "456",
-        "role": "manager",
-        "reports": Immutable.List [
-          "123",
-        ],
-      },
+      "draftedBy": [Circular],
       "id": "123",
-      "publishedBy": Immutable.Map {
-        "id": "456",
-        "role": "manager",
-        "reports": Immutable.List [
-          "123",
-        ],
-      },
+      "publishedBy": [Circular],
       "title": "Weekly report",
     },
   ],
@@ -244,81 +154,31 @@ User {
 }
 `;
 
-exports[`Entity denormalization denormalizes to undefined for deleted data 1`] = `
-[
-  Menu {
-    "food": undefined,
-    "id": "1",
-  },
-  true,
-  true,
-]
-`;
+exports[`Entity denormalization denormalizes to undefined for deleted data 1`] = `Symbol(INVALID)`;
 
-exports[`Entity denormalization denormalizes to undefined for deleted data 2`] = `
-[
-  Menu {
-    "food": undefined,
-    "id": "1",
-  },
-  true,
-  true,
-]
-`;
+exports[`Entity denormalization denormalizes to undefined for deleted data 2`] = `Symbol(INVALID)`;
 
-exports[`Entity denormalization denormalizes to undefined for deleted data 3`] = `
-[
-  undefined,
-  true,
-  true,
-]
-`;
+exports[`Entity denormalization denormalizes to undefined for deleted data 3`] = `Symbol(INVALID)`;
 
-exports[`Entity denormalization denormalizes to undefined for deleted data 4`] = `
-[
-  undefined,
-  true,
-  true,
-]
-`;
+exports[`Entity denormalization denormalizes to undefined for deleted data 4`] = `Symbol(INVALID)`;
 
 exports[`Entity denormalization denormalizes to undefined for missing data 1`] = `
-[
-  Menu {
-    "food": undefined,
-    "id": "1",
-  },
-  true,
-  false,
-]
+Menu {
+  "food": undefined,
+  "id": "1",
+}
 `;
 
 exports[`Entity denormalization denormalizes to undefined for missing data 2`] = `
-[
-  Menu {
-    "food": undefined,
-    "id": "1",
-  },
-  false,
-  false,
-]
+Menu {
+  "food": undefined,
+  "id": "1",
+}
 `;
 
-exports[`Entity denormalization denormalizes to undefined for missing data 3`] = `
-[
-  undefined,
-  false,
-  false,
-]
-`;
+exports[`Entity denormalization denormalizes to undefined for missing data 3`] = `undefined`;
 
-exports[`Entity denormalization denormalizes to undefined for missing data 4`] = `
-[
-  undefined,
-  false,
-  false,
-]
-`;
+exports[`Entity denormalization denormalizes to undefined for missing data 4`] = `undefined`;
 
 exports[`Entity normalization mergeStrategy can use a custom merging strategy 1`] = `
 {
@@ -374,6 +234,19 @@ exports[`Entity normalization mergeStrategy defaults to plain merging 1`] = `
     "1",
   ],
 }
+`;
+
+exports[`Entity normalization normalize throws error when id missing with no pk 1`] = `
+"Missing usable primary key when normalizing response.
+
+  'id' missing but needed for default pk(). Try defining pk() for your Entity.
+  Learn more about primary keys: https://dataclient.io/rest/api/Entity#pk
+
+  Entity: MyEntity
+  Value (processed): {
+  "slug": "1"
+}
+"
 `;
 
 exports[`Entity normalization normalizes already processed entities 1`] = `
@@ -615,51 +488,19 @@ exports[`Entity normalization should allow many unexpected as long as none are m
 }
 `;
 
-exports[`Entity normalization should error if no matching keys are found 1`] = `
-"Attempted to initialize MyEntity with no matching keys found
-
-  This is likely due to a malformed response.
-  Try inspecting the network response or fetch() return value.
-  Or use debugging tools: https://resthooks.io/docs/guides/debugging
-  Learn more about schemas: https://resthooks.io/docs/api/schema
-  If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
-
-  Expected keys:
-    Found: 
-    Missing: name
-  Value (processed): {
-  "e": 0
-}"
-`;
-
-exports[`Entity normalization should only warn if at least four members are found with unexpected 1`] = `
+exports[`Entity normalization should not throw if schema key is missing from Entity 1`] = `
 {
   "entities": {
     "MyEntity": {
-      "hi": {
-        "a": "a",
-        "b": "b",
-        "c": "c",
-        "d": "e",
-        "e": 0,
-        "f": 0,
-        "g": 0,
-        "h": 0,
-        "i": 0,
-        "j": 0,
-        "k": 0,
-        "l": 0,
-        "m": 0,
-        "n": 0,
-        "name": "hi",
-        "o": 0,
-        "p": 0,
+      "bob": {
+        "name": "bob",
+        "secondthing": "hi",
       },
     },
   },
   "entityMeta": {
     "MyEntity": {
-      "hi": {
+      "bob": {
         "date": 1557831718135,
         "expiresAt": Infinity,
         "fetchedAt": 0,
@@ -667,45 +508,23 @@ exports[`Entity normalization should only warn if at least four members are foun
     },
   },
   "indexes": {},
-  "result": "hi",
+  "result": "bob",
 }
 `;
 
-exports[`Entity normalization should only warn if at least four members are found with unexpected 2`] = `
-[
-  [
-    "Attempted to initialize MyEntity with a large number of unexpected keys found
+exports[`Entity normalization should throw a custom error if data does not include pk (serializes pk) 1`] = `
+"Missing usable primary key when normalizing response.
 
   This is likely due to a malformed response.
   Try inspecting the network response or fetch() return value.
-  Or use debugging tools: https://resthooks.io/docs/guides/debugging
-  Learn more about schemas: https://resthooks.io/docs/api/schema
-  If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
+  Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+  Learn more about primary keys: https://dataclient.io/rest/api/Entity#pk
 
-  Expected keys:
-    Found: name,a,b,c
-    Unexpected keys: d,e,f,g,h,i,j,k,l,m,n,o,p
+  Entity: MyEntity
   Value (processed): {
-  "name": "hi",
-  "a": "a",
-  "b": "b",
-  "c": "c",
-  "d": "e",
-  "e": 0,
-  "f": 0,
-  "g": 0,
-  "h": 0,
-  "i": 0,
-  "j": 0,
-  "k": 0,
-  "l": 0,
-  "m": 0,
-  "n": 0,
-  "o": 0,
-  "p": 0
-}",
-  ],
-]
+  "secondthing": "hi"
+}
+"
 `;
 
 exports[`Entity normalization should throw a custom error if data does not include pk 1`] = `
@@ -713,32 +532,14 @@ exports[`Entity normalization should throw a custom error if data does not inclu
 
   This is likely due to a malformed response.
   Try inspecting the network response or fetch() return value.
-  Or use debugging tools: https://resthooks.io/docs/guides/debugging
-  Learn more about schemas: https://resthooks.io/docs/api/schema
+  Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+  Learn more about primary keys: https://dataclient.io/rest/api/Entity#pk
 
   Entity: MyEntity
   Value (processed): {
   "secondthing": "hi"
 }
-  "
-`;
-
-exports[`Entity normalization should throw a custom error if data loads with half unexpected props 1`] = `
-"Attempted to initialize MyEntity with a large number of unexpected keys found
-
-  This is likely due to a malformed response.
-  Try inspecting the network response or fetch() return value.
-  Or use debugging tools: https://resthooks.io/docs/guides/debugging
-  Learn more about schemas: https://resthooks.io/docs/api/schema
-  If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
-
-  Expected keys:
-    Found: name
-    Unexpected keys: nonexistantthing
-  Value (processed): {
-  "name": "hoho",
-  "nonexistantthing": "hi"
-}"
+"
 `;
 
 exports[`Entity normalization should throw a custom error if data loads with no matching props 1`] = `
@@ -746,12 +547,12 @@ exports[`Entity normalization should throw a custom error if data loads with no 
 
   This is likely due to a malformed response.
   Try inspecting the network response or fetch() return value.
-  Or use debugging tools: https://resthooks.io/docs/guides/debugging
-  Learn more about schemas: https://resthooks.io/docs/api/schema
+  Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+  Learn more about primary keys: https://dataclient.io/rest/api/Entity#pk
 
   Entity: MyEntity
   Value (processed): {}
-  "
+"
 `;
 
 exports[`Entity normalization should throw a custom error if data loads with string 1`] = `
@@ -759,24 +560,11 @@ exports[`Entity normalization should throw a custom error if data loads with str
 
           Schema: {
   "data": {
-    "name": "MyEntity",
-    "schema": {},
-    "key": "MyEntity"
+    "key": "MyEntity",
+    "schema": {}
   }
 }
           Input: "hibho""
-`;
-
-exports[`Entity normalization should throw a custom error if schema key is missing from Entity 1`] = `
-"Schema key is missing in Entity
-
-  Be sure all schema members are also part of the entity
-  Or use debugging tools: https://resthooks.io/docs/guides/debugging
-  Learn more about nesting schemas: https://resthooks.io/docs/guides/nested-response
-
-  Entity keys: name,secondthing
-  Schema key(missing): blarb
-  "
 `;
 
 exports[`Entity normalization should throw a custom error loads with array 1`] = `
@@ -784,8 +572,8 @@ exports[`Entity normalization should throw a custom error loads with array 1`] =
 
 This is likely due to a malformed response.
 Try inspecting the network response or fetch() return value.
-Or use debugging tools: https://resthooks.io/docs/guides/debugging
-Learn more about schemas: https://resthooks.io/docs/api/schema
+Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+Learn more about schemas: https://dataclient.io/docs/api/schema
 If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
 
 First three members: [
@@ -811,8 +599,8 @@ exports[`Entity normalization should warn when automaticValidation === "warn" 1`
 
 This is likely due to a malformed response.
 Try inspecting the network response or fetch() return value.
-Or use debugging tools: https://resthooks.io/docs/guides/debugging
-Learn more about schemas: https://resthooks.io/docs/api/schema
+Or use debugging tools: https://dataclient.io/docs/getting-started/debugging
+Learn more about schemas: https://dataclient.io/docs/api/schema
 If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
 
 First three members: [
@@ -829,28 +617,6 @@ First three members: [
     "secondthing": "ho"
   }
 ]",
-  ],
-]
-`;
-
-exports[`Entity normalization should warn when automaticValidation === "warn" 2`] = `
-[
-  [
-    "Attempted to initialize MyEntity with a large number of unexpected keys found
-
-  This is likely due to a malformed response.
-  Try inspecting the network response or fetch() return value.
-  Or use debugging tools: https://resthooks.io/docs/guides/debugging
-  Learn more about schemas: https://resthooks.io/docs/api/schema
-  If this is a mistake, you can disable this check by setting static automaticValidation = 'silent'
-
-  Expected keys:
-    Found: name
-    Unexpected keys: nonexistantthing
-  Value (processed): {
-  "name": "hoho",
-  "nonexistantthing": "hi"
-}",
   ],
 ]
 `;

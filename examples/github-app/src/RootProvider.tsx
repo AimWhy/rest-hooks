@@ -1,9 +1,16 @@
-import { CacheProvider, Controller, LogoutManager } from '@rest-hooks/react';
-import { AuthdProvider } from 'navigation/authdContext';
+import {
+  DataProvider,
+  Controller,
+  LogoutManager,
+  getDefaultManagers,
+  ProviderProps,
+} from '@data-client/react';
 import type { ReactNode } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import type { FallbackProps } from 'react-error-boundary';
-import { unAuth } from 'resources/Auth';
+
+import { AuthdProvider } from '@/navigation/authdContext';
+import { unAuth } from '@/resources/Auth';
 
 import Boundary from './Boundary';
 import { Router } from './routing';
@@ -15,13 +22,13 @@ const managers = [
       controller.resetEntireStore();
     },
   }),
-  ...CacheProvider.defaultProps.managers,
+  ...getDefaultManagers(),
 ];
 
 export default function RootProvider({ children, ...rest }: Props) {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <CacheProvider {...rest} managers={managers}>
+      <DataProvider {...rest} managers={managers}>
         <Router>
           <AuthdProvider>
             <ErrorBoundary FallbackComponent={ErrorFallback}>
@@ -29,18 +36,12 @@ export default function RootProvider({ children, ...rest }: Props) {
             </ErrorBoundary>
           </AuthdProvider>
         </Router>
-      </CacheProvider>
+      </DataProvider>
     </ErrorBoundary>
   );
 }
 
-type ComponentProps<T> = T extends
-  | React.ComponentType<infer P>
-  | React.Component<infer P>
-  ? JSX.LibraryManagedAttributes<T, P>
-  : never;
-
-type Props = { children: ReactNode } & ComponentProps<typeof CacheProvider>;
+type Props = { children: ReactNode } & ProviderProps;
 
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (

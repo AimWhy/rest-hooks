@@ -1,14 +1,13 @@
 ---
-title: schema.Values
+title: schema.Values - Declarative map data for React
+sidebar_label: schema.Values
 ---
-
-<head>
-  <title>schema.Values - Representing Objects with arbitrary keys | Rest Hooks</title>
-</head>
 
 import LanguageTabs from '@site/src/components/LanguageTabs';
 import HooksPlayground from '@site/src/components/HooksPlayground';
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint } from '@data-client/rest';
+
+# schema.Values
 
 Like [Array](./Array), `Values` are unbounded in size. The definition here describes the types of values to expect,
 with keys being any string.
@@ -21,6 +20,12 @@ Describes a map whose values follow the given schema.
   - `value`: The input value of the entity.
   - `parent`: The parent object of the input array.
   - `key`: The key at which the input array appears on the parent object.
+
+:::tip
+
+Make it mutable (new items can be [assigned](./Collection.md#assign)) with [Collections](./Collection.md)
+
+:::
 
 ## Instance Methods
 
@@ -46,10 +51,7 @@ delay: 150,
 
 ```tsx title="ItemPage.tsx"
 export class Item extends Entity {
-  readonly id: number = 0;
-  pk() {
-    return `${this.id}`;
-  }
+  id = 0;
 }
 export const getItems = new RestEndpoint({
   path: '/items',
@@ -88,13 +90,10 @@ delay: 150,
 },
 ]}>
 
-```tsx title="api/Feed.ts"
+```tsx title="api/Feed"
 export abstract class FeedItem extends Entity {
-  readonly id: number = 0;
+  id = 0;
   declare readonly type: 'link' | 'post';
-  pk() {
-    return `${this.id}`;
-  }
 }
 export class Link extends FeedItem {
   readonly type = 'link' as const;
@@ -117,7 +116,7 @@ export const getFeed = new RestEndpoint({
 });
 ```
 
-```tsx title="FeedList.tsx" collapsed
+```tsx title="FeedList" collapsed
 import { getFeed, Link, Post } from './api/Feed';
 
 function FeedList() {
@@ -165,13 +164,10 @@ delay: 150,
 },
 ]}>
 
-```typescript title="api/Feed.ts"
+```typescript title="api/Feed"
 export abstract class FeedItem extends Entity {
-  readonly id: number = 0;
+  id = 0;
   declare readonly type: 'link' | 'post';
-  pk() {
-    return `${this.id}`;
-  }
 }
 export class Link extends FeedItem {
   readonly type = 'link' as const;
@@ -194,7 +190,7 @@ export const getFeed = new RestEndpoint({
 });
 ```
 
-```tsx title="FeedList.tsx" collapsed
+```tsx title="FeedList" collapsed
 import { getFeed, Link, Post } from './api/Feed';
 
 function FeedList() {

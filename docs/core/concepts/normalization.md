@@ -10,6 +10,9 @@ sidebar_label: Data Normalization
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import LanguageTabs from '@site/src/components/LanguageTabs';
+import Link from '@docusaurus/Link';
+import SchemaTable from '../shared/\_schema_table.mdx';
+import Grid from '@site/src/components/Grid';
 
 [Entities](/rest/api/Entity) have a primary key. This enables easy access via a lookup table.
 This makes it easy to find, update, create, or delete the same data - no matter what
@@ -19,27 +22,20 @@ endpoint it was used in.
 <LanguageTabs>
 
 ```ts
-import { Entity } from '@rest-hooks/endpoint';
+import { Entity } from '@data-client/endpoint';
 
 class Todo extends Entity {
   readonly id: number = 0;
   readonly userId: number = 0;
   readonly title: string = '';
   readonly completed: boolean = false;
-
-  pk() {
-    return `${this.id}`;
-  }
 }
 ```
 
 ```js
-import { Entity } from '@rest-hooks/endpoint';
+import { Entity } from '@data-client/endpoint';
 
 class Todo extends Entity {
-  pk() {
-    return `${this.id}`;
-  }
 }
 ```
 
@@ -57,7 +53,7 @@ values={[
 ]}>
 <TabItem value="State">
 
-![Entities cache](/img/entities.png)
+![Entities cache](/img/entities.png 'Entities cache')
 
 </TabItem>
 <TabItem value="Response">
@@ -73,9 +69,9 @@ values={[
 <TabItem value="Endpoint">
 
 ```typescript
-const PresentationList = new Endpoint(
+const getPresentations = new Endpoint(
   () => fetch(`/presentations`).then(res => res.json()),
-  { schema: [PresentationEntity] },
+  { schema: new schema.Collection([Presentation]) },
 );
 ```
 
@@ -83,13 +79,11 @@ const PresentationList = new Endpoint(
 <TabItem value="Entity">
 
 ```typescript
-class PresentationEntity extends Entity {
-  readonly id: string = '';
-  readonly title: string = '';
+class Presentation extends Entity {
+  id = '';
+  title = '';
 
-  pk() {
-    return this.id;
-  }
+  static key = 'Presentation';
 }
 ```
 
@@ -98,7 +92,7 @@ class PresentationEntity extends Entity {
 
 ```tsx
 export function PresentationsPage() {
-  const presentation = useSuspense(PresentationList, {});
+  const presentation = useSuspense(getPresentations);
   return presentation.map(presentation => (
     <div key={presentation.pk()}>{presentation.title}</div>
   ));
@@ -113,18 +107,18 @@ the process via `denormalization`.
 
 :::info Global Referential Equality
 
-Using entities expands Rest Hooks' global referential equality guarantee beyond the granularity of
+Using entities expands Reactive Data Client' global referential equality guarantee beyond the granularity of
 an entire endpoint response.
 
 :::
 
 ## Mutations and Dynamic Data
 
-When an endpoint changes data, this is known as a [side effect](/rest/guides/rpc). Marking an endpoint with [sideEffect: true](/rest/api/Endpoint#sideeffect)
-tells Rest Hooks that this endpoint is not idempotent, and thus should not be allowed in hooks
+When an endpoint changes data, this is known as a [side effect](/rest/guides/side-effects). Marking an endpoint with [sideEffect: true](/rest/api/Endpoint#sideeffect)
+tells Reactive Data Client that this endpoint is not idempotent, and thus should not be allowed in hooks
 that may call the endpoint an arbitrary number of times like [useSuspense()](../api/useSuspense.md) or [useFetch()](../api/useFetch.md)
 
-By including the changed data in the endpoint's response, Rest Hooks is able to able to update
+By including the changed data in the endpoint's response, Reactive Data Client is able to able to update
 any entities it extracts by specifying the schema.
 
 <Tabs
@@ -137,25 +131,28 @@ values={[
 <TabItem value="Create">
 
 ```typescript
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint, schema } from '@data-client/rest';
 
 const todoCreate = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
   path: '/todos',
   method: 'POST',
-  schema: Todo,
+  schema: new schema.Collection([Todo]).push,
 });
 ```
 
-<details><summary><b>Example Usage</b></summary>
+<details>
+<summary><b>Example Usage</b></summary>
 
 ```tsx
-import { useController } from '@rest-hooks/react';
+import { useController } from '@data-client/react';
 
 export default function NewTodoForm() {
   const ctrl = useController();
   return (
-    <Form onSubmit={e => ctrl.fetch(todoCreate, new FormData(e.target))}>
+    <Form
+      onSubmit={e => ctrl.fetch(todoCreate, new FormData(e.target))}
+    >
       <FormField name="title" />
     </Form>
   );
@@ -168,7 +165,7 @@ export default function NewTodoForm() {
 <TabItem value="Update">
 
 ```typescript
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint } from '@data-client/rest';
 
 const todoUpdate = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
@@ -178,17 +175,20 @@ const todoUpdate = new RestEndpoint({
 });
 ```
 
-<details><summary><b>Example Usage</b></summary>
+<details>
+<summary><b>Example Usage</b></summary>
 
 ```tsx
-import { useController } from '@rest-hooks/react';
+import { useController } from '@data-client/react';
 
 export default function UpdateTodoForm({ id }: { id: number }) {
   const todo = useSuspense(todoDetail, { id });
   const ctrl = useController();
   return (
     <Form
-      onSubmit={e => ctrl.fetch(todoUpdate, { id }, new FormData(e.target))}
+      onSubmit={e =>
+        ctrl.fetch(todoUpdate, { id }, new FormData(e.target))
+      }
       initialValues={todo}
     >
       <FormField name="title" />
@@ -203,20 +203,21 @@ export default function UpdateTodoForm({ id }: { id: number }) {
 <TabItem value="Delete">
 
 ```typescript
-import { schema, RestEndpoint } from '@rest-hooks/rest';
+import { schema, RestEndpoint } from '@data-client/rest';
 
 const todoDelete = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
   path: '/todos/:id',
   method: 'DELETE',
-  schema: new schema.Delete(Todo),
+  schema: new schema.Invalidate(Todo),
 });
 ```
 
-<details><summary><b>Example Usage</b></summary>
+<details>
+<summary><b>Example Usage</b></summary>
 
 ```tsx
-import { useController } from '@rest-hooks/react';
+import { useController } from '@data-client/react';
 
 export default function TodoWithDelete({ todo }: { todo: Todo }) {
   const ctrl = useController();
@@ -247,36 +248,32 @@ Mutations automatically update the normalized cache, resulting in consistent and
 Schemas are a declarative definition of how to [process responses](/rest/api/schema)
 
 - [where](/rest/api/schema) to expect [Entities](/rest/api/Entity)
-- Classes to [deserialize fields](/rest/guides/network-transform#deserializing-fields)
+- Functions to [deserialize fields](/rest/guides/network-transform#deserializing-fields)
 
 ```typescript
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint, schema } from '@data-client/rest';
 
 const getTodoList = new RestEndpoint({
   urlPrefix: 'https://jsonplaceholder.typicode.com',
   path: '/todos',
   // highlight-next-line
-  schema: [Todo],
+  schema: new schema.Collection([Todo]),
 });
 ```
 
-Placing our [Entity](/rest/api/Entity) `Todo` in an array, tells Rest Hooks to expect
-an array of `Todos`.
+Placing our [Entity](/rest/api/Entity) `Todo` in an array [Collection](/rest/api/Collection), allows us to easly
+[push](/rest/api/RestEndpoint#push) or [unshift](/rest/api/RestEndpoint#unshift) new `Todos` on it.
 
 Aside from array, there are a few more 'schemas' provided for various patterns. The first two (Object and Array)
 have shorthands of using object and array literals.
 
-- [Object](/rest/api/Object): maps with known keys
-- [Array](/rest/api/Array): variably sized arrays
-- [Union](/rest/api/Union): select from many different types
-- [Values](/rest/api/Values): maps with any keys - variably sized
-- [Delete](/rest/api/Delete): remove an entity
+<SchemaTable/>
 
 [Learn more](/rest/api/schema)
 
 ### Nesting
 
-Additionally, [Entities](/rest/api/Entity) themselves can specify [nested schemas](/rest/guides/nested-response)
+Additionally, [Entities](/rest/api/Entity) themselves can specify [nested schemas](/rest/guides/relational-data)
 by specifying a [static schema](/rest/api/Entity#schema) member.
 
 <Tabs
@@ -288,17 +285,15 @@ values={[
 <TabItem value="Entity">
 
 ```typescript
-import { Entity } from '@rest-hooks/endpoint';
+import { Entity } from '@data-client/endpoint';
 
 class Todo extends Entity {
-  readonly id: number = 0;
-  readonly user: User = User.fromJS({});
-  readonly title: string = '';
-  readonly completed: boolean = false;
+  id = 0;
+  user = User.fromJS();
+  title = '';
+  completed = false;
 
-  pk() {
-    return `${this.id}`;
-  }
+  static key = 'Todo';
 
   // highlight-start
   static schema = {
@@ -308,12 +303,10 @@ class Todo extends Entity {
 }
 
 class User extends Entity {
-  readonly id: number = 0;
-  readonly username: string = '';
+  id = 0;
+  username = '';
 
-  pk() {
-    return `${this.id}`;
-  }
+  static key = 'User';
 }
 ```
 
@@ -335,32 +328,30 @@ class User extends Entity {
 </TabItem>
 </Tabs>
 
-[Learn more](/rest/guides/nested-response)
+[Learn more](/rest/guides/relational-data)
 
 ### Data Representations
 
-Additionally, any `newable` class that has a toJSON() method, can be [used as a schema](/rest/guides/network-transform#deserializing-fields). This will simply construct the object during denormalization.
-This might be useful with representations like [bignumber](https://mikemcl.github.io/bignumber.js/)
+Additionally, functions can be [used as a schema](/rest/guides/network-transform#deserializing-fields). This will be called during denormalization.
+This might be useful with representations like [bignumber](https://mikemcl.github.io/bignumber.js/) or [temporal instant](https://tc39.es/proposal-temporal/docs/instant.html)
 
 ```ts
-import { Entity } from '@rest-hooks/endpoint';
+import { Entity } from '@data-client/endpoint';
 
 class Todo extends Entity {
-  readonly id: number = 0;
-  readonly user: User = User.fromJS({});
-  readonly title: string = '';
-  readonly completed: boolean = false;
+  id = 0;
+  user = User.fromJS();
+  title = '';
+  completed = false;
   // highlight-next-line
-  readonly dueDate: Date = new Date(0);
+  dueDate = Temporal.Instant.fromEpochSeconds(0);
 
-  pk() {
-    return `${this.id}`;
-  }
+  static key = 'Todo';
 
   static schema = {
     user: User,
     // highlight-next-line
-    dueDate: Date,
+    dueDate: Temporal.Instant.from,
   };
 }
 ```
@@ -371,3 +362,51 @@ Due to the global referential equality guarantee - construction of members only 
 per update.
 
 :::
+
+## Store Inspection (debugging)
+
+[DevTools browser extension](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?hl=en)
+can be installed to inspect and [debug the store](../getting-started/debugging.md).
+
+![browser-devtools](/img/devtool-state.png 'Reactive Data Client devtools')
+
+<center>
+
+<Link className="button button--secondary" to="../getting-started/debugging">Data Client Debugging Guide »</Link>
+
+</center>
+
+
+## Benchmarks
+
+Here we compare denormalization performance with the legacy [normalizr](https://github.com/paularmstrong/normalizr)
+library, which has less features, but similar schema definitions.
+
+Memoization is done at every entity level - no matter how nested, ensuring global referential equality guarantees
+and up to 20x performance even after [mutation operations](../getting-started/mutations.md) like Create, Update and Delete.
+
+<Grid>
+
+```mermaid
+xychart-beta
+    title "Denormalize Single Entity"
+    x-axis [normalizr, "Data Client", "Data Client (cached)"]
+    y-axis "Operations per second" 0 --> 4875500
+    bar [218500, 1079500, 4875500]
+```
+
+```mermaid
+xychart-beta
+    title "Denormalize Large List"
+    x-axis [normalizr, "Data Client", "Data Client (cached)"]
+    y-axis "Operations per second" 0 --> 12962
+    bar [1165, 1807, 13168]
+```
+
+</Grid>
+
+<center>
+
+[View benchmark](https://github.com/reactive/data-client/blob/master/examples/benchmark)
+
+</center>

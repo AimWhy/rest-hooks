@@ -1,25 +1,22 @@
 // eslint-env jest
 import {
   NetworkManager,
-  actionTypes,
-  SubscriptionManager,
   Manager,
   Middleware,
   Controller,
-} from '@rest-hooks/core';
+} from '@data-client/core';
 import { act, render } from '@testing-library/react';
-import { CoolerArticle, CoolerArticleResource } from '__tests__/new';
+import { CoolerArticleResource } from '__tests__/new';
 import nock from 'nock';
 import React, { useContext, Suspense, StrictMode } from 'react';
 
 import { ControllerContext, StateContext } from '../../context';
 import { useController, useSuspense } from '../../hooks';
 import { payload } from '../../test-fixtures';
-import CacheProvider from '../CacheProvider';
+import DataProvider from '../DataProvider';
+import { getDefaultManagers } from '../getDefaultManagers';
 
-const { RECEIVE_TYPE } = actionTypes;
-
-describe('<CacheProvider />', () => {
+describe('<DataProvider />', () => {
   let warnspy: jest.SpyInstance;
   let debugspy: jest.SpyInstance;
   beforeEach(() => {
@@ -55,9 +52,9 @@ describe('<CacheProvider />', () => {
       return <div>{article.title}</div>;
     };
     const tree = (
-      <CacheProvider>
+      <DataProvider>
         <Component />
-      </CacheProvider>
+      </DataProvider>
     );
     const { getByText } = render(tree);
     const msg = getByText('Uncaught Suspense.');
@@ -73,11 +70,11 @@ describe('<CacheProvider />', () => {
     };
     const tree = (
       <StrictMode>
-        <CacheProvider>
+        <DataProvider>
           <Suspense fallback="loading">
             <Component />
           </Suspense>
-        </CacheProvider>
+        </DataProvider>
       </StrictMode>
     );
     const { getByText } = render(tree);
@@ -95,21 +92,21 @@ describe('<CacheProvider />', () => {
       return null;
     }
     const chil = <DispatchTester />;
-    const tree = <CacheProvider>{chil}</CacheProvider>;
+    const tree = <DataProvider>{chil}</DataProvider>;
     const { rerender } = render(tree);
     expect(dispatch).toBeDefined();
     let curDisp = dispatch;
     rerender(tree);
     expect(curDisp).toBe(dispatch);
     expect(count).toBe(1);
-    rerender(<CacheProvider>{chil}</CacheProvider>);
+    rerender(<DataProvider>{chil}</DataProvider>);
     expect(curDisp).toBe(dispatch);
     expect(count).toBe(1);
     const managers: any[] = [new NetworkManager()];
-    rerender(<CacheProvider managers={managers}>{chil}</CacheProvider>);
+    rerender(<DataProvider managers={managers}>{chil}</DataProvider>);
     expect(count).toBe(1);
     curDisp = dispatch;
-    rerender(<CacheProvider managers={managers}>{chil}</CacheProvider>);
+    rerender(<DataProvider managers={managers}>{chil}</DataProvider>);
     expect(curDisp).toBe(dispatch);
     expect(count).toBe(1);
     rerender(
@@ -122,67 +119,50 @@ describe('<CacheProvider />', () => {
     expect(curDisp).not.toBe(dispatch);
     expect(count).toBe(2);
   });
+
   it('should change state', () => {
-    let dispatch: any, state;
+    jest.useFakeTimers({ now: 50 });
+    let ctrl: Controller | undefined = undefined;
+    let state;
     let count = 0;
     function ContextTester() {
-      dispatch = useController().dispatch;
+      ctrl = useController();
       state = useContext(StateContext);
       count++;
       return null;
     }
     const chil = <ContextTester />;
-    const tree = <CacheProvider>{chil}</CacheProvider>;
+    const tree = <DataProvider>{chil}</DataProvider>;
     render(tree);
-    expect(dispatch).toBeDefined();
+    expect(ctrl).toBeDefined();
     expect(state).toBeDefined();
-    const action = {
-      type: RECEIVE_TYPE,
-      payload: { id: 5, title: 'hi', content: 'more things here' },
-      meta: {
-        schema: CoolerArticle,
-        key: CoolerArticleResource.get.key({ id: 5 }),
-        mutate: false,
-        date: 50,
-        expiresAt: 55,
-      },
-    };
     act(() => {
-      dispatch(action);
+      ctrl?.setResponse(
+        CoolerArticleResource.get,
+        { id: 5 },
+        { id: 5, title: 'hi', content: 'more things here' },
+      );
     });
     expect(count).toBe(2);
     expect(state).toMatchSnapshot();
-  });
-
-  it('should have SubscriptionManager in default managers', () => {
-    const subManagers = CacheProvider.defaultProps.managers.filter(
-      manager => manager instanceof SubscriptionManager,
-    );
-    expect(subManagers.length).toBe(1);
+    jest.useRealTimers();
   });
 
   it('should ignore dispatches after unmount', async () => {
     class InjectorManager implements Manager {
-      protected declare middleware: Middleware;
       declare controller: Controller;
-
-      constructor() {
-        this.middleware = controller => {
-          this.controller = controller;
-          return next => async action => {
-            await next(action);
-          };
-        };
-      }
 
       cleanup() {}
 
-      getMiddleware() {
-        return this.middleware;
-      }
+      middleware: Middleware = controller => {
+        this.controller = controller;
+        return next => async action => {
+          await next(action);
+        };
+      };
     }
     const injector = new InjectorManager();
-    const managers = [injector, ...CacheProvider.defaultProps.managers];
+    const managers = [injector, ...getDefaultManagers()];
     let resolve: (r: any) => void = () => {};
     const endpoint = CoolerArticleResource.get.extend({
       fetch() {
@@ -196,11 +176,11 @@ describe('<CacheProvider />', () => {
       return <div>{article.title}</div>;
     };
     const tree = (
-      <CacheProvider managers={managers}>
+      <DataProvider managers={managers}>
         <Suspense fallback="loading">
           <Component />
         </Suspense>
-      </CacheProvider>
+      </DataProvider>
     );
     const { getByText, unmount } = render(tree);
     const msg = getByText('loading');

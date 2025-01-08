@@ -1,10 +1,18 @@
 import nock from 'nock';
 
-import Endpoint, { EndpointInstance } from '../endpoint';
+import type { default as TEndpoint, EndpointInstance } from '../endpoint';
 import { EndpointInterface } from '../interface';
 import Entity from '../schemas/Entity';
 
-describe('Endpoint', () => {
+describe.each([true, false])(`Endpoint (CSP %s)`, mockCSP => {
+  jest.resetModules();
+  jest.mock('../CSP', () => ({ CSP: mockCSP }));
+
+  const Endpoint: typeof TEndpoint = require('../endpoint').default;
+  afterAll(() => {
+    jest.clearAllMocks();
+  });
+
   const payload = { id: '5', username: 'bobber' };
   const payload2 = { id: '6', username: 'tomm' };
   const assetPayload = { symbol: 'btc', price: '5.0' };
@@ -71,6 +79,14 @@ describe('Endpoint', () => {
   });
 
   describe('Function', () => {
+    let errorSpy: jest.SpyInstance;
+    afterEach(() => {
+      errorSpy.mockRestore();
+    });
+    beforeEach(
+      () => (errorSpy = jest.spyOn(console, 'error').mockImplementation()),
+    );
+
     it('should work when called as function', async () => {
       const UserDetail = new Endpoint(fetchUsers);
 
@@ -83,7 +99,7 @@ describe('Endpoint', () => {
 
       // check additional properties defaults
       expect(UserDetail.sideEffect).toBe(undefined);
-      //expect(UserDetail.schema).toBeUndefined(); TODO: re-enable once we don't care about FetchShape compatibility
+      expect(UserDetail.schema).toBeUndefined();
       expect(UserDetail.key({ id: payload.id })).toMatchInlineSnapshot(
         `"fetchUsers [{"id":"5"}]"`,
       );
@@ -117,6 +133,17 @@ describe('Endpoint', () => {
       expect(Weird.name).toBe(`fetchUsersIdParam`);
     });
 
+    it('should console.error with autoname failures', () => {
+      const UserDetail = new Endpoint(function (this: any, id: string) {
+        return fetch(`/${this.root || 'users'}/${id}`).then(res =>
+          res.json(),
+        ) as Promise<typeof payload>;
+      });
+      UserDetail.name;
+      expect(errorSpy.mock.calls.length).toBe(1);
+      expect(errorSpy.mock.calls).toMatchSnapshot();
+    });
+
     it('should work when called with string parameter', async () => {
       const UserDetail = new Endpoint(fetchUsersIdParam);
 
@@ -129,7 +156,7 @@ describe('Endpoint', () => {
 
       // check additional properties defaults
       expect(UserDetail.sideEffect).toBe(undefined);
-      //expect(UserDetail.schema).toBeUndefined(); TODO: re-enable once we don't care about FetchShape compatibility
+      expect(UserDetail.schema).toBeUndefined();
       expect(UserDetail.key(payload.id)).toMatchInlineSnapshot(
         `"fetchUsersIdParam ["5"]"`,
       );
@@ -163,7 +190,7 @@ describe('Endpoint', () => {
 
       // check additional properties defaults
       expect(UserList.sideEffect).toBe(undefined);
-      //expect(UserList.schema).toBeUndefined(); TODO: re-enable once we don't care about FetchShape compatibility
+      expect(UserList.schema).toBeUndefined();
       expect(UserList.key()).toMatchInlineSnapshot(`"fetchUserList []"`);
       // @ts-expect-error
       expect(UserList.notexist).toBeUndefined();
@@ -209,66 +236,24 @@ describe('Endpoint', () => {
     });
   });
 
-  it('should infer mutate types', () => {
-    type T = undefined | 1;
-    type B = NonNullable<T>;
-    type A = undefined | 1 extends undefined ? true : false;
-    const e = new Endpoint(() => Promise.resolve() as any, {
-      sideEffect: undefined as any,
-    });
-    // should infer any
-    const a: 'mutate' = e.type;
-    const b: 'read' = e.type;
-
-    const e2: EndpointInstance<any, any, undefined | true> = new Endpoint(
-      () => Promise.resolve() as any,
-      {
-        sideEffect: undefined as undefined | true,
-      },
-    );
-    const a2 = (a: 'mutate') => {};
-    const b2 = (a: 'read') => {};
-    const type2 = e2.type;
-    // type descrimination to validate that this is union
-    if (type2 !== ('mutate' as const)) {
-      b2(type2);
-    } else {
-      a2(type2);
-    }
-
-    const e3 = new Endpoint(() => Promise.resolve() as any, {
-      sideEffect: undefined,
-    });
-    // @ts-expect-error
-    const a3: 'mutate' = e3.type;
-    const b3: 'read' = e3.type;
-
-    const e4 = new Endpoint(() => Promise.resolve() as any, {
-      sideEffect: true,
-    });
-    const a4: 'mutate' = e4.type;
-    // @ts-expect-error
-    const b4: 'read' = e4.type;
-  });
-
   it('should work when extended', async () => {
     const BaseFetch = new Endpoint(fetchUsers);
     // @ts-expect-error
     const aa: true = BaseFetch.sideEffect;
-    const bb: undefined = BaseFetch.sideEffect;
+    const bb: false = BaseFetch.sideEffect;
     const UserDetail = new Endpoint(fetchUsers).extend({
       sideEffect: true,
       key: ({ id }: { id: string }) => `fetch my user ${id}`,
     });
     // @ts-expect-error
-    const a: undefined = UserDetail.sideEffect;
+    const a: false = UserDetail.sideEffect;
     const b: true = UserDetail.sideEffect;
 
     // ts-expect-error
     //const c: undefined = UserDetail.extend({ dataExpiryLength: 5 }).sideEffect;
     //const d: true = UserDetail.extend({ dataExpiryLength: 5 }).sideEffect;
 
-    function t(a: EndpointInterface<typeof fetchUsers, any, undefined>) {}
+    function t(a: EndpointInterface<typeof fetchUsers, any, false>) {}
     // @ts-expect-error
     t(UserDetail);
     t(BaseFetch);
@@ -469,9 +454,10 @@ describe('Endpoint', () => {
           url,
           random: 599,
           dataExpiryLength: 5000,
+          name: 'UserDetai',
         },
       );
-      const a: undefined = UserDetail.sideEffect;
+      const a: false = UserDetail.sideEffect;
       // @ts-expect-error
       const b: true = UserDetail.sideEffect;
       UserDetail.schema;
@@ -521,9 +507,6 @@ describe('Endpoint', () => {
       const url = ({ id }: { id: string }) => `/users/${id}`;
       class User extends Entity {
         readonly id: string = '';
-        pk() {
-          return this.id;
-        }
       }
       const UserDetail = new Endpoint(
         function ({ id }: { id: string }) {
@@ -547,7 +530,7 @@ describe('Endpoint', () => {
         },
       );
       const sch: (typeof User)[] = UserDetail.schema;
-      const s: undefined = UserDetail.sideEffect;
+      const s: false = UserDetail.sideEffect;
       UserDetail.random;
       // @ts-expect-error
       UserDetail.nonexistant;
@@ -556,6 +539,15 @@ describe('Endpoint', () => {
       () => UserDetail.key({ nonexistant: 5 });
       // @ts-expect-error
       () => UserDetail.key({ id: 5 });
+    });
+
+    it('testKey should match keys', () => {
+      const getUsers = new Endpoint(fetchUsers);
+      const nomatch = getUsers.extend({ name: 'not matching' });
+      expect(getUsers.testKey(getUsers.key({ id: '5' }))).toBeTruthy();
+      expect(getUsers.testKey(getUsers.key({ id: '100' }))).toBeTruthy();
+      expect(getUsers.testKey(getUsers.key({ id: 'xxx?*' }))).toBeTruthy();
+      expect(getUsers.testKey(nomatch.key({ id: '5' }))).toBeFalsy();
     });
   });
 
@@ -598,7 +590,7 @@ describe('Endpoint', () => {
     /*class ResourceEndpoint<
       F extends (params?: any, body?: any) => Promise<any>,
       S extends Schema | undefined = undefined,
-      M extends true | undefined = undefined
+      M extends boolean | undefined = undefined
     > extends Endpoint<F, S, M> {
       constructor(
         fetchFunction: F,
@@ -652,7 +644,7 @@ describe('Endpoint', () => {
           body?: any,
         ) => Promise<any>,
         S extends Schema | undefined = undefined,
-        M extends true | undefined = undefined
+        M extends boolean | undefined = undefined
       > extends Endpoint<F, S, M> {
         token = 'password';
         authdFetch(info: RequestInfo, init?: RequestInit) {

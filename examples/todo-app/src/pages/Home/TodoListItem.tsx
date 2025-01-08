@@ -1,41 +1,38 @@
+import { useController } from '@data-client/react';
 import { styled } from '@linaria/react';
-import { useController } from '@rest-hooks/react';
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { TodoResource, Todo } from 'resources/TodoResource';
 
 function TodoListItem({ todo }: { todo: Todo }) {
   const ctrl = useController();
 
-  const toggleHandler = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      await ctrl.fetch(
-        TodoResource.partialUpdate,
-        { id: todo.id },
-        { completed: e.currentTarget.checked },
-      );
-    },
-    [ctrl, todo.id],
-  );
+  const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) =>
+    ctrl.fetch(
+      TodoResource.partialUpdate,
+      { id: todo.id },
+      { completed: e.currentTarget.checked },
+    );
+  const handleDelete = () =>
+    ctrl.fetch(TodoResource.delete, {
+      id: todo.id,
+    });
+
   return (
     <TodoBox>
       <label>
         <input
           type="checkbox"
           checked={todo.completed}
-          onChange={toggleHandler}
+          onChange={handleToggle}
         />
-        {todo.completed ? <strike>{todo.title}</strike> : todo.title}
+        {todo.completed ? <s>{todo.title}</s> : todo.title}
       </label>
       <span
         style={{ cursor: 'pointer', marginLeft: '.5em' }}
-        onClick={() =>
-          ctrl.fetch(TodoResource.delete, {
-            id: todo.id,
-          })
-        }
+        onClick={handleDelete}
       >
         <img
-          src="https://resthooks.io/img/cancel.png"
+          src="https://dataclient.io/img/cancel.png"
           width="16"
           height="16"
           style={{ marginBottom: '-3px' }}

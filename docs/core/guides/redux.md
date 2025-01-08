@@ -1,222 +1,118 @@
 ---
 id: redux
-title: Redux integration
+title: Empowering Redux with Reactive Data Client
+sidebar_label: Redux integration
 ---
 
 import PkgTabs from '@site/src/components/PkgTabs';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
+# Redux integration
+
 Using [redux](https://redux.js.org/) is completely optional. However, for many it means easy integration or migration
 with existing projects, or just a nice centralized state management abstraction.
 
-Integration is fairly straightforward as rest-hooks already uses the same paradigms as redux under
-the hood. However, care should be taken to integrate the reducer and [middlewares](../api/Manager.md) properly
-or it won't work as expected.
-
-First make sure you have redux installed:
-
-<PkgTabs pkgs="@rest-hooks/redux redux" />
-
-Note: react-redux is _not_ needed for this integration (though you will need it if you want to use redux directly as well).
-
-Then you'll want to use the [<ExternalCacheProvider /\>](../api/ExternalCacheProvider.md) instead of
-[<CacheProvider /\>](../api/CacheProvider.md) and pass in the store and a selector function to grab
-the rest-hooks specific part of the state.
-
-> Note: You should only use ONE provider; nested another provider will override the previous.
-
-> Note: Rest Hooks manager middlewares return promises, which is different from how redux middlewares work.
-> Because of this, if you want to integrate both, you'll need to place all redux middlewares
-> after the `PromiseifyMiddleware` adapter, and place all Rest Hooks manager middlewares before.
-
 <Tabs
-defaultValue="rest-hooks"
+defaultValue="data-client"
 values={[
-{ label: 'just Rest Hooks', value: 'rest-hooks' },
+{ label: 'just Reactive Data Client', value: 'data-client' },
 { label: 'with React-Redux', value: 'react-redux' },
 ]}>
-<TabItem value="rest-hooks">
+<TabItem value="data-client">
 
-#### `index.tsx`
-
-```tsx
+```tsx title="index.tsx"
 import {
-  SubscriptionManager,
-  PollingSubscription,
-  ExternalCacheProvider,
-  PromiseifyMiddleware,
-  applyManager,
-} from '@rest-hooks/redux';
-import {
-  initialState,
-  createReducer,
-  NetworkManager,
-  Controller,
-} from '@rest-hooks/core';
-import { createStore, applyMiddleware } from 'redux';
+  ExternalDataProvider,
+  prepareStore,
+  type Middleware,
+} from '@data-client/react/redux';
+import { getDefaultManagers, Controller } from '@data-client/react';
 import ReactDOM from 'react-dom';
 
-const networkManager = new NetworkManager();
-const subscriptionManager = new SubscriptionManager(PollingSubscription);
-const controller = new Controller();
+const managers = getDefaultManagers();
+// be sure to include your other reducers here
+const otherReducers = {};
+const extraMiddlewares: Middleware = [];
 
-const store = createStore(
-  createReducer(controller),
+const { store, selector, controller } = prepareStore(
   initialState,
-  applyMiddleware(
-    ...applyManager([networkManager, subscriptionManager], controller),
-    // place Rest Hooks built middlewares before PromiseifyMiddleware
-    PromiseifyMiddleware,
-    // place redux middlewares after PromiseifyMiddleware
-  ),
+  managers,
+  Controller,
+  otherReducers,
+  extraMiddlewares,
 );
-const selector = state => state;
-
-// managers optionally provide initialization subroutine
-for (const manager of [networkManager, subscriptionManager]) {
-  managers[i].init?.(selector(store.getState()));
-}
 
 ReactDOM.render(
-  <ExternalCacheProvider
+  <ExternalDataProvider
     store={store}
     selector={selector}
     controller={controller}
   >
     <App />
-  </ExternalCacheProvider>,
+  </ExternalDataProvider>,
   document.body,
 );
-```
-
-Above we have the simplest case where the entire redux store is used for rest-hooks.
-However, more commonly you will be integrating with other state. In this case, you
-will need to use the `selector` prop of `<ExternalCacheProvider/\>` to specify
-where in the state tree the rest-hooks information is.
-
-```typescript
-// ...
-const selector = state => state.restHooks;
-
-const store = createStore(
-  // Now we have other reducers
-  combineReducers({
-    restHooks: restReducer,
-    myOtherState: otherReducer,
-  }),
-  applyMiddleware(
-    ...mapMiddleware(selector)(
-      ...applyManager([networkManager, subscriptionManager], controller),
-    ),
-    PromiseifyMiddleware,
-  ),
-);
-// ...
 ```
 
 </TabItem>
 <TabItem value="react-redux">
 
-#### `index.tsx`
-
-```tsx
+```tsx title="index.tsx"
 import {
-  SubscriptionManager,
-  PollingSubscription,
-  ExternalCacheProvider,
-  PromiseifyMiddleware,
-  applyManager,
-} from '@rest-hooks/redux';
-import {
-  initialState,
-  createReducer,
-  NetworkManager,
-  Controller,
-} from '@rest-hooks/core';
-import { createStore, applyMiddleware } from 'redux';
+  ExternalDataProvider,
+  prepareStore,
+  type Middleware,
+} from '@data-client/react/redux';
+import { getDefaultManagers, Controller } from '@data-client/react';
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
 
-const manager = new NetworkManager();
-const subscriptionManager = new SubscriptionManager(PollingSubscription);
-const controller = new Controller();
+const managers = getDefaultManagers();
+// be sure to include your other reducers here
+const otherReducers = {};
+const extraMiddlewares: Middleware = [];
 
-const store = createStore(
-  createReducer(controller),
+const { store, selector, controller } = prepareStore(
   initialState,
-  applyMiddleware(
-    ...applyManager([networkManager, subscriptionManager], controller),
-    // place Rest Hooks built middlewares before PromiseifyMiddleware
-    PromiseifyMiddleware,
-    // place redux middlewares after PromiseifyMiddleware
-  ),
+  managers,
+  Controller,
+  otherReducers,
+  extraMiddlewares,
 );
-const selector = state => state;
 
 ReactDOM.render(
-  <ExternalCacheProvider store={store} selector={selector} controller={controller}>
+  <ExternalDataProvider
+    store={store}
+    selector={selector}
+    controller={controller}
+  >
     <Provider store={store}>
       <App />
     </Provider>
-  </ExternalCacheProvider>,
+  </ExternalDataProvider>,
   document.body,
 );
-```
-
-Above we have the simplest case where the entire redux store is used for rest-hooks.
-However, more commonly you will be integrating with other state. In this case, you
-will need to use the `selector` prop of `<ExternalCacheProvider/\>` to specify
-where in the state tree the rest-hooks information is.
-
-```typescript
-// ...
-const selector = state => state.restHooks;
-
-const store = createStore(
-  // Now we have other reducers
-  combineReducers({
-    restHooks: restReducer,
-    myOtherState: otherReducer,
-  }),
-  applyMiddleware(
-    ...mapMiddleware(selector)(
-      ...applyManager([networkManager, subscriptionManager], controller),
-    ),
-    PromiseifyMiddleware,
-  ),
-);
-// ...
 ```
 
 </TabItem>
 </Tabs>
 
-Here we store rest-hooks state information in the 'restHooks' part of the tree.
+Then you'll want to use the [&lt;ExternalDataProvider /\>](../api/ExternalDataProvider.md) instead of
+[&lt;DataProvider /\>](../api/DataProvider.md) and pass in the store and a selector function to grab
+the Reactive Data Client specific part of the state.
 
-## Redux devtools
+:::info Note
 
-[Redux DevTools](https://github.com/reduxjs/redux-devtools) allows easy inspection of current
-state and transitions in the Rest Hooks store.
+You should only use ONE provider; nested another provider will override the previous.
 
-Simply wrap the return value of `applyMiddleware()` with `composeWithDevTools()`
+:::
 
-```typescript
-import { composeWithDevTools } from 'redux-devtools-extension';
+:::info Note
 
-const store = createStore(
-  createReducer(controller),
-  initialState,
-  // The next three lines are added
-  composeWithDevTools({
-    trace: true,
-  })(
-    applyMiddleware(
-      ...applyManager([networkManager, subscriptionManager], controller),
-      // place Rest Hooks built middlewares before PromiseifyMiddleware
-      PromiseifyMiddleware,
-      // place redux middlewares after PromiseifyMiddleware
-    ),
-  ),
-);
-```
+Because `Reactive Data Client` [manager middlewares](../api/Manager.md#middleware) return promises,
+all redux middlewares are placed after the [Managers](../concepts/managers.md).
+
+If you need a middlware to run before the managers, you will need to wrap it in a [manager](../api/Manager.md).
+
+:::

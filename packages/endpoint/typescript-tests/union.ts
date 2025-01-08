@@ -1,4 +1,4 @@
-import { normalize } from '@rest-hooks/normalizr';
+import { normalize } from '@data-client/normalizr';
 import { IDEntity } from '__tests__/new';
 
 import { schema } from '../src';
@@ -29,4 +29,4 @@ const errorUnionSchema = new schema.Union(
   'blob',
 );
 
-const normalizedData = normalize(data, { owner: unionSchema });
+const normalizedData = normalize({ owner: unionSchema }, data);

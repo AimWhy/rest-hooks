@@ -1,14 +1,16 @@
-import { GithubEntity, createGithubResource } from './Base';
+import { Temporal } from '@js-temporal/polyfill';
+
+import { GithubEntity, githubResource } from './Base';
 import { User } from './User';
 
 export class Comment extends GithubEntity {
-  readonly issueUrl: string = '';
-  readonly htmlUrl: string = '';
-  readonly body: string = '';
-  readonly user: User = User.fromJS({});
-  readonly createdAt: Date = new Date(0);
-  readonly updatedAt: Date = new Date(0);
-  readonly authorAssociation: string = 'NONE';
+  issueUrl = '';
+  htmlUrl = '';
+  body = '';
+  user = User.fromJS();
+  createdAt = Temporal.Instant.fromEpochSeconds(0);
+  updatedAt = Temporal.Instant.fromEpochSeconds(0);
+  authorAssociation = 'NONE';
 
   get owner() {
     const pieces = this.issueUrl.split('/issues')[0].split('/');
@@ -22,37 +24,18 @@ export class Comment extends GithubEntity {
 
   static schema = {
     user: User,
-    createdAt: Date,
-    updatedAt: Date,
+    createdAt: Temporal.Instant.from,
+    updatedAt: Temporal.Instant.from,
   };
 }
-const baseResource = createGithubResource({
+export const CommentResource = githubResource({
   path: '/repos/:owner/:repo/issues/comments/:id',
   schema: Comment,
+  optimistic: true,
+}).extend({
+  getList: {
+    path: '/repos/:owner/:repo/issues/:number/comments',
+    body: { body: '' },
+  },
 });
-const getList = baseResource.getList.extend({
-  path: '/repos/:owner/:repo/issues/:number/comments',
-});
-const create = baseResource.create.extend({
-  path: '/repos/:owner/:repo/issues/:number/comments',
-  // body is 'comment body' aka the text content
-  body: { body: '' },
-  update: (newId: string, params: any) => ({
-    [getList.key(params)]: ({ results = [], ...rest } = {}) => ({
-      results: [...new Set([...results, newId])],
-      ...rest,
-    }),
-  }),
-});
-export const CommentResource = {
-  ...baseResource,
-  getList,
-  create,
-  delete: baseResource.delete.extend({
-    getOptimisticResponse(snap, params) {
-      return params;
-    },
-  }),
-};
-
 export default CommentResource;

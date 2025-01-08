@@ -1,21 +1,27 @@
 // eslint-env jest
-import { inferResults } from '@rest-hooks/normalizr';
+import { MemoCache } from '@data-client/normalizr';
+import { useQuery, useSuspense } from '@data-client/react';
+import { RestEndpoint } from '@data-client/rest';
 import { IDEntity } from '__tests__/new';
 import { fromJS } from 'immutable';
 
-import denormalize from './denormalize';
-import { schema, Query, Denormalize, DenormalizeNullable } from '../..';
+import { schema, DenormalizeNullable } from '../..';
 
 let dateSpy: jest.SpyInstance<number, []>;
 beforeAll(() => {
   dateSpy = jest
-    // eslint-disable-next-line no-undef
+
     .spyOn(global.Date, 'now')
     .mockImplementation(() => new Date('2019-05-14T11:01:58.135Z').valueOf());
 });
 afterAll(() => {
   dateSpy.mockRestore();
 });
+
+class User extends IDEntity {
+  name = '';
+  isAdmin = false;
+}
 
 describe.each([
   ['direct', <T>(data: T) => data, <T>(data: T) => data],
@@ -24,16 +30,204 @@ describe.each([
     fromJS,
     (v: any) => (typeof v?.toJS === 'function' ? v.toJS() : v),
   ],
-])(
-  `${schema.Array.name} denormalization (%s)`,
-  (_, createInput, createOutput) => {
-    class User extends IDEntity {
-      name = '';
-      isAdmin = false;
-    }
-    const sortedUsers = new Query(
-      new schema.Object({ results: new schema.All(User) }),
-      ({ results }, { asc } = { asc: false }) => {
+])(`input (%s)`, (_, createInput, createOutput) => {
+  const SCHEMA_CASES = [
+    ['All', new schema.Object({ results: new schema.All(User) })],
+    [
+      'Collection',
+      new schema.Object({ results: new schema.Collection([User]) }),
+    ],
+  ] as const;
+  if (_ === 'immutable') {
+    delete (SCHEMA_CASES as any)[1];
+  }
+
+  describe.each(SCHEMA_CASES)(
+    `${schema.Query.name} denormalization (%s schema)`,
+    (_, usersSchema) => {
+      const sortedUsers = new schema.Query(
+        usersSchema,
+        ({ results }, { asc } = { asc: false }) => {
+          if (!results) return results;
+          const sorted = [...results].sort((a, b) =>
+            a.name.localeCompare(b.name),
+          );
+          if (asc) return sorted;
+          return sorted.reverse();
+        },
+      );
+
+      test('denormalize sorts', () => {
+        const entities = {
+          User: {
+            1: { id: '1', name: 'Milo' },
+            2: { id: '2', name: 'Jake' },
+            3: { id: '3', name: 'Zeta' },
+            4: { id: '4', name: 'Alpha' },
+          },
+          [new schema.Collection([User]).key]: {
+            [new schema.Collection([User]).pk(undefined, undefined, '', [])]: [
+              1, 2, 3, 4,
+            ],
+          },
+        };
+        const users: DenormalizeNullable<typeof sortedUsers> | symbol =
+          new MemoCache().query(sortedUsers, [], createInput(entities), {});
+        expect(users).not.toEqual(expect.any(Symbol));
+        if (typeof users === 'symbol') return;
+        expect(users && users[0].name).toBe('Zeta');
+        expect(users).toMatchSnapshot();
+      });
+
+      test('denormalize sorts with arg', () => {
+        const entities = {
+          User: {
+            1: { id: '1', name: 'Milo' },
+            2: { id: '2', name: 'Jake' },
+            3: { id: '3', name: 'Zeta' },
+            4: { id: '4', name: 'Alpha' },
+          },
+          [new schema.Collection([User]).key]: {
+            [new schema.Collection([User]).pk(undefined, undefined, '', [
+              { asc: true },
+            ])]: [1, 2, 3, 4],
+          },
+        };
+        expect(
+          new MemoCache().query(
+            sortedUsers,
+            [{ asc: true }],
+            createInput(entities),
+            {},
+          ),
+        ).toMatchSnapshot();
+      });
+
+      test('denormalizes should not be found when no entities are present', () => {
+        const entities = {
+          DOG: {
+            1: { id: '1', name: 'Milo' },
+            2: { id: '2', name: 'Jake' },
+          },
+        };
+        const data = new MemoCache().query(sortedUsers, [], entities, {});
+
+        expect(createOutput(data)).toEqual(undefined);
+      });
+
+      test('denormalize aggregates', () => {
+        const userCountByAdmin = new schema.Query(
+          usersSchema,
+          ({ results }, { isAdmin }: { isAdmin?: boolean } = {}) => {
+            if (!results) return 0;
+            if (isAdmin === undefined) return results.length;
+            return results.filter(user => user.isAdmin === isAdmin).length;
+          },
+        );
+        const entities = {
+          User: {
+            1: { id: '1', name: 'Milo' },
+            2: { id: '2', name: 'Jake', isAdmin: true },
+            3: { id: '3', name: 'Zeta' },
+            4: { id: '4', name: 'Alpha' },
+          },
+          [new schema.Collection([User]).key]: {
+            [new schema.Collection([User]).pk(undefined, undefined, '', [])]: [
+              1, 2, 3, 4,
+            ],
+            [new schema.Collection([User]).pk(undefined, undefined, '', [
+              { isAdmin: false },
+            ])]: [1, 3, 4],
+            [new schema.Collection([User]).pk(undefined, undefined, '', [
+              { isAdmin: true },
+            ])]: [2],
+          },
+        };
+        const totalCount:
+          | DenormalizeNullable<typeof userCountByAdmin>
+          | symbol = new MemoCache().query(
+          userCountByAdmin,
+          [],
+          createInput(entities),
+          {},
+        );
+
+        expect(totalCount).toBe(4);
+        const nonAdminCount:
+          | DenormalizeNullable<typeof userCountByAdmin>
+          | symbol = new MemoCache().query(
+          userCountByAdmin,
+          [{ isAdmin: false }],
+          createInput(entities),
+          {},
+        );
+        expect(nonAdminCount).toBe(3);
+        const adminCount:
+          | DenormalizeNullable<typeof userCountByAdmin>
+          | symbol = new MemoCache().query(
+          userCountByAdmin,
+          [{ isAdmin: true }],
+          createInput(entities),
+          {},
+        );
+        expect(adminCount).toBe(1);
+        if (typeof totalCount === 'symbol') return;
+
+        // typecheck
+        totalCount !== undefined && totalCount + 5;
+        // @ts-expect-error
+        totalCount?.bob;
+      });
+    },
+  );
+});
+
+describe('top level schema', () => {
+  const sortedUsers = new schema.Query(
+    new schema.Collection([User]),
+    (results, { asc } = { asc: false }, ...args) => {
+      const sorted = [...results].sort((a, b) => a.name.localeCompare(b.name));
+      if (asc) return sorted;
+      return sorted.reverse();
+    },
+  );
+
+  test('denormalize sorts', () => {
+    const entities = {
+      User: {
+        1: { id: '1', name: 'Milo' },
+        2: { id: '2', name: 'Jake' },
+        3: { id: '3', name: 'Zeta' },
+        4: { id: '4', name: 'Alpha' },
+      },
+      [new schema.Collection([User]).key]: {
+        [new schema.Collection([User]).pk({}, undefined, '', [])]: [1, 2, 3, 4],
+      },
+    };
+    const users = new MemoCache().query(sortedUsers, [], entities, {});
+    expect(users).not.toEqual(expect.any(Symbol));
+    if (typeof users === 'symbol') return;
+    expect(users && users[0].name).toBe('Zeta');
+    expect(users).toMatchSnapshot();
+  });
+
+  test('works if base entity suspends', () => {
+    const entities = {
+      User: {
+        1: { id: '1', name: 'Milo' },
+        2: { id: '2', name: 'Jake' },
+        3: { id: '3', name: 'Zeta' },
+        4: { id: '4', name: 'Alpha' },
+      },
+    };
+    const users = new MemoCache().query(sortedUsers, [], entities, {});
+    expect(users).toBeUndefined();
+  });
+
+  test('works if base entity suspends', () => {
+    const allSortedUsers = new schema.Query(
+      new schema.All(User),
+      (results, { asc } = { asc: false }, ...args) => {
         const sorted = [...results].sort((a, b) =>
           a.name.localeCompare(b.name),
         );
@@ -41,114 +235,51 @@ describe.each([
         return sorted.reverse();
       },
     );
+    const users = new MemoCache().query(allSortedUsers, [], {}, {});
+    expect(users).toBeUndefined();
+  });
 
-    test('denormalize sorts', () => {
-      const entities = {
-        User: {
-          1: { id: '1', name: 'Milo' },
-          2: { id: '2', name: 'Jake' },
-          3: { id: '3', name: 'Zeta' },
-          4: { id: '4', name: 'Alpha' },
-        },
-      };
-      const users: DenormalizeNullable<typeof sortedUsers.schema> = denormalize(
-        inferResults(sortedUsers.schema, [], {}, entities),
-        sortedUsers.schema,
-        createInput(entities),
-      )[0];
-      expect(users && users[0].name).toBe('Zeta');
-      expect(users).toMatchSnapshot();
+  test('works with nested schemas', () => {
+    const allSortedUsers = new schema.Query(
+      new schema.All(User),
+      (results, { asc } = { asc: false }, ...args) => {
+        const sorted = [...results].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
+        if (asc) return sorted;
+        return sorted.reverse();
+      },
+    );
+    const users = new MemoCache().query(allSortedUsers, [], {}, {});
+    expect(users).toBeUndefined();
+  });
+
+  test('denormalizes should not be found when no entities are present', () => {
+    const entities = {
+      DOG: {
+        1: { id: '1', name: 'Milo' },
+        2: { id: '2', name: 'Jake' },
+      },
+    };
+
+    const value = new MemoCache().query(sortedUsers, [], entities, {});
+
+    expect(value).toEqual(undefined);
+  });
+
+  test('', () => {
+    const getUsers = new RestEndpoint({
+      path: '/users',
+      searchParams: {} as { asc?: boolean },
+      schema: sortedUsers,
     });
-
-    test('denormalize sorts with arg', () => {
-      const entities = {
-        User: {
-          1: { id: '1', name: 'Milo' },
-          2: { id: '2', name: 'Jake' },
-          3: { id: '3', name: 'Zeta' },
-          4: { id: '4', name: 'Alpha' },
-        },
-      };
-      expect(
-        denormalize(
-          inferResults(sortedUsers.schema, [{ asc: true }], {}, entities),
-          sortedUsers.schema,
-          createInput(entities),
-        ),
-      ).toMatchSnapshot();
-    });
-
-    test('denormalizes should not be found when no entities are present', () => {
-      const entities = {
-        DOG: {
-          1: { id: '1', name: 'Milo' },
-          2: { id: '2', name: 'Jake' },
-        },
-      };
-      const input = inferResults(sortedUsers.schema, [], {}, entities);
-
-      const [value, found] = denormalize(
-        createInput(input),
-        sortedUsers.schema,
-        createInput(entities),
-      );
-      expect(found).toBe(false);
-
-      expect(createOutput(value)).toEqual(undefined);
-    });
-
-    test('denormalize aggregates', () => {
-      const userCountByAdmin = new Query(
-        new schema.Object({ results: new schema.All(User) }),
-        ({ results }, { isAdmin }: { isAdmin?: boolean } = {}) => {
-          if (isAdmin === undefined) return results.length;
-          return results.filter(user => user.isAdmin === isAdmin).length;
-        },
-      );
-      const entities = {
-        User: {
-          1: { id: '1', name: 'Milo' },
-          2: { id: '2', name: 'Jake', isAdmin: true },
-          3: { id: '3', name: 'Zeta' },
-          4: { id: '4', name: 'Alpha' },
-        },
-      };
-      const totalCount: DenormalizeNullable<typeof userCountByAdmin.schema> =
-        denormalize(
-          inferResults(userCountByAdmin.schema, [], {}, entities),
-          userCountByAdmin.schema,
-          createInput(entities),
-        )[0];
-      expect(totalCount).toBe(4);
-      const nonAdminCount: DenormalizeNullable<typeof userCountByAdmin.schema> =
-        denormalize(
-          inferResults(
-            userCountByAdmin.schema,
-            [{ isAdmin: false }],
-            {},
-            entities,
-          ),
-          userCountByAdmin.schema,
-          createInput(entities),
-        )[0];
-      expect(nonAdminCount).toBe(3);
-      const adminCount: DenormalizeNullable<typeof userCountByAdmin.schema> =
-        denormalize(
-          inferResults(
-            userCountByAdmin.schema,
-            [{ isAdmin: true }],
-            {},
-            entities,
-          ),
-          userCountByAdmin.schema,
-          createInput(entities),
-        )[0];
-      expect(adminCount).toBe(1);
-
-      // typecheck
-      totalCount !== undefined && totalCount + 5;
+    () => {
+      const users = useSuspense(getUsers, { asc: true });
+      users.map(user => user.name);
+      const others = useQuery(getUsers.schema, { asc: true });
       // @ts-expect-error
-      totalCount?.bob;
-    });
-  },
-);
+      others.map(user => user.name);
+      others?.map(user => user.name);
+    };
+  });
+});

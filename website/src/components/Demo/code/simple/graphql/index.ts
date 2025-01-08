@@ -1,4 +1,4 @@
-import { GQLEndpoint } from '@rest-hooks/graphql';
+import { GQLEndpoint } from '@data-client/graphql';
 
 import api from '!!raw-loader!./api.ts';
 import Demo from '!!raw-loader!./Demo.tsx';
@@ -9,7 +9,6 @@ export default {
   label: 'GraphQL',
   value: 'graphql',
   autoFocus: true,
-
   fixtures: [
     {
       endpoint: new GQLEndpoint('/').query(`
@@ -21,11 +20,19 @@ query GetTodo($id: ID!) {
   }
 }
 `),
-      args: [{ id: 1 }],
-      response: { todo: TODOS.find(todo => todo.id === 1) },
+      response({ id }) {
+        return { todo: this[id] };
+      },
       delay: 150,
     },
   ],
+  getInitialInterceptorData: () =>
+    Object.fromEntries(
+      TODOS.map(todo => [
+        todo.id,
+        { ...todo, updatedAt: Date.now() },
+      ]),
+    ),
   code: [
     {
       path: 'api',

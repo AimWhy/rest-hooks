@@ -1,20 +1,18 @@
 ---
 id: README
-title: GraphQL Usage
+title: GraphQL Usage with Reactive Data Client
 sidebar_label: Usage
+hide_title: true
 ---
-<head>
-  <title>GraphQL Usage with Rest Hooks</title>
-</head>
-
 
 import LanguageTabs from '@site/src/components/LanguageTabs';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import PkgTabs from '@site/src/components/PkgTabs';
 import HooksPlayground from '@site/src/components/HooksPlayground';
+import StackBlitz from '@site/src/components/StackBlitz';
 
-<PkgTabs pkgs="@rest-hooks/graphql" />
+<PkgTabs pkgs="@data-client/graphql" />
 
 ## Define Endpoint and Schema
 
@@ -26,24 +24,24 @@ export default gql;
 <LanguageTabs>
 
 ```typescript title="schema/User.ts"
-import { GQLEntity } from '@rest-hooks/graphql';
+import { GQLEntity } from '@data-client/graphql';
 
 export default class User extends GQLEntity {
-  readonly name: string | null = null;
-  readonly email: string = '';
-  readonly age: number = 0;
+  name: string | null = null;
+  email = '';
+  age = 0;
 }
 ```
 
 ```js title="schema/User.ts"
-import { GQLEntity } from '@rest-hooks/graphql';
+import { GQLEntity } from '@data-client/graphql';
 
 export default class User extends GQLEntity {}
 ```
 
 </LanguageTabs>
 
-[Entity](api/Entity.md)s are immutable. Use `readonly` in typescript to enforce this.
+[Entity](api/GQLEntity.md)s are immutable. Use `readonly` in typescript to enforce this.
 
 :::tip
 
@@ -62,7 +60,7 @@ values={[
 <TabItem value="Single">
 
 ```tsx title="pages/UserDetail.tsx"
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 import User from 'schema/User';
 import gql from 'schema/endpoint';
 
@@ -92,7 +90,7 @@ export default function UserDetail({ name }: { name: string }) {
 <TabItem value="List">
 
 ```tsx title="pages/UserList.tsx"
-import { useSuspense } from '@rest-hooks/react';
+import { useSuspense } from '@data-client/react';
 import User from 'schema/User';
 import gql from 'schema/endpoint';
 
@@ -122,21 +120,24 @@ export default function UserList() {
 </TabItem>
 </Tabs>
 
-[useSuspense()](/docs/api/useSuspense) guarantees access to data with sufficient [freshness](api/Endpoint.md#dataexpirylength-number).
+[useSuspense()](/docs/api/useSuspense) guarantees access to data with sufficient [freshness](api/GQLEndpoint.md#dataexpirylength).
 This means it may issue network calls, and it may [suspend](/docs/getting-started/data-dependency#boundaries) until the fetch completes.
 Param changes will result in accessing the appropriate data, which also sometimes results in new network calls and/or
 suspends.
 
 - Fetches are centrally controlled, and thus automatically deduplicated
-- Data is centralized and normalized guaranteeing consistency across uses, even with different [endpoints](api/Endpoint.md).
+- Data is centralized and normalized guaranteeing consistency across uses, even with different [endpoints](api/GQLEndpoint.md).
   - (For example: navigating to a detail page with a single entry from a list view will instantly show the same data as the list without
     requiring a refetch.)
 
-<details><summary><b>SWAPI Demo</b></summary>
+<details>
+<summary><b>SWAPI Demo</b></summary>
 
 <HooksPlayground>
 
 ```tsx
+import { GQLEndpoint, GQLEntity } from '@data-client/graphql';
+
 const gql = new GQLEndpoint(
   'https://swapi-graphql.netlify.app/.netlify/functions/index',
 );
@@ -149,7 +150,7 @@ const PageInfo = {
   hasNextPage: false,
   startCursor: '',
   endCursor: '',
-}
+};
 const allPeople = gql.query(
   (v: { first?: number; after?: string }) => `
 query People($first: Int, $after:String) {
@@ -165,10 +166,12 @@ query People($first: Int, $after:String) {
   }
 }
 `,
-{ allPeople: { people: [Person], pageInfo: PageInfo } },
+  { allPeople: { people: [Person], pageInfo: PageInfo } },
 );
 function StarPeople() {
-  const { people, pageInfo } = useSuspense(allPeople, { first: 5 }).allPeople;
+  const { people, pageInfo } = useSuspense(allPeople, {
+    first: 5,
+  }).allPeople;
   return (
     <div>
       {people.map(person => (
@@ -179,7 +182,7 @@ function StarPeople() {
     </div>
   );
 }
-render(<StarPeople/>);
+render(<StarPeople />);
 ```
 
 </HooksPlayground>
@@ -191,8 +194,8 @@ render(<StarPeople/>);
 We're using [SWAPI](https://graphql.org/swapi-graphql) as our example, since it offers mutations.
 
 ```tsx title="pages/CreateReview.tsx"
-import { useController } from '@rest-hooks/react';
-import { GQLEndpoint, GQLEntity } from '@rest-hooks/graphql';
+import { useController } from '@data-client/react';
+import { GQLEndpoint, GQLEntity } from '@data-client/graphql';
 
 const gql = new GQLEndpoint(
   'https://swapi-graphql.netlify.app/.netlify/functions/index',
@@ -219,7 +222,9 @@ const createReview = gql.mutation(
 export default function NewReviewForm() {
   const ctrl = useController();
   return (
-    <Form onSubmit={e => ctrl.fetch(createReview, new FormData(e.target))}>
+    <Form
+      onSubmit={e => ctrl.fetch(createReview, new FormData(e.target))}
+    >
       <FormField name="ep" />
       <FormField name="review" type="compound" />
     </Form>
@@ -231,3 +236,6 @@ The first argument to GQLEndpoint.query or GQLEndpoint.mutate is either the quer
 _or_ a function that returns the query string. The main value of using the latter is enforcing
 the function argument types.
 
+## Mixing with REST Demo
+
+<StackBlitz app="github-app" file="src/pages/ProfileDetail/UserRepos.tsx,src/resources/Repository.tsx" view="editor" initialpath="/users/ntucker" />

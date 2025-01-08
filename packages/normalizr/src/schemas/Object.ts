@@ -1,26 +1,23 @@
 import { isImmutable, denormalizeImmutable } from './ImmutableUtils.js';
+import { INVALID } from '../denormalize/symbol.js';
+import type { Visit } from '../interface.js';
 
 export const normalize = (
   schema: any,
   input: any,
   parent: any,
   key: any,
-  visit: any,
+  args: readonly any[],
+  visit: Visit,
   addEntity: any,
-  visitedEntities: any,
+  getEntity: any,
+  checkLoop: any,
 ) => {
   const object = { ...input };
   Object.keys(schema).forEach(key => {
     const localSchema = schema[key];
-    const value = visit(
-      input[key],
-      input,
-      key,
-      localSchema,
-      addEntity,
-      visitedEntities,
-    );
-    if (value === undefined || value === null) {
+    const value = visit(localSchema, input[key], input, key, args);
+    if (value === undefined) {
       delete object[key];
     } else {
       object[key] = value;
@@ -31,42 +28,38 @@ export const normalize = (
 
 export const denormalize = (
   schema: any,
-  // eslint-disable-next-line @typescript-eslint/ban-types
   input: {},
+  args: readonly any[],
   unvisit: any,
-): [denormalized: any, found: boolean, deleted: boolean] => {
+): any => {
   if (isImmutable(input)) {
-    return denormalizeImmutable(schema, input, unvisit);
+    return denormalizeImmutable(schema, input, args, unvisit);
   }
 
   const object = { ...input };
-  let found = true;
   let deleted = false;
   Object.keys(schema).forEach(key => {
-    const [item, foundItem, deletedItem] = unvisit(object[key], schema[key]);
+    const item = unvisit(schema[key], object[key]);
     if (object[key] !== undefined) {
       object[key] = item;
     }
-    if (deletedItem) {
+    if (typeof item === 'symbol') {
       deleted = true;
     }
-    if (!foundItem) {
-      found = false;
-    }
   });
-  return [object, found, deleted];
+  return deleted ? INVALID : object;
 };
 
-export function infer(
+export function queryKey(
   schema: any,
   args: readonly any[],
-  indexes: any,
-  recurse: any,
-  entities: any,
+  queryKey: any,
+  getEntity: any,
+  getIndex: any,
 ) {
   const resultObject: any = {};
   for (const k of Object.keys(schema)) {
-    resultObject[k] = recurse(schema[k], args, indexes, entities);
+    resultObject[k] = queryKey(schema[k], args, getEntity, getIndex);
   }
   return resultObject;
 }

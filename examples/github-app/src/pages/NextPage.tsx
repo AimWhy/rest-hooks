@@ -1,29 +1,24 @@
-import { useController } from '@rest-hooks/react';
-import { useState } from 'react';
-import { IssueResource } from 'resources/Issue';
+import { useController, useLoading } from '@data-client/react';
+import { Button } from 'antd';
 
-export default function NextPage({
-  repo,
-  owner,
-  page,
-}: {
-  repo: string;
-  owner: string;
-  page: number;
-}) {
+import { IssueResource } from '@/resources/Issue';
+
+export default function NextPage({ q, page }: Props) {
   const ctrl = useController();
-  const [count, setCount] = useState(0);
-  const loadMore = () => {
-    ctrl.fetch(IssueResource.getNextPage, {
-      page: page + count + 1,
-      repo,
-      owner,
-    });
-    setCount((count) => count + 1);
-  };
+  const [loadMore, isPending] = useLoading(() =>
+    ctrl.fetch(IssueResource.search.getPage, {
+      page,
+      q,
+    }),
+  );
   return (
-    <div>
-      <button onClick={loadMore}>Load more</button>
+    <div style={{ textAlign: 'center', marginTop: 12 }}>
+      {isPending ? 'loading...' : <Button onClick={loadMore}>Load more</Button>}
     </div>
   );
+}
+
+export interface Props {
+  q: string;
+  page: string;
 }

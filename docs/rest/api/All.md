@@ -1,16 +1,15 @@
 ---
-title: schema.All
+title: schema.All - Access every entity in the Reactive Data Client store
+sidebar_label: schema.All
 ---
-
-<head>
-  <title>schema.All - Access every entity in the Rest Hooks store</title>
-</head>
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import LanguageTabs from '@site/src/components/LanguageTabs';
 import HooksPlayground from '@site/src/components/HooksPlayground';
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint } from '@data-client/rest';
+
+# schema.All
 
 Retrieves all entities in cache as an Array.
 
@@ -46,13 +45,10 @@ delay: 150,
 },
 ]}>
 
-```tsx title="api/User.ts" collapsed
+```tsx title="api/User" collapsed
 export class User extends Entity {
   id = '';
   name = '';
-  pk() {
-    return this.id;
-  }
 }
 export const createUser = new RestEndpoint({
   path: '/users',
@@ -62,8 +58,8 @@ export const createUser = new RestEndpoint({
 });
 ```
 
-```tsx title="NewUser.tsx" collapsed
-import { useController } from '@rest-hooks/react';
+```tsx title="NewUser" collapsed
+import { useController } from '@data-client/react';
 import { createUser } from './api/User';
 
 export default function NewUser() {
@@ -82,7 +78,7 @@ export default function NewUser() {
 ```
 
 ```tsx title="UsersPage.tsx"
-import { schema, RestEndpoint } from '@rest-hooks/rest';
+import { schema, RestEndpoint } from '@data-client/rest';
 import { User } from './api/User';
 import NewUser from './NewUser';
 
@@ -131,13 +127,10 @@ delay: 150,
 },
 ]}>
 
-```typescript title="api/Feed.ts"
+```typescript title="api/Feed"
 export abstract class FeedItem extends Entity {
   readonly id: number = 0;
   declare readonly type: 'link' | 'post';
-  pk() {
-    return `${this.id}`;
-  }
 }
 export class Link extends FeedItem {
   readonly type = 'link' as const;
@@ -160,7 +153,7 @@ export const getFeed = new RestEndpoint({
 });
 ```
 
-```tsx title="FeedList.tsx" collapsed
+```tsx title="FeedList" collapsed
 import { getFeed, Link, Post } from './api/Feed';
 
 function FeedList() {
@@ -205,13 +198,10 @@ delay: 150,
 },
 ]}>
 
-```typescript title="api/Feed.ts"
+```typescript title="api/Feed"
 export abstract class FeedItem extends Entity {
   readonly id: number = 0;
   declare readonly type: 'link' | 'post';
-  pk() {
-    return `${this.id}`;
-  }
 }
 export class Link extends FeedItem {
   readonly type = 'link' as const;
@@ -234,7 +224,7 @@ export const getFeed = new RestEndpoint({
 });
 ```
 
-```tsx title="FeedList.tsx" collapsed
+```tsx title="FeedList" collapsed
 import { getFeed, Link, Post } from './api/Feed';
 
 function FeedList() {

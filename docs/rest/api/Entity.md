@@ -1,111 +1,127 @@
 ---
-title: Entity
+title: Entity - Declarative unique objects for React
+sidebar_label: Entity
 ---
 
 <head>
-  <title>Entity - Declarative Data Normalization | Rest Hooks</title>
   <meta name="docsearch:pagerank" content="10"/>
 </head>
 
 import HooksPlayground from '@site/src/components/HooksPlayground';
 import LanguageTabs from '@site/src/components/LanguageTabs';
-import { RestEndpoint } from '@rest-hooks/rest';
+import { RestEndpoint } from '@data-client/rest';
+import TypeScriptEditor from '@site/src/components/TypeScriptEditor';
 
-<LanguageTabs>
+# Entity
 
-```typescript
-import { Entity } from '@rest-hooks/endpoint';
+<div style={{float:'right'}}>
 
-export default class Article extends Entity {
-  readonly id: number | undefined = undefined;
-  readonly title: string = '';
-  readonly content: string = '';
-  readonly author: number | null = null;
-  readonly tags: string[] = [];
-
-  pk() {
-    return this.id?.toString();
-  }
-
-  static get key() {
-    return 'Article';
+```ts
+{
+  Article: {
+    '1': {
+      id: '1',
+      title: 'Entities define data',
+    }
   }
 }
 ```
 
-```js
-import { Entity } from '@rest-hooks/endpoint';
+</div>
 
-export default class Article extends Entity {
-  id = undefined;
+`Entity` defines a single _unique_ object.
+
+[Entity.key](#key) + [Entity.pk()](#pk) (primary key) enable a [flat lookup table](https://react.dev/learn/choosing-the-state-structure#principles-for-structuring-state) store, enabling high
+performance, data consistency and atomic mutations.
+
+`Entities` enable customizing the data processing lifecycle by defining its static members like [schema](#schema)
+and overriding its [lifecycle methods](#lifecycle).
+
+## Usage
+
+<TypeScriptEditor>
+
+```typescript title="User" collapsed
+import { Entity } from '@data-client/rest';
+
+export class User extends Entity {
+  id = '';
+  username = '';
+
+  static key = 'User';
+  pk() {
+    return this.id;
+  }
+}
+```
+
+```typescript title="Article"
+import { Entity } from '@data-client/rest';
+import { User } from './User';
+
+export class Article extends Entity {
+  id = '';
   title = '';
   content = '';
-  author = null;
-  tags = [];
+  author = User.fromJS();
+  tags: string[] = [];
+  createdAt = Temporal.Instant.fromEpochSeconds(0);
 
+  static key = 'Article';
   pk() {
-    return this.id?.toString();
+    return this.id;
   }
 
-  static get key() {
-    return 'Article';
-  }
+  static schema = {
+    author: User,
+    createdAt: Temporal.Instant.from,
+  };
 }
 ```
 
-</LanguageTabs>
+</TypeScriptEditor>
 
-`Entity` is an abstract base class used to define data with some form of primary key (or `pk` for short).
-When representing data from a relational database, this makes an Entity roughly map 1:1 with a table, where
-each row represents an instance of the Entity.
-
-By defining a `pk()` member, Rest Hooks will normalize entities, ensuring consistency and improve performance
-by increasing cache hit rates.
+[static schema](#schema) is a declarative definition of fields to process.
+In this case, `author` is another `Entity` to be extracted, and `createdAt` will be converted
+from a string to a [Date](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date)
+object.
 
 :::tip
 
-Entities are bound to Endpoints using [createResource.schema](./createResource.md#schema) or
+Entities are bound to Endpoints using [resource.schema](./resource.md#schema) or
 [RestEndpoint.schema](./RestEndpoint.md#schema)
 
 :::
 
-## Data lifecycle
+:::tip
 
-import Lifecycle from '../diagrams/\_entity_lifecycle.mdx';
+If you already have your classes defined, [EntityMixin](./EntityMixin.md) can also be
+used to make Entities.
 
-<Lifecycle/>
+:::
 
-## Methods
+Other static members overrides allow customizing the data lifecycle as seen below.
 
-### static fromJS(props): Entity {#fromJS}
+## Members
 
-Factory method called during denormalization. Use this instead of `new MyEntity()`
+### pk(parent?, key?, args?): string | number | undefined {#pk}
 
-### process(input, parent, key): processedEntity {#process}
+<abbr title="Primary Key">pk</abbr> stands for [_primary key_](https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-PRIMARY-KEYS), uniquely identifying an `Entity` instance.
+By default this returns the an Entity's `id` field.
 
-Run at the start of normalization for this entity. Return value is saved in store
-and sent to [pk()](#pk).
-
-**Defaults** to simply copying the response (`{...input}`)
-
-### abstract pk: (parent?, key?): pk? {#pk}
-
-PK stands for _primary key_ and is intended to provide a standard means of retrieving
-a key identifier for any `Entity`. In many cases there will simply be an 'id' field
-member to return. In case of multicolumn you can simply join them together.
+Override this method to use other fields, or to for other cases like
+multicolumn primary keys.
 
 #### undefined value
 
 A `undefined` can be used as a default to indicate the entity has not been created yet.
-This is useful when initializing a creation form using [Entity.fromJS()](#static-fromjst-extends-typeof-simplerecordthis-t-props-partialabstractinstancetypet-abstractinstancetypet)
-directly. If `pk()` resolves to null it is considered not persisted to the server,
+This is useful when initializing a creation form using [Entity.fromJS()](#fromJS)
+directly. If `pk()` returns `undefined` it is considered not persisted to the server,
 and thus will not be kept in the cache.
 
 #### Other uses
 
-While the `pk()` definition is key (pun intended) for making the normalized cache work;
-it also becomes quite convenient for sending to a react element when iterating on
-list results:
+Since `pk()` is unique, it provides a consistent way of defining [JSX list keys](https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key)
 
 ```tsx
 //....
@@ -131,132 +147,145 @@ pk() {
 }
 ```
 
-### static get key(): string {#key}
-
-This defines the key for the Entity itself, rather than an instance. This needs to be a globally
-unique value.
-
-### static merge(existing, incoming): mergedValue {#merge}
+In case you have 
 
 ```typescript
-static merge(existing: any, incoming: any) {
-  return {
-    ...existing,
-    ...incoming,
+const get = new RestEndpoint({
+  path: '/options',
+  schema: OptionsEntity,
+});
+export const OptionsResource = {
+  get,
+  partialUpdate: get.extend({ method: 'PATCH' }),
+}
+```
+
+### static key: string {#key}
+
+This defines the key for the Entity kind, rather than an instance. This needs to be a globally
+unique value.
+
+:::warning
+
+This defaults to `this.name`; however this may break in production builds that change class names.
+This is often know as [class name mangling](https://terser.org/docs/api-reference#mangle-options).
+
+In these cases you can override `key` or disable class name mangling.
+
+:::
+
+```ts
+class User extends Entity {
+  id = '';
+  username = '';
+
+  pk() {
+    return this.id;
+  }
+  // highlight-next-line
+  static key = 'User';
+}
+```
+
+### static schema: \{ [k: keyof this]: Schema } {#schema}
+
+Defines [related entity](/rest/guides/relational-data) members, or
+[field deserialization](/rest/guides/network-transform#deserializing-fields) like Date and BigNumber.
+
+<HooksPlayground groupId="schema" defaultOpen="y" fixtures={[
+{
+endpoint: new RestEndpoint({path: '/posts/:id'}),
+args: [{ id: '123' }],
+response: {
+id: '5',
+author: { id: '123', name: 'Jim' },
+content: 'Happy day',
+createdAt: '2019-01-23T06:07:48.311Z',
+},
+delay: 150,
+},
+]}>
+
+```ts title="User" collapsed
+import { Entity } from '@data-client/rest';
+
+export class User extends Entity {
+  id = '';
+  name = '';
+
+  pk() {
+    return this.id;
+  }
+  static key = 'User';
+}
+```
+
+```ts title="Post" {16-20}
+import { Entity } from '@data-client/rest';
+import { User } from './User';
+
+export class Post extends Entity {
+  id = '';
+  author = User.fromJS();
+  createdAt = Temporal.Instant.fromEpochSeconds(0);
+  content = '';
+  title = '';
+
+  pk() {
+    return this.id;
+  }
+  static key = 'Post';
+
+  static schema = {
+    author: User,
+    createdAt: Temporal.Instant.from,
   };
 }
 ```
 
-Merge is used to handle cases when an incoming entity is already found. This is called directly
-when the same entity is found in one response. By default it is also called when [mergeWithStore()](#mergeWithStore)
-determines the incoming entity should be merged with an entity already persisted in the Rest Hooks store.
+```tsx title="PostPage" collapsed
+import { Post } from './Post';
 
-### static mergeWithStore(existingMeta, incomingMeta, existing, incoming): mergedValue {#mergeWithStore}
-
-```typescript
-static mergeWithStore(
-  existingMeta: { date: number; fetchedAt: number },
-  incomingMeta: { date: number; fetchedAt: number },
-  existing: any,
-  incoming: any,
-): any;
+export const getPost = new RestEndpoint({
+  path: '/posts/:id',
+  schema: Post,
+});
+function PostPage() {
+  const post = useSuspense(getPost, { id: '123' });
+  return (
+    <div>
+      <p>
+        {post.content} - <cite>{post.author.name}</cite>
+      </p>
+      <time>
+        {DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
+          post.createdAt,
+        )}
+      </time>
+    </div>
+  );
+}
+render(<PostPage />);
 ```
 
-`mergeWithStore()` is called during normalization when a processed entity is already found in the store.
+</HooksPlayground>
 
-This calls [useIncoming()](#useIncoming) and potentially [merge()](#merge)
+#### Optional members
 
-### static useIncoming(existingMeta, incomingMeta, existing, incoming): mergedValue {#useincoming}
+Entities references here whose default values in the Record definition itself are
+considered 'optional'
 
 ```typescript
-static useIncoming(
-  existingMeta: { date: number; fetchedAt: number },
-  incomingMeta: { date: number; fetchedAt: number },
-  existing: any,
-  incoming: any,
-) {
-  return existingMeta.fetchedAt <= incomingMeta.fetchedAt;
+class User extends Entity {
+  friend: User | null = null; // this field is optional
+  lastUpdated = Temporal.Instant.fromEpochSeconds(0);
+
+  static schema = {
+    friend: User,
+    lastUpdated: Temporal.Instant.from,
+  };
 }
 ```
-
-Override this to change the algorithm - for instance if having the absolutely correct latest value is important,
-adding a timestamp to the entity and then using it to select the return value will solve any race conditions.
-
-#### Example
-
-```typescript
-class LatestPriceEntity extends Entity {
-  readonly id: string = '';
-  readonly timestamp: string = '';
-  readonly price: string = '0.0';
-  readonly symbol: string = '';
-
-  static useIncoming(
-    existingMeta: { date: number; fetchedAt: number },
-    incomingMeta: { date: number; fetchedAt: number },
-    existing: any,
-    incoming: any,
-  ) {
-    return existing.timestamp <= incoming.timestamp;
-  }
-}
-```
-
-#### Preventing updates
-
-useIncoming can also be used to short-circuit an entity update.
-
-```typescript
-import deepEqual from 'deep-equal';
-
-class LatestPriceEntity extends Entity {
-  readonly id: string = '';
-  readonly timestamp: string = '';
-  readonly price: string = '0.0';
-  readonly symbol: string = '';
-
-  static useIncoming(
-    existingMeta: { date: number; fetchedAt: number },
-    incomingMeta: { date: number; fetchedAt: number },
-    existing: any,
-    incoming: any,
-  ) {
-    return !deepEqual(incoming, existing);
-  }
-}
-```
-
-### static validate(processedEntity): errorMessage? {#validate}
-
-Runs during both normalize and denormalize. Returning a string indicates an error (the string is the message).
-
-During normalization a validation failure will result in an error for that fetch.
-
-During denormalization a validation failure will mark that result as 'invalid' and thus
-will block on fetching a result.
-
-By **default** does some basic field existance checks in development mode only. Override to
-disable or customize.
-
-[Using validation for summary endpoints](../guides/summary-list.md)
-
-### static infer(args, indexes, recurse): pk? {#infer}
-
-Allows Rest Hooks to build a response without having to fetch if its entities can be found.
-
-Returning `undefined` will not infer this entity
-
-Returning `pk` string will attempt to lookup this entity and use in the response.
-
-When inferring a response, this entity's expiresAt is used to compute the expiry policy.
-
-By **default** uses the first argument to lookup in [pk()](#pk) and [indexes](#indexes)
-
-### static expiresAt(meta: { expiresAt: number; date: number }, input: any): expiresAt {#expiresat}
-
-This determines expiry time when entity is part of a result that is inferred.
-
-Overriding can be used to change TTL policy specifically for inferred responses.
 
 ### static indexes?: (keyof this)[] {#indexes}
 
@@ -264,9 +293,11 @@ Indexes enable increased performance when doing lookups based on those parameter
 fieldnames (like `slug`, `username`) to the list that you want to send as params to lookup
 later.
 
-> #### Note:
->
-> Don't add your primary key like `id` to the indexes list, as that will already be optimized.
+:::note
+
+Don't add your primary key like `id` to the indexes list, as that will already be optimized.
+
+:::
 
 #### useSuspense()
 
@@ -276,21 +307,15 @@ cache has already been populated by another request like a list request.
 
 ```typescript
 export class User extends Entity {
-  readonly id: number | undefined = undefined;
-  readonly username: string = '';
-  readonly email: string = '';
-  readonly isAdmin: boolean = false;
+  id: number | undefined = undefined;
+  username = '';
+  email = '';
+  isAdmin = false;
 
-  pk() {
-    return this.id?.toString();
-  }
-
-  static urlRoot = 'http://test.com/user/';
-
-  // right here
+  // highlight-next-line
   static indexes = ['username' as const];
 }
-export const UserResource = createResource({
+export const UserResource = resource({
   path: '/user/:id',
   schema: User,
 });
@@ -300,25 +325,25 @@ export const UserResource = createResource({
 const user = useSuspense(UserResource.get, { username: 'bob' });
 ```
 
-#### useCache()
+#### useQuery()
 
-With [useCache()](/docs/api/useCache), this enables accessing results retrieved inside other requests - even
+With [useQuery()](/docs/api/useQuery), this enables accessing results retrieved inside other requests - even
 if there is no endpoint it can be fetched from.
 
 ```typescript
 class LatestPrice extends Entity {
-  readonly id: string = '';
-  readonly symbol: string = '';
-  readonly price: string = '0.0';
-  static indexes = ['symbol'] as const;
+  id = '';
+  symbol = '';
+  price = '0.0';
+
+  static indexes = ['symbol' as const];
 }
-const latestPriceFromCache = new Index(LatestPrice);
 ```
 
 ```typescript
 class Asset extends Entity {
-  readonly id: string = '';
-  readonly price: string = '';
+  id = '';
+  price = '';
 
   static schema = {
     price: LatestPrice,
@@ -339,89 +364,284 @@ const assets = useSuspense(getAssets);
 Nested below:
 
 ```tsx
-const price = useCache(latestPriceFromCache, { symbol: 'BTC' });
+const price = useQuery(LatestPrice, { symbol: 'BTC' });
 ```
 
-### static schema: { [k: keyof this]: Schema } {#schema}
+## Lifecycle
 
-Set this to [define entities nested](/rest/guides/nested-response) inside this one.
+import Lifecycle from '../diagrams/\_entity_lifecycle.mdx';
 
-Additionally can be used to [declare field deserialization](/rest/guides/network-transform#deserializing-fields)
+<Lifecycle/>
 
-<HooksPlayground groupId="schema" defaultOpen="y" fixtures={[
-{
-endpoint: new RestEndpoint({path: '/posts/:id'}),
-args: [{ id: '123' }],
-response: {
-id: '5',
-author: { id: '123', name: 'Jim' },
-content: 'Happy day',
-createdAt: '2019-01-23T06:07:48.311Z',
-},
-delay: 150,
-},
-]}>
+### static fromJS(props): Entity {#fromJS}
 
-```tsx title="PostPage.tsx"
-export class User extends Entity {
-  id = '';
-  name = '';
-  pk() {
-    return this.id;
-  }
-}
-export class Post extends Entity {
-  id = '';
-  author = User.fromJS({});
-  createdAt = new Date(0);
-  content = '';
+Factory method that copies props to a new instance. Use this instead of `new MyEntity()`,
+to ensure default props are overridden.
+
+### static process(input, parent, key, args): processedEntity {#process}
+
+Run at the start of normalization for this entity. Return value is saved in store
+and sent to [pk()](#pk).
+
+**Defaults** to simply copying the response (`{...input}`)
+
+How to override to [build reverse-lookups for relational data](../guides/relational-data.md#reverse-lookups)
+
+#### Case of the missing id
+
+```ts
+class Stream extends Entity {
+  username = '';
   title = '';
+  game = '';
+  currentViewers = 0;
+  live = false;
 
-  static schema = {
-    author: User,
-    createdAt: Date,
-  };
   pk() {
-    return this.id;
+    return this.username;
+  }
+  static key = 'Stream';
+
+  process(value, parent, key, args) {
+    // super.process creates a copy of value
+    const processed = super.process(value, parent, key, args);
+    processed.username = args[0]?.username;
+    return processed;
   }
 }
-export const getPost = new RestEndpoint({
-  path: '/posts/:id',
-  schema: Post,
-});
-function PostPage() {
-  const post = useSuspense(getPost, { id: '123' });
-  return (
-    <div>
-      <p>
-        {post.content} - <cite>{post.author.name}</cite>
-      </p>
-      <time>
-        {Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
-          post.createdAt,
-        )}
-      </time>
-    </div>
-  );
-}
-render(<PostPage />);
 ```
 
-</HooksPlayground>
-
-#### Optional members
-
-Entities references here whose default values in the Record definition itself are
-considered 'optional'
+### static mergeWithStore(existingMeta, incomingMeta, existing, incoming): mergedValue {#mergeWithStore}
 
 ```typescript
-class User extends Entity {
-  readonly friend: User | null = null; // this field is optional
-  readonly lastUpdated: Date = new Date(0);
+static mergeWithStore(
+  existingMeta: {
+    date: number;
+    fetchedAt: number;
+  },
+  incomingMeta: { date: number; fetchedAt: number },
+  existing: any,
+  incoming: any,
+) {
+  const shouldUpdate = this.shouldUpdate(
+    existingMeta,
+    incomingMeta,
+    existing,
+    incoming,
+  );
 
-  static schema = {
-    friend: User,
-    lastUpdated: Date,
+  if (shouldUpdate) {
+    // distinct types are not mergeable (like delete symbol), so just replace
+    if (typeof incoming !== typeof existing) {
+      return incoming;
+    } else {
+      return this.shouldReorder(
+        existingMeta,
+        incomingMeta,
+        existing,
+        incoming,
+      )
+        ? this.merge(incoming, existing)
+        : this.merge(existing, incoming);
+    }
+  } else {
+    return existing;
+  }
+}
+```
+
+`mergeWithStore()` is called during normalization when a processed entity is already found in the store.
+
+This calls [shouldUpdate()](#shouldupdate), [shouldReorder()](#shouldreorder) and potentially [merge()](#merge)
+
+### static shouldUpdate(existingMeta, incomingMeta, existing, incoming): boolean {#shouldupdate}
+
+```typescript
+static shouldUpdate(
+  existingMeta: { date: number; fetchedAt: number },
+  incomingMeta: { date: number; fetchedAt: number },
+  existing: any,
+  incoming: any,
+) {
+  return existingMeta.fetchedAt <= incomingMeta.fetchedAt;
+}
+```
+
+#### Preventing updates
+
+shouldUpdate can also be used to short-circuit an entity update.
+
+```typescript
+import deepEqual from 'deep-equal';
+
+class Article extends Entity {
+  id = '';
+  title = '';
+  content = '';
+  published = false;
+
+  static shouldUpdate(
+    existingMeta: { date: number; fetchedAt: number },
+    incomingMeta: { date: number; fetchedAt: number },
+    existing: any,
+    incoming: any,
+  ) {
+    return !deepEqual(incoming, existing);
+  }
+}
+```
+
+### static shouldReorder(existingMeta, incomingMeta, existing, incoming): boolean {#shouldreorder}
+
+```typescript
+static shouldReorder(
+  existingMeta: { date: number; fetchedAt: number },
+  incomingMeta: { date: number; fetchedAt: number },
+  existing: any,
+  incoming: any,
+) {
+  return incomingMeta.fetchedAt < existingMeta.fetchedAt;
+}
+```
+
+`true` return value will reorder incoming vs in-store entity argument order in merge. With
+the default merge, this will cause the fields of existing entities to override those of incoming,
+rather than the other way around.
+
+#### Example
+
+<TypeScriptEditor>
+
+```typescript path="shouldReorder"
+class LatestPriceEntity extends Entity {
+  id = '';
+  updatedAt = 0;
+  price = '0.0';
+  symbol = '';
+
+  pk() {
+    return this.id;
+  }
+
+  static shouldReorder(
+    existingMeta: { date: number; fetchedAt: number },
+    incomingMeta: { date: number; fetchedAt: number },
+    existing: { updatedAt: number },
+    incoming: { updatedAt: number },
+  ) {
+    return incoming.updatedAt < existing.updatedAt;
+  }
+}
+```
+
+</TypeScriptEditor>
+
+### static merge(existing, incoming): mergedValue {#merge}
+
+```typescript
+static merge(existing: any, incoming: any) {
+  return {
+    ...existing,
+    ...incoming,
   };
 }
 ```
+
+Merge is used to handle cases when an incoming entity is already found. This is called directly
+when the same entity is found in one response. By default it is also called when [mergeWithStore()](#mergeWithStore)
+determines the incoming entity should be merged with an entity already persisted in the Reactive Data Client store.
+
+How to override to [build reverse-lookups for relational data](../guides/relational-data.md#reverse-lookups)
+
+### static mergeMetaWithStore(existingMeta, incomingMeta, existing, incoming): meta {#mergeMetaWithStore}
+
+```typescript
+static mergeMetaWithStore(
+  existingMeta: {
+    expiresAt: number;
+    date: number;
+    fetchedAt: number;
+  },
+  incomingMeta: { expiresAt: number; date: number; fetchedAt: number },
+  existing: any,
+  incoming: any,
+) {
+  return this.shouldReorder(existingMeta, incomingMeta, existing, incoming)
+    ? existingMeta
+    : incomingMeta;
+}
+```
+
+`mergeMetaWithStore()` is called during normalization when a processed entity is already found in the store.
+
+### static queryKey(args, queryKey, getEntity, getIndex): pk? {#queryKey}
+
+This method enables `Entities` to be [Queryable](./schema.md#queryable) - allowing store access without an endpoint.
+
+Overriding can allow customization or disabling of this behavior altogether.
+
+Returning `undefined` will disallow this behavior.
+
+Returning `pk` string will attempt to lookup this entity and use in the response.
+
+When used, expiry policy is computed based on the entity's own meta data.
+
+By **default** uses the first argument to lookup in [pk()](#pk) and [indexes](#indexes)
+
+#### getEntity(key, pk?)
+
+Gets all entities of a type with one argument, or a single entity with two
+
+```ts title="One argument"
+const entitiesEntry = getEntity(this.schema.key);
+if (entitiesEntry === undefined) return INVALID;
+return Object.values(entitiesEntry).map(
+  entity => entity && this.schema.pk(entity),
+);
+```
+
+```ts title="Two arguments"
+if (getEntity(this.key, id)) return id;
+```
+
+#### getIndex(key, indexName, value)
+
+Returns the index entry (value->pk map)
+
+```ts
+const value = args[0][indexName];
+return getIndex(schema.key, indexName, value)[value];
+```
+
+### static createIfValid(processedEntity): Entity | undefined {#createIfValid}
+
+Called when denormalizing an entity. This will create an instance of this class
+if it is deemed 'valid'.
+
+`undefined` return will result in [Invalid expiry status](/docs/concepts/expiry-policy#expiry-status),
+like [Invalidate](./Invalidate.md).
+
+[`Invalid`](/docs/concepts/expiry-policy#expiry-status) expiry generally means hooks will enter a loading state and attempt a new fetch.
+
+```ts
+static createIfValid(props): AbstractInstanceType<this> | undefined {
+  if (this.validate(props)) {
+    return undefined as any;
+  }
+  return this.fromJS(props);
+}
+```
+
+### static validate(processedEntity): errorMessage? {#validate}
+
+Runs during both normalize and denormalize. Returning a string indicates an error (the string is the message).
+
+During normalization a validation failure will result in an error for that fetch.
+
+During denormalization a validation failure will mark that result as 'invalid' and thus
+will block on fetching a result.
+
+By **default** does some basic field existance checks in development mode only. Override to
+disable or customize.
+
+[Using validation for endpoints with incomplete fields](../guides/partial-entities.md)

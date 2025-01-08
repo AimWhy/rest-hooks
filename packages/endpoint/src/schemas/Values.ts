@@ -1,65 +1,56 @@
 import PolymorphicSchema from './Polymorphic.js';
+import { Visit } from '../interface.js';
 
 /**
  * Represents variably sized objects
- * @see https://resthooks.io/rest/api/Values
+ * @see https://dataclient.io/rest/api/Values
  */
 export default class ValuesSchema extends PolymorphicSchema {
   normalize(
     input: any,
     parent: any,
     key: any,
-    visit: any,
+    args: any[],
+    visit: Visit,
     addEntity: any,
-    visitedEntities: any,
+    getEntity: any,
+    checkLoop: any,
   ) {
     return Object.keys(input).reduce((output, key, index) => {
       const value = input[key];
-      return value !== undefined && value !== null
-        ? {
+      return value !== undefined && value !== null ?
+          {
             ...output,
-            [key]: this.normalizeValue(
-              value,
-              input,
-              key,
-              visit,
-              addEntity,
-              visitedEntities,
-            ),
+            [key]: this.normalizeValue(value, input, key, args, visit),
           }
         : output;
     }, {});
   }
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  denormalize(input: {}, unvisit: any) {
-    let found = true;
-    let deleted = false;
-    return [
-      Object.keys(input).reduce((output, key) => {
-        const entityOrId = (input as any)[key];
-        const [value, foundItem, deletedItem] = this.denormalizeValue(
-          entityOrId,
-          unvisit,
-        );
-        if (!foundItem) {
-          found = false;
-        }
-        if (deletedItem) {
-          deleted = true;
-        }
-        if (!foundItem || deletedItem) return output;
-        return {
-          ...output,
-          [key]: value,
-        };
-      }, {}),
-      found,
-      deleted,
-    ];
+  denormalize(
+    input: {},
+    args: readonly any[],
+    unvisit: (schema: any, input: any) => any,
+  ): any {
+    return Object.keys(input).reduce((output, key) => {
+      const entityOrId = (input as any)[key];
+      const value = this.denormalizeValue(entityOrId, unvisit);
+
+      // remove empty or deleted values
+      if (!value || typeof value === 'symbol') return output;
+      return {
+        ...output,
+        [key]: value,
+      };
+    }, {});
   }
 
-  infer(args: any, indexes: any, recurse: any) {
+  queryKey(
+    args: any,
+    queryKey: unknown,
+    getEntity: unknown,
+    getIndex: unknown,
+  ) {
     return undefined;
   }
 }

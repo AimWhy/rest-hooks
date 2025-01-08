@@ -1,11 +1,14 @@
 ---
 title: Unit testing hooks
 ---
+
 import PkgTabs from '@site/src/components/PkgTabs';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
-:::danger
+:::warning
 
-Be careful when using [jest.mock](https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options) on modules like rest-hooks. Eliminating expected
+Be careful when using [jest.mock](https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options) on modules like Reactive Data Client. Eliminating expected
 exports can lead to hard-to trace
 errors like `TypeError: Class extends value undefined is not a function or null`.
 
@@ -17,21 +20,21 @@ endpoints.
 
 Hooks allow you to pull complex behaviors out of your components into succinct,
 composable functions. This makes testing component behavior potentially much
-easier. But how does this work if you want to use hooks from `rest-hooks`?
+easier. But how does this work if you want to use hooks from `Reactive Data Client`?
 
 We have provided some simple utilities to reduce boilerplate for unit tests
 that are wrappers around [@testing-library/react-hooks](https://github.com/testing-library/react-hooks-testing-library)'s [renderHook()](https://react-hooks-testing-library.com/reference/api#renderhook-options).
 
-We want a [renderRestHook()](../api/makeRenderRestHook#renderresthook) function that renders in the context of both
+We want a [renderDataHook()](../api/renderDataHook.md) function that renders in the context of both
 a `Provider` and `Suspense` boundary.
 
 These will generally be done during test setup. It's important to call cleanup
 upon test completion.
 
-:::caution
+:::note
 
-`renderRestHook()` creates a Provider context with new manager instances. This means each call
-to `renderRestHook()` will result in a completely fresh cache state as well as manager state.
+`renderDataHook()` creates a Provider context with new manager instances. This means each call
+to `renderDataHook()` will result in a completely fresh cache state as well as manager state.
 
 :::
 
@@ -59,21 +62,18 @@ require('whatwg-fetch');
 ### Example:
 
 <Tabs
-defaultValue="CacheProvider"
+defaultValue="DataProvider"
 values={[
-{ label: '@rest-hooks/react', value: 'CacheProvider' },
-{ label: '@rest-hooks/redux', value: 'ExternalCacheProvider' },
+{ label: '@data-client/react', value: 'DataProvider' },
+{ label: '@data-client/react/redux', value: 'ExternalDataProvider' },
 ]}>
-<TabItem value="CacheProvider">
+<TabItem value="DataProvider">
 
 ```typescript
 import nock from 'nock';
-import { makeRenderRestHook } from '@rest-hooks/test';
-import makeCacheProvider from '@rest-hooks/react/makeCacheProvider';
+import { renderDataHook } from '@data-client/test';
 
 describe('useSuspense()', () => {
-  let renderRestHook: ReturnType<typeof makeRenderRestHook>;
-
   beforeEach(() => {
     nock(/.*/)
       .persist()
@@ -85,7 +85,6 @@ describe('useSuspense()', () => {
       .reply(200)
       .get(`/article/0`)
       .reply(403, {});
-    renderRestHook = makeRenderRestHook(CacheProvider);
   });
 
   afterEach(() => {
@@ -93,7 +92,7 @@ describe('useSuspense()', () => {
   });
 
   it('should throw errors on bad network', async () => {
-    const { result, waitFor } = renderRestHook(() => {
+    const { result, waitFor } = renderDataHook(() => {
       return useSuspense(ArticleResource.get, {
         title: '0',
       });
@@ -107,15 +106,15 @@ describe('useSuspense()', () => {
 ```
 
 </TabItem>
-<TabItem value="ExternalCacheProvider">
+<TabItem value="ExternalDataProvider">
 
 ```typescript
 import nock from 'nock';
-import { makeRenderRestHook } from '@rest-hooks/test';
-import makeCacheProvider from '@rest-hooks/redux/makeCacheProvider';
+import { makeRenderDataHook } from '@data-client/test';
+import { DataProvider } from '@data-client/react/redux';
 
 describe('useSuspense()', () => {
-  let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+  let renderDataHook: ReturnType<typeof makeRenderDataHook>;
 
   beforeEach(() => {
     nock(/.*/)
@@ -128,7 +127,7 @@ describe('useSuspense()', () => {
       .reply(200)
       .get(`/article/0`)
       .reply(403, {});
-    renderRestHook = makeRenderRestHook(makeCacheProvider);
+    renderDataHook = makeRenderDataHook(DataProvider);
   });
 
   afterEach(() => {
@@ -136,7 +135,7 @@ describe('useSuspense()', () => {
   });
 
   it('should throw errors on bad network', async () => {
-    const { result, waitFor } = renderRestHook(() => {
+    const { result, waitFor } = renderDataHook(() => {
       return useSuspense(ArticleResource.get, {
         title: '0',
       });

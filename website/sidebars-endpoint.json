@@ -5,15 +5,15 @@
   },
   {
     "type": "doc",
-    "id": "api/Index"
-  },
-  {
-    "type": "doc",
     "id": "api/schema"
   },
   {
     "type": "doc",
     "id": "api/Entity"
+  },
+  {
+    "type": "doc",
+    "id": "api/EntityMixin"
   },
   {
     "type": "doc",
@@ -25,19 +25,27 @@
   },
   {
     "type": "doc",
-    "id": "api/Union"
-  },
-  {
-    "type": "doc",
     "id": "api/Values"
   },
   {
     "type": "doc",
-    "id": "api/Delete"
+    "id": "api/Collection"
+  },
+  {
+    "type": "doc",
+    "id": "api/Union"
+  },
+  {
+    "type": "doc",
+    "id": "api/Query"
   },
   {
     "type": "doc",
     "id": "api/All"
+  },
+  {
+    "type": "doc",
+    "id": "api/Invalidate"
   },
   {
     "type": "doc",

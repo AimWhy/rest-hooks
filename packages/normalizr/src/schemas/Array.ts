@@ -1,3 +1,5 @@
+import type { Visit } from '../interface.js';
+
 const validateSchema = definition => {
   /* istanbul ignore else */
   if (process.env.NODE_ENV !== 'production') {
@@ -15,17 +17,18 @@ const validateSchema = definition => {
 const getValues = input =>
   Array.isArray(input) ? input : Object.keys(input).map(key => input[key]);
 
-const filterEmpty = ([item, , deletedItem]) =>
-  item !== undefined && !deletedItem;
+const filterEmpty = item => item !== undefined && typeof item !== 'symbol';
 
 export const normalize = (
   schema: any,
   input: any,
   parent: any,
   key: any,
-  visit: any,
+  args: readonly any[],
+  visit: Visit,
   addEntity: any,
-  visitedEntities: any,
+  getEntity: any,
+  checkLoop: any,
 ) => {
   schema = validateSchema(schema);
 
@@ -33,29 +36,27 @@ export const normalize = (
 
   // Special case: Arrays pass *their* parent on to their children, since there
   // is not any special information that can be gathered from themselves directly
-  return values.map((value, index) =>
-    visit(value, parent, key, schema, addEntity, visitedEntities),
-  );
+  return values.map((value, index) => visit(schema, value, parent, key, args));
 };
 
 export const denormalize = (
   schema: any,
   input: any,
+  args: readonly any[],
   unvisit: any,
-): [denormalized: any, found: boolean, suspend: boolean] => {
+): any => {
   schema = validateSchema(schema);
-  return [
-    input.map
-      ? input
-          .map(entityOrId => unvisit(entityOrId, schema))
-          .filter(filterEmpty)
-          .map(([value]) => value)
-      : input,
-    true,
-    false,
-  ];
+  return input.map ?
+      input.map(entityOrId => unvisit(schema, entityOrId)).filter(filterEmpty)
+    : input;
 };
 
-export function infer(schema: any, args: any, indexes: any, recurse: any) {
+export function queryKey(
+  schema: any,
+  args: any,
+  queryKey: any,
+  getEntity: any,
+  getIndex: any,
+) {
   return undefined;
 }

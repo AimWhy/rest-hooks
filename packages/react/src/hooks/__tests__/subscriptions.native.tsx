@@ -1,6 +1,6 @@
-import { actionTypes, Controller } from '@rest-hooks/core';
-import { CacheProvider, useCache } from '@rest-hooks/react';
-import { CacheProvider as ExternalCacheProvider } from '@rest-hooks/redux';
+import { actionTypes, Controller } from '@data-client/core';
+import { CacheProvider, useCache } from '@data-client/react';
+import { DataProvider as ExternalDataProvider } from '@data-client/react/redux';
 import { renderHook } from '@testing-library/react-native';
 import {
   PollingArticleResource,
@@ -9,7 +9,7 @@ import {
 } from '__tests__/new';
 import nock from 'nock';
 
-import { makeRenderRestHook } from '../../../../test';
+import { makeRenderDataClient } from '../../../../test';
 import { ControllerContext } from '../../context';
 import useSubscription from '../useSubscription';
 
@@ -22,7 +22,7 @@ function jsonNock() {
 
 describe.each([
   ['CacheProvider', CacheProvider],
-  ['ExternalCacheProvider', ExternalCacheProvider],
+  ['ExternalDataProvider', ExternalDataProvider],
 ] as const)(`%s with subscriptions`, (_, makeProvider) => {
   const articlePayload = {
     id: 5,
@@ -30,7 +30,7 @@ describe.each([
     content: 'whatever',
     tags: ['a', 'best', 'react'],
   };
-  let renderRestHook: ReturnType<typeof makeRenderRestHook>;
+  let renderDataClient: ReturnType<typeof makeRenderDataClient>;
   async function validateSubscription(
     result: {
       readonly current: Article | undefined;
@@ -49,7 +49,7 @@ describe.each([
     expect(result.current).toBeUndefined();
     // should be defined after frequency milliseconds
     jest.advanceTimersByTime(frequency);
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
 
     await waitFor(() => expect(result.current).not.toBeUndefined());
     expect(result.current).toBeInstanceOf(Article);
@@ -63,7 +63,7 @@ describe.each([
 
     await waitFor(() => expect(fiverNock.isDone()).toBeTruthy());
     jest.useRealTimers();
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
     expect((result.current as any).title).toBe('fiver');
   }
 
@@ -99,21 +99,22 @@ describe.each([
       .reply(200, articlePayload)
       .get(`/article/${articlePayload.id}`)
       .reply(200, articlePayload);
-    renderRestHook = makeRenderRestHook(makeProvider);
+    renderDataClient = makeRenderDataClient(makeProvider);
   });
   afterEach(() => {
-    renderRestHook.cleanup();
+    renderDataClient.cleanup();
     nock.cleanAll();
     jest.useRealTimers();
   });
 
-  /* TODO: this uses non-native testing so it doesn't work
   it('useSubscription() + useCache()', async () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({
+      legacyFakeTimers: true,
+    });
     const frequency = PollingArticleResource.get.pollFrequency as number;
     expect(frequency).toBeDefined();
 
-    const { result, rerender, waitFor } = renderRestHook(
+    const { result, rerender, waitFor } = renderDataClient(
       ({ active }) => {
         useSubscription(
           PollingArticleResource.get,
@@ -124,12 +125,7 @@ describe.each([
       { initialProps: { active: true } },
     );
 
-    await validateSubscription(
-      result,
-      frequency,
-      articlePayload,
-      waitFor,
-    );
+    await validateSubscription(result, frequency, articlePayload, waitFor);
 
     // should not update if active is false
     rerender({ active: false });
@@ -141,46 +137,49 @@ describe.each([
 
     // errors should not fail when data already exists
     nock.cleanAll();
-    jsonNock().get(`/article/${articlePayload.id}`).reply(403, () => {
-      return { message: 'you fail' };
-    });
+    jsonNock()
+      .get(`/article/${articlePayload.id}`)
+      .reply(403, () => {
+        return { message: 'you fail' };
+      });
     rerender({ active: true });
     jest.advanceTimersByTime(frequency);
     expect((result.current as any).title).toBe('fiver');
     jest.useRealTimers();
-  });*/
+  });
 
   it('should console.error() with no frequency specified', async () => {
     const oldError = console.error;
     const spy = (console.error = jest.fn());
 
-    const { result } = renderRestHook(() => {
+    const { result } = renderDataClient(() => {
       useSubscription(ArticleResource.get, { id: articlePayload.id });
     });
     expect(result.error).toBeUndefined();
     expect(spy.mock.calls[0]).toMatchSnapshot();
 
     console.error = oldError;
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
   });
 
-  /*it.only('useSubscription() without active arg', async () => {
-    jest.useFakeTimers();
+  it('useSubscription() without active arg', async () => {
+    jest.useFakeTimers({
+      legacyFakeTimers: true,
+    });
     const frequency = PollingArticleResource.get.pollFrequency as number;
     expect(frequency).toBeDefined();
     expect(PollingArticleResource.anotherGet.pollFrequency).toBeDefined();
 
-    const { result } = renderRestHook(() => {
+    const { result, waitFor } = renderDataClient(() => {
       useSubscription(PollingArticleResource.get, { id: articlePayload.id });
       return useCache(PollingArticleResource.get, { id: articlePayload.id });
     });
 
-    await validateSubscription(result, frequency, articlePayload);
-    await renderRestHook.allSettled();
+    await validateSubscription(result, frequency, articlePayload, waitFor);
+    await renderDataClient.allSettled();
+  });
 
-  });*/
-
-  it('useSubscription() should dispatch rest-hooks/subscribe only once even with rerender', async () => {
+  it('useSubscription() should dispatch data-client/subscribe only once even with rerender', async () => {
     const fakeDispatch = jest.fn();
     const controller = new Controller({ dispatch: fakeDispatch });
 
@@ -203,7 +202,7 @@ describe.each([
       rerender({});
     }
     expect(fakeDispatch.mock.calls.length).toBe(1);
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
   });
 
   it('useSubscription() should unsubscribe with null arguments', async () => {
@@ -230,38 +229,11 @@ describe.each([
       rerender({ id: null });
     }
     expect(fakeDispatch.mock.calls.length).toBe(2);
-    expect(fakeDispatch.mock.calls[0][0].type).toBe(actionTypes.SUBSCRIBE_TYPE);
-    expect(fakeDispatch.mock.calls[1][0].type).toBe(
-      actionTypes.UNSUBSCRIBE_TYPE,
-    );
+    expect(fakeDispatch.mock.calls[0][0].type).toBe(actionTypes.SUBSCRIBE);
+    expect(fakeDispatch.mock.calls[1][0].type).toBe(actionTypes.UNSUBSCRIBE);
     expect(fakeDispatch.mock.calls[1][0].key).toBe(
       fakeDispatch.mock.calls[0][0].key,
     );
-    await renderRestHook.allSettled();
+    await renderDataClient.allSettled();
   });
-});
-
-it('useSubscription() should include extra options in dispatched meta', () => {
-  const fakeDispatch = jest.fn();
-  const controller = new Controller({ dispatch: fakeDispatch });
-
-  renderHook(
-    () => {
-      useSubscription(PollingArticleResource.pusher, { id: 5 });
-    },
-    {
-      wrapper: function Wrapper({ children }: any) {
-        return (
-          <ControllerContext.Provider value={controller}>
-            {children}
-          </ControllerContext.Provider>
-        );
-      },
-    },
-  );
-
-  const spy = fakeDispatch.mock.calls[0][0];
-  expect(spy.meta.options.extra.eventType).toEqual(
-    'PollingArticleResource:fetch',
-  );
 });
